@@ -91,23 +91,25 @@ class Game {
     }
   }
 
+  // Всеки играч по ред сам избира столицата си (не може до чужда столица)
   async assignCapitals() {
     this.phase = 'capitals';
-    // Столици възможно най-далеч една от друга
-    const chosen = [pickOne(REGION_IDS.filter((r) => r !== 'SOF'))];
-    while (chosen.length < this.players.length) {
-      const dists = chosen.map(bfsDistances);
-      const cands = REGION_IDS.filter((r) => !chosen.includes(r) && r !== 'SOF');
-      const best = Math.max(...cands.map((r) => Math.min(...dists.map((d) => d[r]))));
-      chosen.push(pickOne(cands.filter((r) => Math.min(...dists.map((d) => d[r])) === best)));
+    this.current = { type: 'info', title: 'Избор на столици', text: 'Всеки играч по ред избира своята столица на картата.' };
+    this.emit();
+    await this.sleep(this.t('info'));
+    const order = this.players.slice().sort(() => Math.random() - 0.5);
+    for (const p of order) {
+      const taken = this.players.map((x) => x.capital).filter(Boolean);
+      let options = REGION_IDS.filter((r) => !this.owner[r] && !taken.some((c) => c === r || REGIONS[c].neighbors.includes(r)));
+      if (!options.length) options = REGION_IDS.filter((r) => !this.owner[r]);
+      const r = await this.askPick(p.id, options, 'Избери своята столица', 'capital');
+      p.capital = r; this.owner[r] = p.id; this.value[r] = VALUES.capital;
+      this.say(`${p.name} избра столица ${REGIONS[r].name}.`);
+      this.emit();
     }
-    this.players.forEach((p, i) => {
-      p.capital = chosen[i]; this.owner[chosen[i]] = p.id; this.value[chosen[i]] = VALUES.capital;
-      this.say(`${p.name} получава столица ${REGIONS[chosen[i]].name}.`);
-    });
     this.current = { type: 'info', title: 'Столиците са избрани!', text: 'Отговаряйте вярно, за да завземате области.' };
     this.emit();
-    await this.sleep(this.t('info') * 1.5);
+    await this.sleep(this.t('info'));
   }
 
   async expansion() {
@@ -301,6 +303,14 @@ class Game {
   }
 
   botChooseRegion(pid, options, mode) {
+    if (mode === 'capital') {
+      const caps = this.players.map((p) => p.capital).filter(Boolean);
+      if (!caps.length) return pickOne(options.filter((r) => r !== 'SOF')) || pickOne(options);
+      const dists = caps.map(bfsDistances);
+      const score = (r) => Math.min(...dists.map((d) => d[r] ?? 99));
+      const best = Math.max(...options.map(score));
+      return pickOne(options.filter((r) => score(r) === best));
+    }
     if (mode === 'attack') {
       const nonCap = options.filter((r) => !this.players.some((p) => p.capital === r));
       const pool = Math.random() < 0.25 || !nonCap.length ? options : nonCap;

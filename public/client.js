@@ -54,8 +54,8 @@ $('#btnStart').onclick = () => send({ t: 'start' });
 $('#btnLeave').onclick = () => send({ t: 'leave' });
 $('#btnRules').onclick = () => {
   openOverlay(`<div class="mhead"><h3>Как се играе Quizzard?</h3></div><div class="mbody rules"><ol>
-    <li>🏰 Всеки играч получава <b>столица</b> с 3 кули на картата на България.</li>
-    <li>❓ Всички отговарят на един въпрос. Който отговори вярно, <b>завзема свободни области</b>.</li>
+    <li>🏰 Всеки играч по ред <b>избира своята столица</b> на картата. Тя има 3 кули.</li>
+    <li>❓ Всички отговарят на въпрос с 4 отговора, от които само един е верен. Който отговори вярно, <b>сам избира свободна област</b> до своите.</li>
     <li>🎯 Ако вярно отговорят няколко, идва <b>числов въпрос</b>. Най-близкият отговор избира първи и взима 2 области.</li>
     <li>⚔️ Когато картата се запълни, започват <b>битките</b>: нападай съседни области. Ако и двамата познаете, решава най-близкият числов отговор.</li>
     <li>👑 Превземеш ли столица (3 удара), взимаш всички области на противника. Печели този с най-много точки!</li>
@@ -139,7 +139,7 @@ function renderGame() {
   let banner = '';
   const pickBar = $('#pickTimer');
   if (c?.type === 'pick') {
-    banner = c.picker === me ? `👉 ${c.title}!` : `${pname(c.picker)} избира област…`;
+    banner = c.picker === me ? `👉 ${c.title}!` : `${pname(c.picker)} ${{ capital: 'избира столица', attack: 'избира къде да нападне' }[c.mode] || 'избира област'}…`;
     pickBar.classList.remove('hidden');
     const k = 'pick' + c.picker + c.options.join();
     if (pickBar.dataset.k !== k) { pickBar.dataset.k = k; startBar(pickBar.firstElementChild, c.timeLeft); }
