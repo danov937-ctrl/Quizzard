@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>Quizzard — завладей България със знания</title>
-  <meta name="description" content="Quizzard: мултиплейър куиз игра с карта на България за 1–4 клас.">
+  <meta name="description" content="Quizzard: куиз игра с карта на България за 1–4 клас. Играй онлайн, с приятели или с ботове.">
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Rubik:wght@700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kurale&family=Nunito:wght@700;800;900&family=Rubik:wght@700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="sky" aria-hidden="true"></div>
+  <div class="bg" aria-hidden="true"></div>
 
   <!-- Начален екран -->
   <section id="home" class="screen">
@@ -20,85 +20,114 @@
         <img src="logo.svg" alt="" class="brand-logo">
         <h1 class="brand-name">Quizzard</h1>
       </div>
-      <p class="tagline">Отговаряй, мисли бързо и завладей България със знания!</p>
-      <div class="subjects" id="subjectChips"></div>
+      <p class="tagline">Отговаряй на въпроси, завладей областите и спечели войната за България!</p>
 
-      <div class="card play-card">
-        <label for="name">Как се казваш?</label>
-        <input id="name" maxlength="16" placeholder="Твоето име" autocomplete="off">
-        <button id="btnCreate" class="big primary">✨ Нова игра</button>
-        <div class="or"><span>или влез в стая на приятел</span></div>
+      <div class="panel setup">
+        <div class="setup-row">
+          <label for="name" class="lbl">Твоето име</label>
+          <input id="name" maxlength="16" placeholder="напр. Мария" autocomplete="off">
+        </div>
+        <div class="setup-row">
+          <div class="lbl">Клас</div>
+          <div id="homeGrade" class="seg"></div>
+        </div>
+      </div>
+
+      <div class="modes">
+        <button class="mode" id="btnQuick">
+          <span class="mode-icon">⚔️</span><span class="mode-title">Онлайн игра</span>
+          <span class="mode-sub">Играй с деца от цяла България. Ако няма свободни, влизат ботове.</span>
+        </button>
+        <button class="mode" id="btnFriends">
+          <span class="mode-icon">🏰</span><span class="mode-title">С приятели</span>
+          <span class="mode-sub">Създай стая и кажи кода на приятелите си.</span>
+        </button>
+        <button class="mode" id="btnBots">
+          <span class="mode-icon">🤖</span><span class="mode-title">С ботове</span>
+          <span class="mode-sub">Тренирай срещу компютъра, когато искаш.</span>
+        </button>
+      </div>
+
+      <div class="panel join">
+        <span class="lbl">Имаш код от приятел?</span>
         <div class="row">
           <input id="code" maxlength="4" placeholder="1234" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="code-input">
-          <button id="btnJoin" class="big secondary">Влез</button>
+          <button id="btnJoin" class="btn gold">Влез</button>
         </div>
-        <p id="homeErr" class="err"></p>
-        <button id="btnRules" class="link">Как се играе?</button>
-        <button class="link small" data-report>🚩 Докладвай проблем</button>
       </div>
-      <p class="foot">За ученици от 1. до 4. клас · 2–4 играчи · играй с приятели или с ботове</p>
+      <p id="homeErr" class="err"></p>
+      <div class="home-links">
+        <button id="btnRules" class="link">📜 Как се играе?</button>
+        <button class="link" data-report>🚩 Докладвай проблем</button>
+        <button class="link" data-sound="fx">🔊 Звуци</button>
+        <button class="link" data-sound="music">🎵 Музика</button>
+      </div>
     </div>
   </section>
 
-  <!-- Стая за изчакване -->
+  <!-- Стая -->
   <section id="lobby" class="screen hidden">
-    <div class="mini-brand"><img src="logo.svg" alt=""><span>Quizzard</span></div>
-    <div class="card lobby-card">
-      <div class="room-head">
-        <div>
-          <div class="eyebrow">Код на стаята</div>
-          <div id="lobbyCode" class="room-code"></div>
-        </div>
-        <p class="sub">Кажи кода на приятелите си, за да влязат от своето устройство.</p>
-      </div>
+    <div class="mini-brand center"><img src="logo.svg" alt=""><span>Quizzard</span></div>
+    <div class="panel lobby-card">
+      <div id="lobbyHead" class="room-head"></div>
       <ul id="members" class="members"></ul>
       <div id="hostControls">
-        <div class="field-label">Клас</div>
+        <div class="lbl">Клас</div>
         <div id="gradeBtns" class="seg"></div>
-        <div class="field-label">Рундове с битки</div>
+        <div class="lbl">Предмети <small id="subjCount"></small></div>
+        <div id="subjBtns" class="subj-grid"></div>
+        <div class="lbl">Рундове във войната</div>
         <div id="roundBtns" class="seg"></div>
-        <button id="btnBot" class="big secondary">🤖 Добави бот</button>
-        <button id="btnStart" class="big primary">Започни играта ▶</button>
+        <div class="row two">
+          <button id="btnBot" class="btn wood">🤖 Добави бот</button>
+          <button id="btnStart" class="btn gold big">Започни ▶</button>
+        </div>
       </div>
-      <p id="guestWait" class="sub wait hidden">⏳ Изчакай домакина да започне играта…</p>
+      <p id="guestWait" class="wait hidden"></p>
       <p id="lobbyErr" class="err"></p>
-      <button id="btnLeave" class="link">Излез от стаята</button>
+      <button id="btnLeave" class="link">← Излез</button>
     </div>
   </section>
 
   <!-- Игра -->
   <section id="game" class="screen hidden">
-    <header class="topbar">
-      <div class="mini-brand"><img src="logo.svg" alt=""><span>Quizzard</span></div>
-      <div id="phaseLabel" class="phase"></div>
-      <div id="banner" class="banner"></div>
-      <button class="report-btn" data-report title="Докладвай проблем">🚩 Докладвай</button>
-    </header>
-    <div class="layout">
-      <div class="map-wrap"><svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
-        <div id="pickTimer" class="timer hidden"><div></div></div>
+    <header class="hud">
+      <div id="players" class="hud-players"></div>
+      <div class="hud-right">
+        <div id="phaseLabel" class="phase"></div>
+        <div class="icon-row">
+          <button class="icon-btn" data-sound="fx" title="Звуци">🔊</button>
+          <button class="icon-btn" data-sound="music" title="Музика">🎵</button>
+          <button class="icon-btn" data-report title="Докладвай проблем">🚩</button>
+        </div>
       </div>
-      <aside class="side">
-        <ul id="scoreboard" class="scoreboard"></ul>
-        <ul id="log" class="log"></ul>
-      </aside>
+    </header>
+    <div class="board">
+      <div class="map-frame">
+        <div id="banner" class="map-banner hidden"></div>
+        <div id="mapCard" class="map-card hidden"></div>
+        <div id="pickTimer" class="timer hidden"><div></div></div>
+        <svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <ul id="log" class="log"></ul>
     </div>
   </section>
 
   <div id="overlay" class="overlay hidden"><div id="modal" class="modal"></div></div>
 
   <!-- Докладване на проблем -->
-  <div id="reportOverlay" class="overlay report-layer hidden"><div class="modal">
-    <div class="mhead" style="background:linear-gradient(135deg,#e0413a,#f97316)"><h3>🚩 Докладвай проблем</h3></div>
+  <div id="reportOverlay" class="overlay report-layer hidden"><div class="modal scroll">
+    <div class="mhead red"><h3>🚩 Докладвай проблем</h3></div>
     <form id="reportForm" class="mbody">
       <p id="reportAbout" class="sub"></p>
       <div id="reportReasons" class="reasons"></div>
       <textarea id="reportText" maxlength="500" rows="3" placeholder="Опиши проблема…" class="hidden"></textarea>
       <p id="reportErr" class="err"></p>
-      <div class="row"><button type="button" id="reportCancel" class="big">Отказ</button><button type="submit" class="big primary">Изпрати</button></div>
+      <div class="row two"><button type="button" id="reportCancel" class="btn wood">Отказ</button><button type="submit" class="btn gold">Изпрати</button></div>
     </form>
   </div></div>
   <div id="toast" class="toast hidden"></div>
+  <div id="confetti" class="confetti" aria-hidden="true"></div>
 
   <script src="client.js"></script>
 </body>

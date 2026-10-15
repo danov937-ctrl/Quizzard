@@ -80,14 +80,24 @@ function mathNum(grade) {
 }
 
 // Подбира въпроси за стая с даден клас, без повторения в рамките на една игра.
+// Подбира въпроси за стая: избран клас (и класа под него), избрани предмети (по подразбиране всички),
+// без повторения в рамките на една игра.
 class QuestionPicker {
-  constructor(grade) {
+  constructor(grade, subjects = null) {
     this.grade = grade;
+    this.subjects = subjects && subjects.length ? new Set(subjects) : null;
     this.used = new Set();
   }
+  allowed(q) { return !this.subjects || this.subjects.has(q.subject); }
   pool(list) {
-    const ok = list.filter((q) => q.grade <= this.grade && q.grade >= this.grade - 1 && !this.used.has(q.id));
-    return ok.length ? ok : list.filter((q) => q.grade <= this.grade && !this.used.has(q.id));
+    const base = list.filter((q) => this.allowed(q));
+    const fresh = (arr) => arr.filter((q) => !this.used.has(q.id));
+    const near = base.filter((q) => q.grade <= this.grade && q.grade >= this.grade - 1);
+    const lower = base.filter((q) => q.grade <= this.grade);
+    let ok = fresh(near);
+    if (!ok.length) ok = fresh(lower);
+    if (!ok.length && lower.length) { for (const q of lower) this.used.delete(q.id); ok = near.length ? near : lower; } // свършили са – започваме отначало
+    return ok;
   }
   take(q) { if (q.id !== 'gen') this.used.add(q.id); return q; }
   // Първо се избира предмет (равен шанс, без същия предмет два пъти подред), после въпрос от него
@@ -101,14 +111,17 @@ class QuestionPicker {
     return pick(bySubj[subj]);
   }
   nextMC() {
+    const mathOk = !this.subjects || this.subjects.has('mat');
     const pool = this.pool(MC);
-    if (!pool.length || Math.random() < 0.1) return mathMC(this.grade);
+    if (mathOk && (!pool.length || Math.random() < 0.1)) return mathMC(this.grade);
+    if (!pool.length) return mathMC(this.grade);
     const q = this.take(this.pickBalanced(pool));
     return { ...q, options: shuffle(q.options) };
   }
+  // Числовите въпроси решават равенства; ако в избраните предмети няма, ползваме сметка
   nextNum() {
     const pool = this.pool(NUM);
-    if (!pool.length || Math.random() < 0.5) return mathNum(this.grade);
+    if (!pool.length || Math.random() < 0.4) return mathNum(this.grade);
     return this.take(pick(pool));
   }
 }
