@@ -37,8 +37,8 @@
 2|eng|Коя дума е число?|nine|nose|pink|kite
 2|eng|Какво означава „Good morning!“?|Добро утро!|Лека нощ!|Добър вечер!|Довиждане!
 2|eng|Как се казва „Лека нощ!“ на английски?|Good night!|Good morning!|Hello!|Thank you!
-2|eng|Как ще отговориш на „What's your name?“|My name is Ani.|I'm seven.|I'm fine.|Yes, I can.
-2|eng|Как ще отговориш на „How are you?“|I'm fine, thank you.|I'm Ivan.|I'm eight.|Goodbye.
+2|eng|Как ще отговориш на „What's your name?“?|My name is Ani.|I'm seven.|I'm fine.|Yes, I can.
+2|eng|Как ще отговориш на „How are you?“?|I'm fine, thank you.|I'm Ivan.|I'm eight.|Goodbye.
 2|eng|Какво означава „Sit down!“?|Седни!|Стани!|Отвори!|Слушай!
 # 3. клас
 3|eng|Какво означава „Tuesday“?|вторник|четвъртък|събота|понеделник
@@ -78,7 +78,7 @@
 3|eng|Попълни: „They ___ my friends.“|are|is|am|has
 3|eng|Попълни: „Can you swim? – Yes, I ___.“|can|do|am|have
 3|eng|Какво означава „The ball is under the table.“?|Топката е под масата.|Топката е на масата.|Топката е до масата.|Топката е зад масата.
-3|eng|Какво означава „What colour is it?“|Какъв цвят е?|Какво е това?|Колко е голямо?|Чие е това?
+3|eng|Какво означава „What colour is it?“?|Какъв цвят е?|Какво е това?|Колко е голямо?|Чие е това?
 3|eng|Какво означава „I like pizza.“?|Харесвам пица.|Искам пица.|Ям пица.|Нямам пица.
 3|eng|Какво означава „twelve“?|дванадесет|двадесет|единадесет|десет
 # 4. клас
@@ -100,10 +100,10 @@
 4|eng|Кое е множественото число на „box“?|boxes|boxs|boxies|boxen
 4|eng|Попълни: „She ___ like milk.“|doesn't|don't|isn't|aren't
 4|eng|Попълни: „___ you like apples? – Yes, I do.“|Do|Does|Are|Is
-4|eng|Какво означава „What time is it?“|Колко е часът?|Какво е времето?|Какъв ден е?|Къде си?
+4|eng|Какво означава „What time is it?“?|Колко е часът?|Какво е времето?|Какъв ден е?|Къде си?
 4|eng|Какво означава „It's three o'clock.“?|Часът е три.|Часът е тринадесет.|Часът е три и половина.|Часът е три без петнадесет.
-4|eng|Какво означава „Where are you from?“|Откъде си?|Къде си?|Къде живееш?|Как си?
-4|eng|Как ще отговориш на „Where are you from?“|I'm from Bulgaria.|I'm ten.|I'm fine.|I'm a pupil.
+4|eng|Какво означава „Where are you from?“?|Откъде си?|Къде си?|Къде живееш?|Как си?
+4|eng|Как ще отговориш на „Where are you from?“?|I'm from Bulgaria.|I'm ten.|I'm fine.|I'm a pupil.
 4|eng|Какво означава „doctor“?|лекар|учител|готвач|шофьор
 4|eng|Как е „пожарникар“ на английски?|firefighter|farmer|police officer|pilot
 4|eng|Какво означава „farmer“?|фермер|пожарникар|пилот|продавач
@@ -111,7 +111,7 @@
 4|eng|Какво означава „living room“?|хол|кухня|баня|таван
 4|eng|Какво означава „bike“?|колело|кола|влак|самолет
 4|eng|Как е „влак“ на английски?|train|plane|bus|boat
-4|eng|Какво означава „Let's go to the park!“|Хайде да отидем в парка!|Аз съм в парка.|Паркът е голям.|Обичам парка.
+4|eng|Какво означава „Let's go to the park!“?|Хайде да отидем в парка!|Аз съм в парка.|Паркът е голям.|Обичам парка.
 4|eng|Какво означава „hungry“?|гладен|жаден|уморен|щастлив
 4|eng|Какво означава „happy“?|щастлив|тъжен|уплашен|ядосан
 4|eng|Как е „уморен“ на английски?|tired|thirsty|hungry|angry
