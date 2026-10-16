@@ -312,7 +312,7 @@ function renderRows() {
   const rows = $('#qRows'); if (!rows) return;
   rows.innerHTML = qState.last.length ? qState.last.map((q, i) => `<tr class="click ${q.hidden ? 'dim' : ''} ${qState.selected.has(q.key) ? 'sel' : ''}" data-i="${i}">
       <td><input type="checkbox" data-sel="${q.key}" ${qState.selected.has(q.key) ? 'checked' : ''}></td>
-      <td><div class="qtext">${h(q.text)}</div><div class="qans">✓ ${h(q.kind === 'mc' ? q.options[0] : q.answer)}${q.kind === 'mc' ? `<span class="hint"> · ${q.options.slice(1).map(h).join(' · ')}</span>` : ''}</div><div class="flags">${qFlags(q)}</div></td>
+      <td><div class="qtext">${q.pic ? `<span style="font-size:1.3rem">${h(q.pic)}</span> ` : ''}${h(q.text)}</div><div class="qans">✓ ${h(q.kind === 'mc' ? q.options[0] : q.answer)}${q.kind === 'mc' ? `<span class="hint"> · ${q.options.slice(1).map(h).join(' · ')}</span>` : ''}</div><div class="flags">${qFlags(q)}</div></td>
       <td style="white-space:nowrap">${SUBJ_ICON[q.subject] || ''} ${h(SUBJ[q.subject] || q.subject)}</td><td>${q.grade}</td><td>${pctCell(q.stats)}</td></tr>`).join('')
     : '<tr><td colspan="5"><div class="empty"><div class="big">🔍</div>Няма въпроси с тези филтри.</div></td></tr>';
   rows.onclick = (e) => {
@@ -359,6 +359,7 @@ async function editQuestion(key, idx) {
         <div class="field"><span>Клас</span><div class="seg" id="fGrade">${[1, 2, 3, 4].map((g) => `<button type="button" data-g="${g}" class="${q.grade === g ? 'on' : ''}">${g}</button>`).join('')}</div></div>
         <label class="field grow"><span>Предмет</span><select id="fSubject">${subjOptions(q.subject)}</select></label>
       </div>
+      <label class="field"><span>Картинка <span class="hint">(по желание: емоджи, напр. 🐘, за по-малките)</span></span><input id="fPic" maxlength="16" value="${h(q.pic || '')}" placeholder="без картинка" style="width:160px"></label>
       <label class="field"><span>Въпрос <span class="hint" id="fLen"></span></span><textarea id="fText" rows="3" maxlength="300" placeholder="напр. Колко крака има паякът?">${h(q.text)}</textarea></label>
       <div id="fMc" class="${q.kind === 'mc' ? '' : 'hidden'}"><div class="field"><span>Отговори</span></div>
         ${[0, 1, 2, 3].map((i) => `<div class="opt-row"><span class="tag ${i ? 'wrong' : 'right'}">${i ? 'грешен' : '✓ верен'}</span><input data-o="${i}" maxlength="80" value="${h(q.options?.[i] || '')}" placeholder="${i ? 'грешен отговор' : 'верният отговор'}"></div>`).join('')}
@@ -384,11 +385,11 @@ async function editQuestion(key, idx) {
   });
   const el = m.el;
   let kind = q.kind, grade = q.grade;
-  const form = () => ({ kind, grade, subject: $('#fSubject', el).value, text: $('#fText', el).value, options: $$('[data-o]', el).map((i) => i.value), answer: $('#fAnswer', el).value });
+  const form = () => ({ kind, grade, pic: $('#fPic', el).value, subject: $('#fSubject', el).value, text: $('#fText', el).value, options: $$('[data-o]', el).map((i) => i.value), answer: $('#fAnswer', el).value });
   const preview = () => {
     const f = form();
     $('#fLen', el).textContent = `${f.text.length}/300`;
-    $('#fPreview', el).innerHTML = `<div class="pq"><small>${SUBJ_ICON[f.subject]} ${SUBJ[f.subject]} · ${f.grade} клас</small>${h(f.text) || '<span style="opacity:.5">Текстът на въпроса</span>'}</div>` +
+    $('#fPreview', el).innerHTML = `<div class="pq"><small>${SUBJ_ICON[f.subject]} ${SUBJ[f.subject]} · ${f.grade} клас</small>${f.pic ? `<div style="font-size:2.6rem;line-height:1.2">${h(f.pic)}</div>` : ''}${h(f.text) || '<span style="opacity:.5">Текстът на въпроса</span>'}</div>` +
       (kind === 'mc' ? `<div class="po">${f.options.map((o, i) => `<div class="${i === 0 ? 'right' : ''}">${h(o) || '…'}</div>`).join('')}</div>` : `<div class="pnum">${h(f.answer) || '?'}</div>`);
   };
   preview();
@@ -429,6 +430,7 @@ function importDialog() {
     body: `<p class="muted">Постави редове във формата на файловете на играта или избери .txt файл. Всеки ред е един въпрос:</p>
       <pre class="side-box small" style="white-space:pre-wrap;margin:0 0 12px">клас|предмет|въпрос|ВЕРЕН|грешен|грешен|грешен      ← с 4 отговора
 клас|предмет|въпрос|отговор                          ← числов
+…|картинка   ← по желание последно поле с емоджи
 напр.  2|okol|Кой сезон идва след зимата?|Пролет|Лято|Есен|Зима</pre>
       <div class="small muted" style="margin-bottom:8px">Предмети: ${Object.entries(SUBJ).map(([k, v]) => `<b>${k}</b> ${v}`).join(' · ')}</div>
       <textarea id="impText" rows="8" placeholder="Постави въпросите тук…"></textarea>
