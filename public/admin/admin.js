@@ -18,7 +18,7 @@ const SUBJ_ICON = { bel: '📖', mat: '➗', okol: '🌳', prir: '🔬', obsht: 
 const MODE = { online: 'Онлайн', friends: 'С приятели', bots: 'С ботове' };
 const MODE_COLOR = { online: '#1e88e5', friends: '#43a047', bots: '#fb8c00' };
 const PHASE = { lobby: 'Чака в стаята', start: 'Започва', capitals: 'Избор на столици', expansion: 'Рунд 1: завладяване', battle: 'Рунд 2: война', ended: 'Свършила' };
-const ACTION = { add: 'Добавен въпрос', edit: 'Редакция', hide: 'Скрит', show: 'Показан отново', delete: 'Изтрит', reset: 'Върнат към оригинала', import: 'Внесен', revert: 'Върната промяна', settings: 'Настройки', restore: 'Възстановен архив', 'room-close': 'Затворена стая', kick: 'Изваден играч', 'bulk-hide': 'Скрит (група)', 'bulk-show': 'Показан (група)', 'bulk-delete': 'Изтрит (група)', 'bulk-grade': 'Сменен клас (група)', 'bulk-subject': 'Сменен предмет (група)', 'player-rename': 'Преименуван играч', 'player-ban': 'Спрян акаунт', 'player-unban': 'Пуснат акаунт', 'player-password': 'Нова парола на играч', 'player-delete': 'Изтрит акаунт', 'photo-approve': 'Одобрена снимка', 'photo-reject': 'Отхвърлена снимка' };
+const ACTION = { add: 'Добавен въпрос', edit: 'Редакция', hide: 'Скрит', show: 'Показан отново', delete: 'Изтрит', reset: 'Върнат към оригинала', import: 'Внесен', revert: 'Върната промяна', settings: 'Настройки', restore: 'Възстановен архив', 'room-close': 'Затворена стая', kick: 'Изваден играч', 'bulk-hide': 'Скрит (група)', 'bulk-show': 'Показан (група)', 'bulk-delete': 'Изтрит (група)', 'bulk-grade': 'Сменен клас (група)', 'bulk-subject': 'Сменен предмет (група)', 'player-rename': 'Преименуван играч', 'player-ban': 'Спрян акаунт', 'player-unban': 'Пуснат акаунт', 'player-password': 'Нова парола на играч', 'player-delete': 'Изтрит акаунт', 'photo-approve': 'Одобрена снимка', 'photo-reject': 'Отхвърлена снимка', 'team-add': 'Нов клас', 'team-delete': 'Изтрит клас', 'tournament-add': 'Нов турнир', 'tournament-delete': 'Изтрит турнир', 'player-export': 'Изтеглени данни на играч', 'mail-weekly': 'Седмичен отчет', 'players-cleanup': 'Автоматично изтриване' };
 const IDEA_STATUS = { new: ['Нова', 'info'], published: ['Публикувана', 'ok'], planned: ['Ще я направим', 'warn'], done: ['Направена', 'ok'], rejected: ['Отхвърлена', 'bad'] };
 const subjOptions = (sel, any) => (any ? `<option value="">${any}</option>` : '') + Object.entries(SUBJ).map(([k, v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${SUBJ_ICON[k]} ${v}</option>`).join('');
 const pctColor = (p) => p == null ? 'var(--line)' : p < 40 ? 'var(--bad)' : p < 65 ? 'var(--warn)' : 'var(--ok)';
@@ -98,6 +98,7 @@ const PAGES = [
   { id: 'ideas', icon: '💡', title: 'Идеи', count: 'ideas' },
   { id: 'players', icon: '👤', title: 'Играчи' },
   { id: 'photos', icon: '🖼️', title: 'Снимки', count: 'photos' },
+  { id: 'league', icon: '🏫', title: 'Турнири и класове' },
   { group: 'Управление' },
   { id: 'announce', icon: '📣', title: 'Съобщения' },
   { id: 'settings', icon: '⚙️', title: 'Настройки' },
@@ -544,25 +545,27 @@ VIEWS.ideas = async (view) => {
 // ----- играчи -----
 let plQ = '', plSort = 'recent';
 VIEWS.players = async (view) => {
-  view.innerHTML = `<div class="banner info">🔒 <div>Пазим само прякор и парола (без имейл и истинско име), защото играчите са деца. Ако дете забрави паролата си, тук можеш да му дадеш нова.</div></div>
-    <div class="filters" style="margin-top:12px"><input class="search" id="plSearch" placeholder="🔍 Търси по прякор…" value="${h(plQ)}">
+  view.innerHTML = `<div class="banner info">🔒 <div>Пазим потребителско име, парола и имейл на родителя (без истинско име). Имейлите се виждат само тук: не ги използвай за нищо друго освен за профила. Ако дете забрави паролата си, тук можеш да му дадеш нова.</div></div>
+    <div class="filters" style="margin-top:12px"><input class="search" id="plSearch" placeholder="🔍 Търси по име или имейл…" value="${h(plQ)}">
       <select id="plSort"><option value="recent">Последно влизане</option><option value="new">Най-нови</option><option value="wins">Най-много победи</option><option value="games">Най-много игри</option><option value="name">По азбучен ред</option></select></div>
-    <div class="card" style="padding-top:4px"><div class="table-wrap"><table><thead><tr><th>Прякор</th><th class="num">Ниво</th><th class="num">Значки</th><th>Клас</th><th class="num">Игри</th><th class="num">Победи</th><th class="num">Верни</th><th>Последно</th><th></th></tr></thead><tbody id="plRows"></tbody></table></div><div class="hint" id="plTotal" style="margin-top:8px"></div></div>`;
+    <div class="card" style="padding-top:4px"><div class="table-wrap"><table><thead><tr><th>Играч</th><th>Родител</th><th class="num">Ниво</th><th class="num">Значки</th><th>Клас</th><th class="num">Игри</th><th class="num">Победи</th><th class="num">Верни</th><th>Последно</th><th></th></tr></thead><tbody id="plRows"></tbody></table></div><div class="hint" id="plTotal" style="margin-top:8px"></div></div>`;
   $('#plSort').value = plSort;
   const load = async () => {
     const d = await GET(`players?q=${encodeURIComponent(plQ)}&sort=${plSort}`);
     $('#plTotal').textContent = `${fmt(d.total)} акаунта`;
     $('#plRows').innerHTML = d.items.length ? d.items.map((u) => `<tr class="${u.banned ? 'dim' : ''}" data-id="${u.id}" data-name="${h(u.name)}" data-banned="${u.banned ? 1 : ''}">
-      <td><div class="row" style="flex-wrap:nowrap">${avatarHtml(u.avatar, 34)}<div><b>${h(u.name)}</b> ${u.banned ? '<span class="badge bad">спрян</span>' : ''}<div class="hint">от ${new Date(u.createdAt).toLocaleDateString('bg-BG')}</div></div></div></td>
+      <td><div class="row" style="flex-wrap:nowrap">${avatarHtml(u.avatar, 34)}<div><b>${h(u.name)}</b> ${u.banned ? '<span class="badge bad">спрян</span>' : ''}<div class="hint">от ${new Date(u.createdAt).toLocaleDateString('bg-BG')}${u.team ? ' · ' + h(u.team) : ''}</div></div></div></td>
+      <td>${u.email ? `<span class="hint" style="word-break:break-all">${h(u.email)}</span><br>${{ yes: '<span class="badge ok">потвърден</span>', waiting: '<span class="badge warn">чака потвърждение</span>', nomail: '<span class="badge">без писмо</span>' }[u.consent] || ''}${u.consent === 'yes' && !u.weeklyMail ? ' <span class="hint">без отчет</span>' : ''}` : '<span class="hint">—</span>'}</td>
       <td class="num"><b>${u.level}</b><div class="hint">${fmt(u.xp)} XP</div></td><td class="num">${u.badges}</td><td>${u.grade || '—'}</td><td class="num">${u.games}</td><td class="num">${u.wins}</td><td class="num">${u.pct == null ? '—' : u.pct + '%'}</td><td class="hint">${ago(u.lastSeen)}</td>
-      <td class="num"><button class="btn sm" data-a="rename" title="Преименувай">✏️</button> <button class="btn sm" data-a="pass" title="Нова парола">🔑</button> <button class="btn sm" data-a="ban" title="${u.banned ? 'Пусни' : 'Спри'}">${u.banned ? '✅' : '⛔'}</button> <button class="btn sm danger" data-a="del" title="Изтрий">🗑</button></td></tr>`).join('')
-      : '<tr><td colspan="9"><div class="empty"><div class="big">👤</div>Още няма регистрирани играчи.</div></td></tr>';
+      <td class="num" style="white-space:nowrap">${u.consent === 'waiting' ? '<button class="btn sm" data-a="resend" title="Изпрати пак писмото за потвърждение">📧</button> ' : ''}<a class="btn sm" href="/api/admin/players/${u.id}/export" download title="Изтегли данните (за родител)">⬇️</a> <button class="btn sm" data-a="rename" title="Преименувай">✏️</button> <button class="btn sm" data-a="pass" title="Нова парола">🔑</button> <button class="btn sm" data-a="ban" title="${u.banned ? 'Пусни' : 'Спри'}">${u.banned ? '✅' : '⛔'}</button> <button class="btn sm danger" data-a="del" title="Изтрий">🗑</button></td></tr>`).join('')
+      : '<tr><td colspan="10"><div class="empty"><div class="big">👤</div>Още няма регистрирани играчи.</div></td></tr>';
   };
   $('#plSearch').oninput = debounce((e) => { plQ = e.target.value; load(); });
   $('#plSort').onchange = (e) => { plSort = e.target.value; load(); };
   $('#plRows').onclick = async (e) => {
     const b = e.target.closest('[data-a]'); if (!b) return;
     const tr = b.closest('tr'), id = tr.dataset.id, name = tr.dataset.name;
+    if (b.dataset.a === 'resend') { await run(() => api('POST', `players/${id}/resend-consent`), 'Писмото е изпратено пак.'); return; }
     if (b.dataset.a === 'rename') {
       const m = modal({ title: 'Преименувай играч', size: 'narrow', body: `<label class="field"><span>Нов прякор</span><input id="newName" value="${h(name)}" maxlength="16"></label><p class="err" id="rnErr"></p>`, foot: '<button class="btn primary" data-ok>Запази</button>' });
       $('[data-ok]', m.el).onclick = async () => { try { await api('PUT', 'players/' + id, { name: $('#newName', m.el).value }); m.close(); toast('Прякорът е сменен.'); load(); } catch (x) { $('#rnErr', m.el).textContent = x.message; } };
@@ -581,6 +584,63 @@ const avatarHtml = (a, size = 40) => a?.photo ? `<img src="${h(a.photo)}" alt=""
   : `<span style="width:${size}px;height:${size}px;border-radius:50%;background:${h(a?.color || '#ccc')};display:inline-grid;place-items:center;font-size:${size * 0.55}px;flex:none">${h(a?.icon || '👤')}</span>`;
 
 // ----- снимки за профила -----
+// ----- турнири и класове -----
+const TSTATUS = { live: ['🟢 Тече', 'ok'], soon: ['⏳ Предстои', 'info'], over: ['🏁 Свършил', ''] };
+const dayInput = (d) => { if (!d) return ''; const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+VIEWS.league = async (view) => {
+  const [teams, tours] = await Promise.all([GET('teams'), GET('tournaments')]);
+  view.innerHTML = `<div class="banner info">🏫 <div>Създай клас (напр. „3Б“ от ОУ „Христо Ботев“) и дай кода на учителя. Децата въвеждат кода в Профил → ⚙️. Докато тече турнир, точките опит на децата отиват и за класа им. Класирането се вижда в играта: 🏆 Класация → 🏫 Турнир.</div></div>
+    <div class="grid g2" style="margin-top:12px">
+    <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🏆 Турнири</h3><button class="btn primary sm" id="tNew">＋ Нов турнир</button></div>
+      ${tours.items.length ? tours.items.map((t) => `<div class="card" style="margin-top:12px;box-shadow:none;border:1px solid var(--line)" data-tid="${t.id}">
+        <div class="row" style="justify-content:space-between"><b>${h(t.name)}</b><span class="badge ${TSTATUS[t.status][1]}">${TSTATUS[t.status][0]}</span></div>
+        <div class="hint">${new Date(t.start).toLocaleDateString('bg-BG')} – ${new Date(t.end).toLocaleDateString('bg-BG')} · ${t.grades.length ? t.grades.join(', ') + ' клас' : 'всички класове'} · ${t.scoring === 'avg' ? 'средно на дете' : 'сбор точки'}</div>
+        ${t.standings.teams.length ? `<table style="margin-top:8px"><thead><tr><th>#</th><th>Клас</th><th class="num">Деца</th><th class="num">${t.scoring === 'avg' ? 'Средно' : 'Точки'}</th></tr></thead><tbody>${t.standings.teams.slice(0, 10).map((x) => `<tr><td>${x.place}</td><td><b>${h(x.name)}</b> <span class="hint">${h(x.school)}</span></td><td class="num">${x.players}</td><td class="num">${fmt(x.value)}</td></tr>`).join('')}</tbody></table>
+          ${t.standings.schools.length > 1 ? `<div class="hint" style="margin-top:6px">Училища: ${t.standings.schools.slice(0, 5).map((x) => `${x.place}. ${h(x.school)} (${fmt(x.value)})`).join(' · ')}</div>` : ''}` : '<div class="hint" style="margin-top:6px">Още няма точки.</div>'}
+        <div class="row end" style="margin-top:8px"><button class="btn sm" data-t="edit">✏️ Промени</button><button class="btn sm danger" data-t="del">🗑</button></div></div>`).join('') : '<div class="empty"><div class="big">🏆</div>Още няма турнири.</div>'}</div>
+    <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🏫 Класове</h3><button class="btn primary sm" id="cNew">＋ Нов клас</button></div>
+      ${teams.items.length ? `<div class="table-wrap"><table style="margin-top:8px"><thead><tr><th>Клас</th><th>Код</th><th class="num">Деца</th><th></th></tr></thead><tbody>${teams.items.map((t) => `<tr data-cid="${t.id}"><td><b>${h(t.name)}</b>${t.grade ? ` <span class="hint">${t.grade} кл.</span>` : ''}<div class="hint">${h(t.school)}${t.town ? ', ' + h(t.town) : ''}</div></td><td><code style="font-size:1.1em;font-weight:800;letter-spacing:.1em">${h(t.code)}</code></td><td class="num">${t.members}</td>
+        <td class="num" style="white-space:nowrap"><button class="btn sm" data-c="view" title="Деца">👀</button> <button class="btn sm" data-c="edit" title="Промени">✏️</button> <button class="btn sm" data-c="code" title="Нов код">🔄</button> <button class="btn sm danger" data-c="del" title="Изтрий">🗑</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div class="big">🏫</div>Още няма класове.</div>'}</div></div>`;
+  const teamForm = (t = {}) => `<label class="field"><span>Клас</span><input id="fName" maxlength="20" value="${h(t.name || '')}" placeholder="напр. 3Б"></label>
+    <label class="field"><span>Училище</span><input id="fSchool" maxlength="80" value="${h(t.school || '')}" placeholder="напр. ОУ „Христо Ботев“"></label>
+    <label class="field"><span>Град или село</span><input id="fTown" maxlength="40" value="${h(t.town || '')}"></label>
+    <label class="field"><span>Кой клас</span><select id="fGrade"><option value="">—</option>${[1, 2, 3, 4].map((g) => `<option ${t.grade === g ? 'selected' : ''}>${g}</option>`).join('')}</select></label><p class="err" id="fErr"></p>`;
+  const teamData = (el) => ({ name: $('#fName', el).value, school: $('#fSchool', el).value, town: $('#fTown', el).value, grade: Number($('#fGrade', el).value) || null });
+  const tourForm = (t = { grades: [], scoring: 'sum' }) => `<label class="field"><span>Име</span><input id="tName" maxlength="60" value="${h(t.name || '')}" placeholder="напр. Есенна купа на знанието"></label>
+    <div class="row"><label class="field"><span>Начало</span><input type="date" id="tStart" value="${dayInput(t.start)}"></label><label class="field"><span>Край (включително)</span><input type="date" id="tEnd" value="${t.end ? dayInput(new Date(Date.parse(t.end) - 86400000)) : ''}"></label></div>
+    <div class="field"><span>За кои класове</span><div class="row">${[1, 2, 3, 4].map((g) => `<label class="switch"><input type="checkbox" class="tGrade" value="${g}" ${t.grades.includes(g) ? 'checked' : ''}> ${g} клас</label>`).join('')}</div><span class="hint">Нищо отметнато = всички класове</span></div>
+    <label class="field"><span>Класиране</span><select id="tScoring"><option value="sum" ${t.scoring === 'sum' ? 'selected' : ''}>Сбор от точките на децата</option><option value="avg" ${t.scoring === 'avg' ? 'selected' : ''}>Средно на дете (честно към малките класове)</option></select></label><p class="err" id="fErr"></p>`;
+  const tourData = (el) => {
+    const start = $('#tStart', el).value, end = $('#tEnd', el).value;
+    const at = (d, plus = 0) => { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + plus); return x.toISOString(); };
+    return { name: $('#tName', el).value, start: start ? at(start) : '', end: end ? at(end, 1) : '', grades: $$('.tGrade', el).filter((c) => c.checked).map((c) => +c.value), scoring: $('#tScoring', el).value };
+  };
+  const save = (title, body, fn, msg) => {
+    const m = modal({ title, body, foot: '<button class="btn primary" data-ok>Запази</button>' });
+    $('[data-ok]', m.el).onclick = async () => { try { const r = await fn(m.el); if (r && r.error) throw new Error(r.error); m.close(); toast(msg); route(); } catch (x) { $('#fErr', m.el).textContent = x.message; } };
+  };
+  $('#cNew').onclick = () => save('Нов клас', teamForm(), (el) => api('POST', 'teams', teamData(el)), 'Класът е създаден. Дай кода на учителя.');
+  $('#tNew').onclick = () => save('Нов турнир', tourForm(), (el) => api('POST', 'tournaments', tourData(el)), 'Турнирът е създаден.');
+  view.onclick = async (e) => {
+    const c = e.target.closest('[data-c]'), t = e.target.closest('[data-t]');
+    if (c) {
+      const id = c.closest('[data-cid]').dataset.cid, team = teams.items.find((x) => x.id === id);
+      if (c.dataset.c === 'edit') save('Промени класа', teamForm(team), (el) => api('PUT', 'teams/' + id, teamData(el)), 'Запазено.');
+      if (c.dataset.c === 'code' && (await confirmBox(`Нов код за ${h(team.name)}? Децата, които вече са в класа, остават. Старият код спира да работи.`, { ok: 'Нов код' }))) { if (await run(() => api('PUT', 'teams/' + id, { newCode: true }), 'Кодът е сменен.')) route(); }
+      if (c.dataset.c === 'del' && (await confirmBox(`Да изтрия ли ${h(team.name)} (${h(team.school)})? Децата остават, само излизат от класа.`, { ok: 'Изтрий', danger: true }))) { if (await run(() => api('DELETE', 'teams/' + id), 'Класът е изтрит.')) route(); }
+      if (c.dataset.c === 'view') {
+        const d = await run(() => GET('teams/' + id));
+        if (d) modal({ title: `${h(d.team.name)} · ${h(d.team.school)}`, body: `<p>Код за децата: <code style="font-size:1.3em;font-weight:800;letter-spacing:.1em">${h(d.team.code)}</code></p>${d.members.length ? `<table><tbody>${d.members.map((u) => `<tr><td><div class="row" style="flex-wrap:nowrap">${avatarHtml(u.avatar, 28)} <b>${h(u.name)}</b></div></td><td class="num">ниво ${u.level}</td><td class="num">${u.games} игри</td></tr>`).join('')}</tbody></table>` : '<div class="empty">Още няма деца в класа.</div>'}` });
+      }
+    }
+    if (t) {
+      const id = Number(t.closest('[data-tid]').dataset.tid), tour = tours.items.find((x) => x.id === id);
+      if (t.dataset.t === 'edit') save('Промени турнира', tourForm(tour), (el) => api('PUT', 'tournaments/' + id, tourData(el)), 'Запазено.');
+      if (t.dataset.t === 'del' && (await confirmBox(`Да изтрия ли турнира „${h(tour.name)}“ и класирането му?`, { ok: 'Изтрий', danger: true }))) { if (await run(() => api('DELETE', 'tournaments/' + id), 'Турнирът е изтрит.')) route(); }
+    }
+  };
+};
+
 VIEWS.photos = async (view) => {
   const d = await GET('photos');
   const card = (x, pending) => `<div class="item" data-uid="${x.uid}" style="text-align:center"><img src="${h(x.data)}" alt="" style="width:120px;height:120px;border-radius:50%;object-fit:cover"><div class="body">${h(x.name)}</div>${x.at ? `<div class="hint">${ago(x.at)}</div>` : ''}
@@ -673,7 +733,7 @@ VIEWS.announce = async (view) => {
 
 // ----- настройки -----
 VIEWS.settings = async (view) => {
-  const { settings: s, defaults } = await GET('settings');
+  const { settings: s, defaults, mail: mailInfo = {} } = await GET('settings');
   const num = (id, label, val, min, max, unit, hint) => `<label class="field"><span>${label}</span><div class="row"><input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:110px"><span class="muted">${unit}</span></div>${hint ? `<span class="hint">${hint}</span>` : ''}</label>`;
   view.innerHTML = `<div class="grid g2">
     <div class="card"><h3>⏱ Време</h3>
@@ -691,12 +751,21 @@ VIEWS.settings = async (view) => {
       <div class="hint">Поне 4 имена; празните се попълват с имената по подразбиране.</div></div>
     <div class="card"><h3>📚 Предмети в играта</h3><p class="muted" style="margin-top:-4px">Изключеният предмет не се задава в никоя игра (въпросите му остават запазени).</p>
       ${Object.entries(SUBJ).map(([k, v]) => `<label class="switch" style="display:flex;margin:8px 0"><input type="checkbox" class="subjOn" value="${k}" ${s.disabledSubjects.includes(k) ? '' : 'checked'}> ${SUBJ_ICON[k]} ${v}</label>`).join('')}</div>
+    <div class="card"><h3>🔒 Родители и лични данни</h3><p class="muted" style="margin-top:-4px">Показва се на <a href="/privacy.html" target="_blank">страницата за поверителност</a>.</p>
+      <label class="field"><span>Кой отговаря за данните</span><input id="sController" value="${h(s.controller)}" maxlength="160" placeholder="напр. Иван Иванов или „Квизард“ ЕООД, гр. София"></label>
+      <label class="field"><span>Връзка за родители</span><input id="sContact" value="${h(s.contact)}" maxlength="120" placeholder="напр. roditeli@quizzard.bg"></label>
+      ${num('sRetention', 'Профил без вход се изтрива след', s.retentionMonths, 6, 60, 'месеца', 'непотвърдените от родител се изтриват след 30 дни')}
+      <div class="field"><span>Имейли до родителите</span>${mailInfo.on ? `<div class="banner ok" style="margin:0">✅ Включени. Линковете в писмата водят към <b>${h(mailInfo.base)}</b></div>` : '<div class="banner warn" style="margin:0">⚠️ Изключени: задай RESEND_API_KEY и MAIL_FROM в Render. Дотогава профилите работят без потвърждение по имейл и няма „Забравена парола“.</div>'}</div>
+      <div class="row"><button class="btn" id="sWeekly" ${mailInfo.on ? '' : 'disabled'}>📧 Изпрати седмичния отчет сега</button><button class="btn" id="sSweep">🧹 Изтрий старите профили сега</button></div></div>
   </div>
   <div class="row end" style="margin-top:16px"><button class="btn" id="sDefaults">↺ Стойности по подразбиране</button><button class="btn primary" id="sSave">💾 Запази настройките</button></div>`;
   const collect = () => ({ ...s,
     times: { mc: +$('#tMc').value, num: +$('#tNum').value, pick: +$('#tPick').value },
     onlinePlayers: +$('#oPlayers').value, onlineWait: +$('#oWait').value, onlineBattleRounds: +$('#oRounds').value, defaultBattleRounds: +$('#dRounds').value,
-    botNames: $$('.botName').map((i) => i.value), disabledSubjects: $$('.subjOn').filter((c) => !c.checked).map((c) => c.value) });
+    botNames: $$('.botName').map((i) => i.value), disabledSubjects: $$('.subjOn').filter((c) => !c.checked).map((c) => c.value),
+    controller: $('#sController').value, contact: $('#sContact').value, retentionMonths: +$('#sRetention').value });
+  $('#sWeekly').onclick = async () => { if (await confirmBox('Да изпратя ли сега седмичния отчет до всички потвърдени родители? Отчетът е за миналата седмица.', { ok: 'Изпрати' })) { const r = await run(() => api('POST', 'mail/weekly')); if (r) toast(`Изпратени писма: ${r.sent || 0}`); } };
+  $('#sSweep').onclick = async () => { if (await confirmBox(`Да изтрия ли сега непотвърдените профили над 30 дни и профилите без вход над ${s.retentionMonths} месеца?`, { ok: 'Изтрий', danger: true })) { const r = await run(() => api('POST', 'mail/cleanup')); if (r) toast(`Изтрити: ${r.unconfirmed} непотвърдени, ${r.inactive} неактивни`); } };
   $('#sSave').onclick = async () => { if (await run(() => api('PUT', 'settings', collect()), 'Настройките са запазени. Важат за следващите игри.')) route(); };
   $('#sDefaults').onclick = async () => { if (await confirmBox('Да върна ли всички настройки по подразбиране? Съобщението и поддръжката не се пипат.')) { if (await run(() => api('PUT', 'settings', { ...defaults, announcement: s.announcement, maintenance: s.maintenance }), 'Върнати са стойностите по подразбиране.')) route(); } };
 };

@@ -87,3 +87,42 @@
 /* Двата нови линка да не пращат реда на началния екран на втори ред */
 .home-links { gap: 2px 4px; }
 .home-links button.link { padding: 8px 7px; }
+
+/* Връзки, отметки и съвети */
+a.link { color: #ffe7a6; text-decoration: underline; padding: 8px 10px; font-weight: 800; }
+.qx-linkbtn { background: none; border: 0; padding: 4px 0; color: var(--wood1); text-decoration: underline; font-weight: 800; cursor: pointer; align-self: flex-start; }
+.qx-form label.qx-check, label.qx-check { flex-direction: row; align-items: flex-start; gap: 8px; font-weight: 700; font-size: .86rem; margin: 6px 0; }
+.qx-check input { width: 20px !important; height: 20px; flex: none; margin-top: 2px; accent-color: var(--wood1); }
+.qx-check a { color: var(--wood1); }
+.qx-inline { flex-direction: row; }
+.qx-inline input { flex: 1; min-width: 0; }
+.qx-more { margin: 12px 0; }
+.qx-more summary { cursor: pointer; font-weight: 900; }
+.qx-tip { background: #fff3cf; border-left: 5px solid var(--gold2); border-radius: 10px; padding: 10px 12px; margin: 10px 0; font-weight: 700; }
+.qx-tip.ok { background: #e6f6dc; border-left-color: #5aa83a; }
+
+/* Страници за родители: поверителност, отчет, съгласие, нова парола */
+.qx-page { position: relative; z-index: 1; max-width: 820px; margin: 0 auto; padding: 16px 16px 48px; }
+.qx-back-link { display: inline-block; color: #ffe7a6; font-weight: 900; margin: 4px 0 12px; }
+.qx-paper { background: linear-gradient(180deg, var(--parch), var(--parch2)); color: var(--ink); border: 3px solid var(--gold3); border-radius: var(--r); box-shadow: var(--shadow); padding: 20px 22px 26px; line-height: 1.55; margin: 0 auto; }
+.qx-paper h1 { font-family: "Kurale", serif; font-size: 1.7rem; margin: 0 0 10px; line-height: 1.2; }
+.qx-paper h2 { font-size: 1.2rem; margin: 22px 0 8px; }
+.qx-paper a { color: var(--wood1); }
+.qx-paper ul { padding-left: 20px; }
+.qx-paper .qx-btn { text-decoration: none; color: var(--ink); }
+.qx-lead { font-size: 1.08rem; font-weight: 700; }
+.qx-table { width: 100%; border-collapse: collapse; font-size: .92rem; background: #fffaf0; border-radius: 10px; overflow: hidden; }
+.qx-table th, .qx-table td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--parch2); }
+.qx-table th { background: rgba(122, 74, 34, .12); }
+.qx-contact { font-size: 1.05rem; }
+@media (max-width: 560px) {
+  .qx-paper { padding: 16px 14px 22px; }
+  .qx-table { font-size: .84rem; }
+  .qx-table th, .qx-table td { padding: 6px; }
+}
+@media print {
+  .bg, .qx-back-link, .qx-noprint { display: none !important; }
+  body { background: #fff !important; }
+  .qx-page { padding: 0; max-width: none; }
+  .qx-paper { box-shadow: none; border: 0; background: #fff; }
+}

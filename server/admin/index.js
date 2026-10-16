@@ -7,6 +7,9 @@ const { SUBJECTS } = require('../questions');
 const { Store } = require('./store');
 const { Bank, parseLine, toLine, GRADES, norm } = require('./bank');
 const { award, levelOf } = require('./rewards');
+const { League } = require('./league');
+const { Parents } = require('./parents');
+const mail = require('./mail');
 const { Accounts, handlePublic, checkName, IDEA_CATEGORIES, IDEA_STATUS } = require('./accounts');
 
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
@@ -18,6 +21,9 @@ const DEFAULT_SETTINGS = {
   botNames: DEFAULT_BOTS, disabledSubjects: [],
   maintenance: { on: false, message: 'Играта се обновява. Опитай пак след малко.' },
   announcement: { on: false, text: '', kind: 'info' },
+  contact: '', // имейл или телефон за родители (страницата за поверителност)
+  controller: '', // кой отговаря за данните: име на човек или фирма (страницата за поверителност)
+  retentionMonths: 24, // профил без вход толкова месеца се изтрива сам
 };
 const LIMITS = { audit: 400, reports: 3000, gameLog: 300, days: 180 };
 
@@ -28,7 +34,7 @@ const store = new Store({
   community: { delay: 3000, init: () => ({ ideas: [], ideaId: 0 }) },
   activity: { delay: 5 * 60 * 1000, init: () => ({ days: {}, q: {}, subj: {}, totals: { games: 0, completed: 0, answers: 0, correct: 0 }, reports: [], reportId: 0, gameLog: [] }) },
 });
-let bank = null, accounts = null;
+let bank = null, accounts = null, league = null, parents = null;
 let ctx = { rooms: new Map(), wss: null, send: () => {}, onBankChange: () => {} };
 const startedAt = Date.now();
 
@@ -49,6 +55,9 @@ function cleanSettings(input, cur) {
     botNames: Array.isArray(input.botNames) ? input.botNames.map((n) => String(n).replace(/[<>]/g, '').trim().slice(0, 16)).filter(Boolean).slice(0, 8) : cur.botNames,
     disabledSubjects: Array.isArray(input.disabledSubjects) ? input.disabledSubjects.filter((x) => SUBJECTS[x]) : cur.disabledSubjects,
     maintenance: input.maintenance ? { on: !!input.maintenance.on, message: String(input.maintenance.message || '').slice(0, 200) || DEFAULT_SETTINGS.maintenance.message } : cur.maintenance,
+    contact: input.contact !== undefined ? String(input.contact).replace(/[<>]/g, '').trim().slice(0, 120) : cur.contact,
+    controller: input.controller !== undefined ? String(input.controller).replace(/[<>]/g, '').trim().slice(0, 160) : cur.controller,
+    retentionMonths: clampInt(input.retentionMonths, 6, 60, cur.retentionMonths),
     announcement: input.announcement ? { on: !!input.announcement.on, text: String(input.announcement.text || '').slice(0, 300), kind: ['info', 'warn', 'party'].includes(input.announcement.kind) ? input.announcement.kind : 'info' } : cur.announcement,
   };
   if (s.botNames.length < 4) s.botNames = [...s.botNames, ...DEFAULT_BOTS.filter((n) => !s.botNames.includes(n))].slice(0, 4);
@@ -84,7 +93,7 @@ function patchGame() {
       if (!p || p.isBot) continue;
       const good = !!ok(pid);
       if (this.meta.uids[pid]) {
-        accounts.onAnswer(this.meta.uids[pid], good, q.subject);
+        accounts.onAnswer(this.meta.uids[pid], good, q, given(pid));
         const run = (this.meta.runs[pid] ||= { cur: 0, best: 0, mcN: 0, mcOk: 0 });
         run.cur = good ? run.cur + 1 : 0; run.best = Math.max(run.best, run.cur);
         if (q.kind === 'mc') { run.mcN++; if (good) run.mcOk++; }
@@ -149,6 +158,9 @@ async function init(c) {
   await Promise.race([store.init(), new Promise((r) => setTimeout(r, 10000))]);
   bank = new Bank(store.get('content'), () => ctx.onBankChange());
   accounts = new Accounts(store);
+  league = accounts.league = new League(store, accounts);
+  parents = new Parents(store, accounts, { settings, audit });
+  if (!process.env.NO_MAIL_TIMER) parents.start();
   patchGame();
   importOldReports();
   setInterval(sampleLive, 20000).unref();
@@ -205,14 +217,14 @@ function readBody(req) {
 // Публичен статус за играта: съобщение до всички и режим „поддръжка“
 function publicStatus() {
   const s = settings();
-  return { announcement: s.announcement.on && s.announcement.text ? { text: s.announcement.text, kind: s.announcement.kind } : null, maintenance: s.maintenance.on ? s.maintenance.message : null };
+  return { announcement: s.announcement.on && s.announcement.text ? { text: s.announcement.text, kind: s.announcement.kind } : null, maintenance: s.maintenance.on ? s.maintenance.message : null, contact: s.contact || null, controller: s.controller || null, retentionMonths: s.retentionMonths, mail: mail.enabled() };
 }
 
 async function handle(req, res) {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   if (p === '/api/status') return json(res, 200, publicStatus());
-  if (p.startsWith('/api/account/') || p === '/api/leaderboard' || p.startsWith('/api/ideas') || p.startsWith('/api/avatar/')) {
+  if (p.startsWith('/api/account/') || p === '/api/leaderboard' || p.startsWith('/api/ideas') || p.startsWith('/api/avatar/') || p === '/api/tournament' || p.startsWith('/api/parent/') || p.startsWith('/api/consent/') || p.startsWith('/api/reset/') || p === '/api/mail/off') {
     try { await handlePublic(accounts, req, res, url, readBody); } catch (e) { console.error('public api', e); json(res, 500, { error: 'Грешка в сървъра.' }); }
     return true;
   }
@@ -488,11 +500,15 @@ async function api(method, route, qs, body, res) {
     }
   }
 
+  // ----- имейли до родители -----
+  if (r0 === 'mail' && r1 === 'weekly' && method === 'POST') { const out = await parents.weekly({ force: true }); audit('mail-weekly', null, null, null, { label: `Седмичен отчет ръчно: ${out.sent || 0} писма` }); return out; }
+  if (r0 === 'mail' && r1 === 'cleanup' && method === 'POST') return parents.sweep();
+
   // ----- играчи -----
   if (r0 === 'players' && !r1 && method === 'GET') {
     const term = norm(qs.get('q') || ''), sort = qs.get('sort') || 'recent';
-    let items = Object.values(accounts.users).map((u) => ({ id: u.id, name: u.name, grade: u.grade, createdAt: u.createdAt, lastSeen: u.lastSeen, games: u.games || 0, wins: u.wins || 0, answers: u.answers || 0, correct: u.correct || 0, best: u.best || 0, xp: u.xp || 0, level: levelOf(u.xp || 0), badges: Object.keys(u.badges || {}).length, avatar: accounts.avatarOf(u), banned: !!u.banned, pct: u.answers ? Math.round((100 * u.correct) / u.answers) : null }));
-    if (term) items = items.filter((u) => norm(u.name).includes(term));
+    let items = Object.values(accounts.users).map((u) => ({ id: u.id, name: u.name, grade: u.grade, createdAt: u.createdAt, lastSeen: u.lastSeen, games: u.games || 0, wins: u.wins || 0, answers: u.answers || 0, correct: u.correct || 0, best: u.best || 0, xp: u.xp || 0, level: levelOf(u.xp || 0), badges: Object.keys(u.badges || {}).length, avatar: accounts.avatarOf(u), team: league.teams[u.team] ? `${league.teams[u.team].name} · ${league.teams[u.team].school}` : null, banned: !!u.banned, pct: u.answers ? Math.round((100 * u.correct) / u.answers) : null, email: u.email || null, consent: !u.email ? 'none' : u.consentAt ? 'yes' : accounts.needsConsent(u) ? 'waiting' : 'nomail', weeklyMail: u.weeklyMail !== false }));
+    if (term) items = items.filter((u) => norm(u.name).includes(term) || (u.email || '').includes(term));
     const S = { recent: (x, y) => String(y.lastSeen).localeCompare(String(x.lastSeen)), new: (x, y) => String(y.createdAt).localeCompare(String(x.createdAt)), wins: (x, y) => y.wins - x.wins, games: (x, y) => y.games - x.games, name: (x, y) => x.name.localeCompare(y.name, 'bg') };
     items.sort(S[sort] || S.recent);
     return { total: items.length, items: items.slice(0, 500) };
@@ -513,6 +529,13 @@ async function api(method, route, qs, body, res) {
       store.touch('players'); await store.save('players');
       return { ok: true };
     }
+    if (method === 'GET' && r2 === 'export') {
+      audit('player-export', null, null, null, { label: u.name });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="quizzard-${u.id}.json"` });
+      res.end(JSON.stringify(accounts.exportData(u), null, 2));
+      return undefined;
+    }
+    if (method === 'POST' && r2 === 'resend-consent') { delete u.consentToken; const out = await parents.askConsent(u); return out.skipped ? { error: 'Имейлите не са включени или профилът вече е потвърден.' } : out; }
     if (method === 'POST' && r2 === 'reset-password') {
       const words = ['лъв', 'мечо', 'зайо', 'сова', 'рибка', 'звезда', 'слънце', 'облак', 'ябълка', 'круша'];
       const pass = words[crypto.randomInt(words.length)] + crypto.randomInt(100, 999);
@@ -522,10 +545,9 @@ async function api(method, route, qs, body, res) {
       return { ok: true, password: pass };
     }
     if (method === 'DELETE') {
-      delete accounts.users[r1];
-      for (const i of accounts.ideas) if (i.uid === r1) { i.uid = null; i.by = null; }
+      accounts.deleteUser(r1);
       audit('player-delete', null, null, null, { label: u.name });
-      store.touch('players'); store.touch('community'); await store.flush();
+      await store.flush();
       return { ok: true };
     }
   }
@@ -580,8 +602,22 @@ async function api(method, route, qs, body, res) {
     return { ok: true };
   }
 
+  // ----- класове и турнири -----
+  if (r0 === 'teams' && !r1 && method === 'GET') {
+    const items = Object.values(league.teams).map((t) => ({ ...t, members: league.members(t.id).length })).sort((a, b) => a.school.localeCompare(b.school, 'bg') || a.name.localeCompare(b.name, 'bg'));
+    return { items };
+  }
+  if (r0 === 'teams' && !r1 && method === 'POST') { const out = league.createTeam(body); if (!out.error) audit('team-add', null, null, null, { label: `${out.team.name} · ${out.team.school}` }); return out; }
+  if (r0 === 'teams' && r1 && method === 'PUT') return league.updateTeam(r1, body);
+  if (r0 === 'teams' && r1 && method === 'GET') { const t = league.teams[r1]; if (!t) return { error: 'Няма такъв клас.' }; return { team: t, members: league.members(r1).map((u) => ({ id: u.id, name: u.name, level: levelOf(u.xp || 0), games: u.games || 0, avatar: accounts.avatarOf(u) })) }; }
+  if (r0 === 'teams' && r1 && method === 'DELETE') { const t = league.teams[r1]; const out = league.deleteTeam(r1); if (!out.error) audit('team-delete', null, null, null, { label: t.name + ' · ' + t.school }); return out; }
+  if (r0 === 'tournaments' && !r1 && method === 'GET') return { items: store.get('community').tournaments.slice().reverse().map((t) => ({ ...t, scores: undefined, players: undefined, standings: league.standings(t), status: Date.now() < Date.parse(t.start) ? 'soon' : Date.now() >= Date.parse(t.end) ? 'over' : 'live' })) };
+  if (r0 === 'tournaments' && !r1 && method === 'POST') { const out = league.createTournament(body); if (!out.error) audit('tournament-add', null, null, null, { label: out.tournament.name }); return out; }
+  if (r0 === 'tournaments' && r1 && method === 'PUT') return league.updateTournament(r1, body);
+  if (r0 === 'tournaments' && r1 && method === 'DELETE') { audit('tournament-delete', null, null, null, { label: '№' + r1 }); return league.deleteTournament(r1); }
+
   // ----- настройки -----
-  if (r0 === 'settings' && method === 'GET') return { settings: settings(), defaults: DEFAULT_SETTINGS, subjects: SUBJECTS };
+  if (r0 === 'settings' && method === 'GET') return { settings: settings(), defaults: DEFAULT_SETTINGS, subjects: SUBJECTS, mail: { on: mail.enabled(), base: parents.base() } };
   if (r0 === 'settings' && method === 'PUT') {
     const before = settings();
     const next = cleanSettings(body, before);
@@ -622,6 +658,8 @@ async function api(method, route, qs, body, res) {
     }
     bank = new Bank(cc, () => ctx.onBankChange());
     accounts = new Accounts(store);
+    league = accounts.league = new League(store, accounts);
+    parents = new Parents(store, accounts, { settings, audit });
     audit('restore', null, null, null, { label: 'Възстановен архив от ' + (body.at || '?') });
     for (const n of ['content', 'activity', 'players', 'community', 'avatars']) store.touch(n);
     await store.flush();

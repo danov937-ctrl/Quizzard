@@ -10,9 +10,17 @@ const PORT = 3900 + Math.floor(Math.random() * 90);
 const BASE = `http://localhost:${PORT}`;
 const DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'qz-admin-'));
 let proc;
+const OUTBOX = path.join(DIR, 'outbox');
+// Последното писмо до този адрес и линкът от него (#код)
+function lastMail(to, page) {
+  const files = fs.existsSync(OUTBOX) ? fs.readdirSync(OUTBOX).sort() : [];
+  const mails = files.map((f) => JSON.parse(fs.readFileSync(path.join(OUTBOX, f), 'utf8'))).filter((m) => m.to === to && (!page || m.html.includes(page)));
+  const m = mails[mails.length - 1];
+  return m && { ...m, token: page ? new RegExp(page.replace('.', '\\.') + '#([A-Za-z0-9_-]+)').exec(m.html)?.[1] : null };
+}
 
 function startServer() {
-  proc = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, ADMIN_KEY: 'secret-test', ADMIN_DATA_DIR: DIR, GAME_SPEED: '0.002', GITHUB_TOKEN: '', DATA_REPO: '' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  proc = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, ADMIN_KEY: 'secret-test', ADMIN_DATA_DIR: DIR, GAME_SPEED: '0.002', GITHUB_TOKEN: '', DATA_REPO: '', MAIL_OUTBOX: OUTBOX, NO_MAIL_TIMER: '1', RESEND_API_KEY: '', PUBLIC_URL: 'https://quizzard.test' }, stdio: ['ignore', 'pipe', 'inherit'] });
   return new Promise((res) => proc.stdout.on('data', (d) => { if (String(d).includes('работи')) res(); }));
 }
 const stopServer = () => new Promise((res) => { proc.once('exit', res); proc.kill('SIGTERM'); });
@@ -99,10 +107,43 @@ async function playBotGame(jar) {
     // ----- акаунти -----
     assert.strictEqual((await kid.req('POST', '/api/account/register', { name: 'ab', password: '1234' }, false)).status, 400, 'кратък прякор');
     assert.strictEqual((await kid.req('POST', '/api/account/register', { name: 'Бот Мечо', password: '1234' }, false)).status, 400, 'не може да се представя за бот');
-    r = await kid.req('POST', '/api/account/register', { name: 'Звездичка7', password: 'тайна1', grade: 2 }, false);
+    assert.strictEqual((await kid.req('POST', '/api/account/register', { name: 'Звездичка7', password: 'тайна1', consent: true }, false)).status, 400, 'нужен е имейл');
+    assert.strictEqual((await kid.req('POST', '/api/account/register', { name: 'Звездичка7', email: 'mama@', password: 'тайна1', consent: true }, false)).status, 400, 'грешен имейл');
+    assert.strictEqual((await kid.req('POST', '/api/account/register', { name: 'Звездичка7', email: 'mama@primer.bg', password: 'тайна1' }, false)).status, 400, 'нужно е съгласие');
+    r = await kid.req('POST', '/api/account/register', { name: 'Звездичка7', email: ' Mama@Primer.bg ', password: 'тайна1', grade: 2, consent: true }, false);
     assert.strictEqual(r.status, 200, JSON.stringify(r.data));
-    assert.strictEqual((await client().req('POST', '/api/account/register', { name: 'звездичка7', password: 'xxxx' }, false)).status, 400, 'прякорът е зает');
-    assert.strictEqual((await client().req('POST', '/api/account/login', { name: 'Звездичка7', password: 'грешна' }, false)).status, 400);
+    assert.ok(r.data.user.needsConsent, 'чака потвърждение от родител');
+    assert.ok(!JSON.stringify(r.data.user).includes('mama@primer.bg'), 'имейлът е скрит в профила');
+    assert.strictEqual((await client().req('POST', '/api/account/register', { name: 'звездичка7', email: 'x@y.bg', password: 'xxxx', consent: true }, false)).status, 400, 'прякорът е зает');
+    assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'Звездичка7', password: 'грешна' }, false)).status, 400);
+    assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'MAMA@primer.bg', password: 'тайна1' }, false)).status, 200, 'вход с имейл');
+    assert.strictEqual((await client().req('POST', '/api/account/login', { name: 'Звездичка7', password: 'тайна1' }, false)).status, 200, 'вход с потребителско име');
+    // брат със същия имейл: входът с имейл намира профила по паролата
+    const bro = client();
+    assert.strictEqual((await bro.req('POST', '/api/account/register', { name: 'Батко', email: 'mama@primer.bg', password: 'друга9', consent: true }, false)).status, 200);
+    assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'mama@primer.bg', password: 'друга9' }, false)).data.user.name, 'Батко');
+    // съгласие от родителя по имейл
+    const png0 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    assert.strictEqual((await kid.req('POST', '/api/account/photo', { data: png0 }, false)).status, 400, 'без съгласие няма снимка');
+    const cm = lastMail('mama@primer.bg', '/consent.html');
+    assert.ok(cm && cm.html.includes('https://quizzard.test/consent.html#'), 'писмо за съгласие с линк към сайта');
+    const cBro = lastMail('mama@primer.bg', '/consent.html').token;
+    assert.strictEqual((await client().req('GET', '/api/consent/' + cBro)).data.name, 'Батко');
+    assert.ok((await client().req('POST', '/api/consent/' + cBro, { action: 'refuse' }, false)).data.deleted, 'родителят отказва: профилът се трие');
+    assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'Батко', password: 'друга9' }, false)).status, 400);
+    const cKid = fs.readdirSync(OUTBOX).sort().map((f) => JSON.parse(fs.readFileSync(path.join(OUTBOX, f), 'utf8'))).find((m) => m.subject.includes('Звездичка7'));
+    const cTok = /consent\.html#([A-Za-z0-9_-]+)/.exec(cKid.html)[1];
+    assert.strictEqual((await client().req('POST', '/api/consent/' + cTok, { action: 'confirm' }, false)).data.confirmed, true);
+    assert.ok(!(await kid.req('GET', '/api/account/me', undefined, false)).data.user.needsConsent, 'потвърден');
+
+    // ----- турнир между класове -----
+    const team = (await admin.req('POST', '/api/admin/teams', { name: '2А', school: 'ОУ „Христо Ботев“', town: 'София', grade: 2 })).data.team;
+    const team2 = (await admin.req('POST', '/api/admin/teams', { name: '2Б', school: 'СУ „Иван Вазов“', grade: 2 })).data.team;
+    assert.ok(team.code && team2.code !== team.code);
+    const tour = (await admin.req('POST', '/api/admin/tournaments', { name: 'Есенна купа', start: new Date(Date.now() - 86400000).toISOString(), end: new Date(Date.now() + 7 * 86400000).toISOString(), grades: [2] })).data.tournament;
+    assert.ok(tour.id);
+    assert.strictEqual((await kid.req('POST', '/api/account/team', { code: 'XXXXX' }, false)).status, 400);
+    assert.strictEqual((await kid.req('POST', '/api/account/team', { code: team.code.toLowerCase() }, false)).data.user.team.name, '2А');
     assert.strictEqual((await kid.req('POST', '/api/account/avatar', { icon: '👑' }, false)).status, 400, 'аватарът се отключва с ниво');
     assert.strictEqual((await kid.req('POST', '/api/account/avatar', { icon: '🦊', color: '#43a047' }, false)).data.user.avatar.icon, '🦊');
 
@@ -117,6 +158,44 @@ async function playBotGame(jar) {
     assert.strictEqual(board.top[0].name, 'Звездичка7'); assert.strictEqual(board.me.place, 1);
     await kid.req('POST', '/api/account/seen', {}, false);
     assert.strictEqual((await kid.req('GET', '/api/account/me', undefined, false)).data.user.newBadges.length, 0);
+    const cup = (await kid.req('GET', '/api/tournament', undefined, false)).data.tournament;
+    assert.strictEqual(cup.status, 'live'); assert.strictEqual(cup.mine.place, 1); assert.ok(cup.myPoints > 0 && cup.teams[0].xp === cup.myPoints, 'точките отиват за класа');
+    assert.strictEqual(cup.schools[0].school, 'ОУ „Христо Ботев“');
+    // отчет за родителя
+    const ptok = (await kid.req('POST', '/api/account/parent-link', {}, false)).data.token;
+    const rep = (await client().req('GET', '/api/parent/' + ptok)).data.report;
+    assert.strictEqual(rep.name, 'Звездичка7'); assert.strictEqual(rep.week.games, 1); assert.ok(rep.week.answers > 0);
+    assert.ok(Array.isArray(rep.mistakes) && rep.tournament.mine.place === 1);
+    assert.strictEqual((await client().req('GET', '/api/parent/' + 'x'.repeat(24))).status, 404);
+    const ptok2 = (await kid.req('POST', '/api/account/parent-link', { renew: true }, false)).data.token;
+    assert.strictEqual((await client().req('GET', '/api/parent/' + ptok)).status, 404, 'старият линк спира');
+    assert.strictEqual((await client().req('GET', '/api/parent/' + ptok2)).status, 200);
+    // изтегляне на данните
+    const mine = (await kid.req('GET', '/api/account/export', undefined, false)).data;
+    assert.strictEqual(mine.email, 'mama@primer.bg'); assert.ok(!mine.hash && !mine.salt && !mine.parentToken, 'без паролата и линковете');
+    // забравена парола по имейл
+    assert.strictEqual((await client().req('POST', '/api/account/forgot', { login: 'Звездичка7' }, false)).status, 200);
+    const rTok = lastMail('mama@primer.bg', '/reset.html').token;
+    assert.strictEqual((await client().req('GET', '/api/reset/' + rTok)).data.name, 'Звездичка7');
+    const rr = client();
+    assert.strictEqual((await rr.req('POST', '/api/reset/' + rTok, { password: 'нова55' }, false)).status, 200);
+    assert.strictEqual((await rr.req('GET', '/api/account/me', undefined, false)).data.user.name, 'Звездичка7', 'влиза след новата парола');
+    assert.strictEqual((await client().req('POST', '/api/reset/' + rTok, { password: 'още1' }, false)).status, 404, 'линкът е еднократен');
+    kid.jar.qz_player = rr.jar.qz_player;
+    assert.strictEqual((await client().req('GET', '/api/mail/off?e=mama@primer.bg&s=bad')).status, 400);
+    assert.strictEqual((await admin.req('POST', '/api/admin/mail/weekly')).status, 200);
+    // изтриване от детето и от родителя
+    const del1 = client();
+    await del1.req('POST', '/api/account/register', { name: 'Временен', email: 'b@b.bg', password: 'abcd', consent: true }, false);
+    assert.strictEqual((await del1.req('POST', '/api/account/delete', { password: 'грешна' }, false)).status, 400);
+    assert.strictEqual((await del1.req('POST', '/api/account/delete', { password: 'abcd' }, false)).status, 200);
+    const del2 = client();
+    await del2.req('POST', '/api/account/register', { name: 'Временен2', email: 'c@c.bg', password: 'abcd', consent: true }, false);
+    const t2 = (await del2.req('POST', '/api/account/parent-link', {}, false)).data.token;
+    assert.ok((await client().req('GET', '/api/parent/' + t2 + '/export')).data.name === 'Временен2');
+    assert.strictEqual((await client().req('POST', '/api/parent/' + t2 + '/delete', {}, false)).status, 200);
+    assert.strictEqual((await del2.req('GET', '/api/account/me', undefined, false)).data.user, null, 'изтрит от родителя');
+
     const stats = (await admin.req('GET', '/api/admin/analytics')).data;
     assert.strictEqual(stats.totals.games, 1); assert.ok(stats.totals.answers > 0, 'отговорите на детето се броят');
 
@@ -143,8 +222,11 @@ async function playBotGame(jar) {
     // ----- играчи в панела -----
     const pl = (await admin.req('GET', '/api/admin/players')).data;
     assert.strictEqual(pl.total, 1);
+    assert.strictEqual(pl.items[0].consent, 'yes'); assert.strictEqual(pl.items[0].email, 'mama@primer.bg');
+    assert.ok((await admin.req('GET', `/api/admin/players/${me.id}/export`)).data.name === 'Звездичка7');
+    assert.strictEqual((await admin.req('GET', '/api/admin/teams')).data.items.find((t) => t.id === team.id).members, 1);
     const reset = (await admin.req('POST', `/api/admin/players/${me.id}/reset-password`)).data;
-    assert.strictEqual((await client().req('POST', '/api/account/login', { name: 'Звездичка7', password: reset.password }, false)).status, 200, 'новата парола работи');
+    assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'Звездичка7', password: reset.password }, false)).status, 200, 'новата парола работи');
     assert.strictEqual((await kid.req('GET', '/api/account/me', undefined, false)).data.user, null, 'старата сесия спира след нова парола');
 
     // ----- настройки, съобщение, поддръжка -----
@@ -164,7 +246,8 @@ async function playBotGame(jar) {
     assert.strictEqual(after.questions.added, 2, 'добавените въпроси са запазени');
     assert.strictEqual(after.players.total, 1, 'акаунтите са запазени');
     assert.strictEqual((await admin.req('GET', '/api/admin/settings')).data.settings.times.mc, 30, 'настройките са запазени');
-    console.log('OK: админ панел, акаунти, награди, снимки, идеи, настройки и запазване');
+    assert.strictEqual((await admin.req('GET', '/api/admin/tournaments')).data.items[0].standings.teams[0].name, '2А', 'турнирът е запазен');
+    console.log('OK: админ панел, акаунти с имейл, съгласие, нова парола, турнири, отчет за родителя, награди, снимки, идеи, настройки и запазване');
   } finally {
     await stopServer();
     fs.rmSync(DIR, { recursive: true, force: true });

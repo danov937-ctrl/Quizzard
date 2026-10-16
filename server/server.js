@@ -24,7 +24,7 @@ const ALL_SUBJECTS = Object.keys(SUBJECTS);
 const SUBJECTS_BY_GRADE = {};
 function computeSubjects() { for (const g of [1, 2, 3, 4]) SUBJECTS_BY_GRADE[g] = ALL_SUBJECTS.filter((s) => MC.filter((q) => q.subject === s && q.grade <= g && q.grade >= g - 1).length >= 15); }
 computeSubjects();
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2' };
 
 const server = http.createServer((req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);

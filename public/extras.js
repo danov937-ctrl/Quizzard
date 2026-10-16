@@ -9,6 +9,7 @@
   const home = q('#home');
   if (!home) return;
   let me = null;
+  let mailOn = false; // сървърът праща имейли (потвърждение, нова парола)
 
   async function call(path, body) {
     const res = await fetch(path, body === undefined ? { credentials: 'same-origin' } : { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Quizzard': '1' }, body: JSON.stringify(body) });
@@ -43,6 +44,7 @@
   home.append(bar);
   const links = q('.home-links', home);
   if (links) links.insertAdjacentHTML('afterbegin', '<button class="link" data-qx="board">🏆 Класация</button><button class="link" data-qx="ideas">💡 Идеи</button>');
+  if (links) links.insertAdjacentHTML('beforeend', '<a class="link" href="/privacy.html">🔒 За родители</a>');
   home.addEventListener('click', (e) => {
     const a = e.target.closest('[data-qx]')?.dataset.qx;
     if (a === 'board') showBoard(); if (a === 'ideas') showIdeas(); if (a === 'login') showAuth('login'); if (a === 'register') showAuth('register'); if (a === 'profile') showProfile();
@@ -52,7 +54,7 @@
     const name = q('#name');
     if (me) {
       bar.innerHTML = `<button class="qx-chip" data-qx="profile" title="Моят профил">${avatar(me.avatar, 38)}<span class="qx-chip-txt"><b>${esc(me.name)}</b><small>Ниво ${me.level} · ${esc(me.title)}</small><span class="qx-mini-bar"><i style="width:${me.progress}%"></i></span></span>${me.streak > 1 ? `<span class="qx-fire" title="Дни подред">🔥${me.streak}</span>` : ''}</button>`;
-      if (name) { name.value = me.name; name.readOnly = true; name.title = 'Играеш с прякора от профила си'; }
+      if (name) { name.value = me.name; name.readOnly = true; name.title = 'Играеш с потребителското име от профила си'; }
     } else {
       bar.innerHTML = `<button class="qx-chip guest" data-qx="login">👤 <span class="qx-chip-txt"><b>Вход</b><small>за нива и значки</small></span></button>`;
       if (name && name.readOnly) { name.readOnly = false; name.title = ''; name.value = ls.get('quizzard-name') || ''; }
@@ -63,32 +65,50 @@
   async function loadMe() { try { me = (await call('/api/account/me')).user; } catch { me = null; } renderBar(); celebrate(); }
 
   // ---------- вход и регистрация ----------
+  // Регистрация: потребителско име + имейл на родител + парола. Вход: с потребителско име или имейл + парола.
   function showAuth(tab) {
-    const m = open('👤 Профил', `<div class="qx-tabs"><button data-t="login" class="${tab === 'login' ? 'on' : ''}">Вход</button><button data-t="register" class="${tab === 'register' ? 'on' : ''}">Регистрация</button></div>
+    if (tab === 'forgot') return showForgot();
+    const reg = tab === 'register';
+    const m = open('👤 Профил', `<div class="qx-tabs"><button data-t="login" class="${!reg ? 'on' : ''}">Вход</button><button data-t="register" class="${reg ? 'on' : ''}">Регистрация</button></div>
       <form class="qx-form" autocomplete="on">
-        <label>Прякор<input name="name" maxlength="16" autocomplete="username" required placeholder="напр. Звездичка7"></label>
-        <label>Парола<input name="password" type="password" maxlength="64" autocomplete="${tab === 'login' ? 'current-password' : 'new-password'}" required></label>
-        <div class="qx-reg ${tab === 'register' ? '' : 'qx-hide'}">
-          <label>Повтори паролата<input name="password2" type="password" maxlength="64" autocomplete="new-password"></label>
+        ${reg ? `<label>Потребителско име<input name="name" maxlength="16" autocomplete="username" required placeholder="напр. Звездичка7"></label>
+          <label>Имейл на мама или татко<input name="email" type="email" maxlength="120" autocomplete="email" required placeholder="roditel@primer.bg"></label>`
+        : `<label>Потребителско име или имейл<input name="login" maxlength="120" autocomplete="username" required></label>`}
+        <label>Парола<input name="password" type="password" maxlength="64" autocomplete="${reg ? 'new-password' : 'current-password'}" required></label>
+        ${reg ? `<label>Повтори паролата<input name="password2" type="password" maxlength="64" autocomplete="new-password" required></label>
           <label>Клас<select name="grade"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
-          <p class="qx-note">🔒 Не пиши истинското си име и фамилия. Измисли си прякор! Пазим само прякора и паролата.</p>
-        </div>
+          <p class="qx-note">🔒 Не пиши истинското си име. Измисли си потребителско име!</p>
+          <label class="qx-check"><input type="checkbox" name="consent" required><span><b>За родителя:</b> аз съм родител на детето (или родителят знае и е съгласен) и прочетох <a href="/privacy.html" target="_blank">как пазим данните</a>.${mailOn ? ' Ще получите писмо, за да потвърдите профила.' : ''}</span></label>` : ''}
         <p class="qx-err"></p>
-        <button class="qx-btn gold" type="submit">${tab === 'login' ? 'Влез' : 'Създай профил'}</button>
-        <p class="qx-note qx-login-note ${tab === 'login' ? '' : 'qx-hide'}">Забрави паролата? Помоли родител или учител да ни пише през 💡 Идеи.</p>
+        <button class="qx-btn gold" type="submit">${reg ? 'Създай профил' : 'Влез'}</button>
+        ${reg ? '' : `<button class="qx-linkbtn" type="button" data-forgot>Забравена парола?</button>`}
       </form>`, 'narrow');
-    let mode = tab;
-    q('.qx-tabs', m).onclick = (e) => { const b = e.target.closest('[data-t]'); if (!b) return; showAuth(b.dataset.t); };
+    q('.qx-tabs', m).onclick = (e) => { const b = e.target.closest('[data-t]'); if (b) showAuth(b.dataset.t); };
+    q('[data-forgot]', m)?.addEventListener('click', showForgot);
     q('form', m).onsubmit = async (e) => {
       e.preventDefault();
       const f = Object.fromEntries(new FormData(e.target));
       const err = q('.qx-err', m); err.textContent = '';
-      if (mode === 'register' && f.password !== f.password2) { err.textContent = 'Паролите не съвпадат.'; return; }
+      if (reg && f.password !== f.password2) { err.textContent = 'Паролите не съвпадат.'; return; }
       try {
-        const r = await call('/api/account/' + mode, { name: f.name, password: f.password, grade: Number(f.grade) || null });
+        const r = reg ? await call('/api/account/register', { name: f.name, email: f.email, password: f.password, grade: Number(f.grade) || null, consent: !!f.consent })
+          : await call('/api/account/login', { login: f.login, password: f.password });
         me = r.user; renderBar(); close(); reconnect();
-        flash(mode === 'register' ? `Добре дошъл, ${me.name}! 🎉` : `Здравей, ${me.name}!`);
+        if (reg && me.needsConsent) open('📧 Почти готово!', `<p>Изпратихме писмо на <b>${esc(me.email)}</b>. Помоли мама или татко да го отворят и да потвърдят профила.</p><p class="qx-note">Дотогава можеш да играеш и да трупаш точки, но не се показваш в класацията и не можеш да качиш снимка. Ако няма писмо, нека проверят папката „Спам“.</p><button class="qx-btn gold" data-ok>Разбрах</button>`, 'narrow').querySelector('[data-ok]').onclick = close;
+        else flash(reg ? `Добре дошъл, ${me.name}! 🎉` : `Здравей, ${me.name}!`);
       } catch (x) { err.textContent = x.message; }
+    };
+  }
+  function showForgot() {
+    const m = open('🔑 Забравена парола', `<form class="qx-form">
+      ${mailOn ? `<p class="qx-note">Напиши потребителското име или имейла на родителя. Ще изпратим писмо с линк за нова парола на имейла на родителя.</p>
+        <label>Потребителско име или имейл<input name="login" maxlength="120" required></label><p class="qx-err"></p><button class="qx-btn gold">Изпрати писмо</button>`
+      : '<p>Помоли родител или учител да ни пише от <a href="/privacy.html">страницата за поверителност</a> и ще ти помогнем.</p>'}
+      <button class="qx-linkbtn" type="button" data-back>← Назад към входа</button></form>`, 'narrow');
+    q('[data-back]', m).onclick = () => showAuth('login');
+    q('form', m).onsubmit = async (e) => {
+      e.preventDefault(); const err = q('.qx-err', m);
+      try { await call('/api/account/forgot', { login: e.target.login.value }); q('form', m).innerHTML = '<p>📧 Ако има профил с това име или имейл, родителят ще получи писмо до минута. Линкът важи 1 час.</p><button class="qx-btn gold" type="button" data-ok>Добре</button>'; q('[data-ok]', m).onclick = () => showAuth('login'); } catch (x) { err.textContent = x.message; }
     };
   }
 
@@ -114,7 +134,19 @@
         ${me.photoStatus === 'pending' ? '<p class="qx-note"><b>⏳ Снимката ти чака одобрение.</b></p>' : ''}${me.photoStatus === 'rejected' ? '<p class="qx-note"><b>Снимката не беше одобрена. Опитай с друга.</b></p>' : ''}
         <div class="qx-row"><label class="qx-btn">📁 Качи снимка<input type="file" accept="image/*" hidden data-photo></label>${me.photoStatus === 'off' || me.photoStatus === 'approved' ? `<button class="qx-btn" data-use-photo ${me.avatar.photo ? 'disabled' : ''}>${me.avatar.photo ? '✓ Ползваш снимката' : '🖼️ Ползвай одобрената снимка'}</button>` : ''}</div></div>
       <div class="qx-pane qx-hide" data-p="more">
+        ${me.needsConsent ? `<div class="qx-tip">📧 Родителят още не е потвърдил профила (писмо до ${esc(me.email)}). Дотогава не се показваш в класацията. <button class="qx-linkbtn" data-resend>Изпрати писмото пак</button></div>` : ''}
+        <h3>🏫 Моят клас</h3>
+        ${me.team ? `<p><b>${esc(me.team.name)}</b> · ${esc(me.team.school)}${me.team.town ? ', ' + esc(me.team.town) : ''}</p><button class="qx-btn" data-leave>Напусни класа</button>`
+          : `<form class="qx-form qx-inline" data-team><input name="code" maxlength="8" placeholder="Код от учителя" required style="text-transform:uppercase"><button class="qx-btn gold">Влез в класа</button></form><p class="qx-note">С кода точките ти отиват и за класа в турнирите между училища.</p>`}
+        <h3>👪 За родителя</h3>
+        ${me.email ? `<p class="qx-note">Имейл на родителя: <b>${esc(me.email)}</b>${me.consentAt ? ' ✅ потвърден' : ''}</p>` : ''}
+        <div class="qx-row"><button class="qx-btn" data-parent>🔗 ${me.hasParentLink ? 'Копирай' : 'Направи'} линк за родител</button>${me.hasParentLink ? '<button class="qx-btn" data-parent-renew>🔄 Нов линк</button>' : ''}</div>
+        ${me.email && me.mail ? `<label class="qx-check"><input type="checkbox" data-weekly ${me.weeklyMail ? 'checked' : ''}><span>Седмичен отчет на имейла всеки понеделник</span></label>` : ''}
+        <details class="qx-more"><summary>Смени имейла на родителя</summary><form class="qx-form" data-email><label>Нов имейл<input name="email" type="email" maxlength="120" required></label><label>Твоята парола<input name="password" type="password" autocomplete="current-password" required></label><p class="qx-err"></p><button class="qx-btn gold">Запази</button></form></details>
         <form class="qx-form" data-pw><h3>Смени паролата</h3><label>Стара парола<input name="old" type="password" autocomplete="current-password" required></label><label>Нова парола<input name="password" type="password" autocomplete="new-password" required></label><p class="qx-err"></p><button class="qx-btn gold">Запази</button></form>
+        <h3>🔒 Моите данни</h3>
+        <div class="qx-row"><a class="qx-btn" href="/api/account/export" download>⬇️ Изтегли данните</a><a class="qx-btn" href="/privacy.html" target="_blank">Поверителност</a></div>
+        <details class="qx-more"><summary>Изтрий профила завинаги</summary><form class="qx-form" data-del><p class="qx-note">Нивата, значките и резултатите ще изчезнат завинаги. Можеш да продължиш да играеш като гост.</p><label>Паролата ти<input name="password" type="password" autocomplete="current-password" required></label><p class="qx-err"></p><button class="qx-btn" style="color:var(--bad)">🗑 Изтрий профила</button></form></details>
         <button class="qx-btn" data-logout style="margin-top:14px">🚪 Изход от профила</button></div>`);
     const show = (t) => { m.querySelectorAll('.qx-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t)); m.querySelectorAll('.qx-pane').forEach((p) => p.classList.toggle('qx-hide', p.dataset.p !== t)); };
     show(tab);
@@ -125,11 +157,38 @@
       const ic = e.target.closest('[data-icon]'); if (ic) return setAvatar({ icon: ic.dataset.icon, color });
       const c = e.target.closest('[data-color]'); if (c) { color = c.dataset.color; return setAvatar({ icon: me.avatarChoice.icon || me.avatar.icon || me.avatars[0].icon, color }); }
       if (e.target.closest('[data-use-photo]')) return setAvatar({ photo: true });
+      if (e.target.closest('[data-leave]')) { try { me = (await call('/api/account/team', { leave: true })).user; showProfile('more'); } catch (x) { flash(x.message); } return; }
+      if (e.target.closest('[data-resend]')) { try { await call('/api/account/consent-resend', {}); flash('Изпратихме писмото пак. 📧'); } catch (x) { flash(x.message); } return; }
+      const par = e.target.closest('[data-parent],[data-parent-renew]');
+      if (par) {
+        try {
+          const { token } = await call('/api/account/parent-link', { renew: par.hasAttribute('data-parent-renew') });
+          const link = location.origin + '/parent.html#' + token;
+          me.hasParentLink = true;
+          try { await navigator.clipboard.writeText(link); flash('Линкът е копиран. Изпрати го на мама или татко. 👪'); } catch { prompt('Копирай този линк и го дай на родител:', link); }
+          showProfile('more');
+        } catch (x) { flash(x.message); }
+        return;
+      }
       if (e.target.closest('[data-logout]')) { await call('/api/account/logout', {}).catch(() => {}); me = null; renderBar(); close(); reconnect(); flash('Излезе от профила. Можеш да играеш и като гост.'); }
     });
     q('[data-photo]', m).onchange = async (e) => {
       const f = e.target.files[0]; if (!f) return;
       try { const data = await shrink(f); me = (await call('/api/account/photo', { data })).user; flash('Снимката е изпратена за одобрение. 👍'); showProfile('avatar'); } catch (x) { flash(x.message || 'Снимката не става. Опитай с друга.'); }
+    };
+    q('[data-team]', m)?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try { const r = await call('/api/account/team', { code: e.target.code.value }); me = r.user; flash(`Добре дошъл в ${r.team.name}! 🏫`); showProfile('more'); } catch (x) { flash(x.message); }
+    });
+    q('[data-weekly]', m)?.addEventListener('change', async (e) => { try { me = (await call('/api/account/weekly', { on: e.target.checked })).user; flash(e.target.checked ? 'Седмичният отчет е включен.' : 'Седмичният отчет е спрян.'); } catch (x) { flash(x.message); } });
+    q('[data-email]', m).onsubmit = async (e) => {
+      e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const err = q('[data-email] .qx-err', m);
+      try { me = (await call('/api/account/email', f)).user; flash(me.needsConsent ? 'Имейлът е сменен. Изпратихме писмо за потвърждение.' : 'Имейлът е сменен.'); showProfile('more'); } catch (x) { err.textContent = x.message; }
+    };
+    q('[data-del]', m).onsubmit = async (e) => {
+      e.preventDefault(); const err = q('[data-del] .qx-err', m);
+      if (!confirm('Сигурен ли си? Това не може да се върне.')) return;
+      try { await call('/api/account/delete', { password: e.target.password.value }); me = null; renderBar(); close(); reconnect(); flash('Профилът е изтрит. Можеш да играеш като гост.'); } catch (x) { err.textContent = x.message; }
     };
     q('[data-pw]', m).onsubmit = async (e) => {
       e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const err = q('[data-pw] .qx-err', m);
@@ -153,10 +212,11 @@
   }
 
   // ---------- класация ----------
-  const BOARDS = { week: ['🔥 Седмица', 'опит'], xp: ['⭐ Ниво', 'опит'], wins: ['🏆 Победи', 'победи'], accuracy: ['🎯 Точност', '%'] };
+  const BOARDS = { week: ['🔥 Седмица', 'опит'], xp: ['⭐ Ниво', 'опит'], wins: ['🏆 Победи', 'победи'], accuracy: ['🎯 Точност', '%'], cup: ['🏫 Турнир', ''] };
   async function showBoard(kind = 'week') {
     const m = open('🏆 Класация', `<div class="qx-tabs">${Object.entries(BOARDS).map(([k, v]) => `<button data-k="${k}" class="${k === kind ? 'on' : ''}">${v[0]}</button>`).join('')}</div><div class="qx-list">Зареждане…</div>`);
     q('.qx-tabs', m).onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) showBoard(b.dataset.k); };
+    if (kind === 'cup') return showCup(m);
     try {
       const d = await call('/api/leaderboard?kind=' + kind);
       const medal = (p) => ['🥇', '🥈', '🥉'][p - 1] || p;
@@ -165,6 +225,30 @@
         : '<p class="qx-note">Още никой не е в класацията. Бъди първият! 🚀</p>') +
         (d.me ? `<p class="qx-note"><b>${d.me.place ? `Ти си на ${d.me.place} място.` : 'Изиграй игра, за да влезеш в класацията.'}</b></p>` : '<p class="qx-note">Влез в профила си, за да участваш в класацията. Без профил играеш като гост.</p>');
     } catch (x) { q('.qx-list', m).textContent = x.message; }
+  }
+
+  // Турнир между класове и училища
+  async function showCup(m) {
+    const box = q('.qx-list', m);
+    try {
+      const { tournament: t } = await call('/api/tournament');
+      if (!t) { box.innerHTML = '<p class="qx-note">В момента няма турнир. Помоли учителя да запише класа ви! Когато започне турнир, тук ще видиш класирането на класовете и училищата.</p>'; return; }
+      const d = (x) => new Date(x).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long' });
+      const unit = t.scoring === 'avg' ? 'опит на дете' : 'опит';
+      const medal = (p) => ['🥇', '🥈', '🥉'][p - 1] || p;
+      let tab = 'teams';
+      const draw = () => {
+        const rows = tab === 'teams' ? t.teams.map((x) => `<div class="qx-rank ${t.myTeam && x.id === t.myTeam.id ? 'me' : ''}"><span class="qx-place">${medal(x.place)}</span><span class="qx-rname">${esc(x.name)}<small>${esc(x.school)}${x.town ? ', ' + esc(x.town) : ''} · ${x.players} деца</small></span><b>${x.value}</b></div>`)
+          : t.schools.map((x) => `<div class="qx-rank ${t.myTeam && x.school === t.myTeam.school ? 'me' : ''}"><span class="qx-place">${medal(x.place)}</span><span class="qx-rname">${esc(x.school)}<small>${x.town ? esc(x.town) + ' · ' : ''}${x.classes} класа · ${x.players} деца</small></span><b>${x.value}</b></div>`);
+        box.innerHTML = `<h3 style="margin-top:0">${esc(t.name)}</h3>
+          <p class="qx-note">${{ live: '🟢 Тече сега', soon: '⏳ Предстои', over: '🏁 Завърши' }[t.status]} · ${d(t.start)} – ${d(t.end)}${t.grades.length ? ' · ' + t.grades.join(', ') + ' клас' : ''} · класиране по ${unit}</p>
+          ${t.mine ? `<div class="qx-tip">🏫 Твоят клас ${esc(t.myTeam.name)} е на <b>${t.mine.place} място</b>. Ти си донесъл <b>${t.myPoints}</b> точки.</div>` : t.myTeam ? (t.eligible ? `<div class="qx-tip">🏫 Играй, за да донесеш първите точки за ${esc(t.myTeam.name)}!</div>` : '<div class="qx-tip">Този турнир е за други класове.</div>') : `<div class="qx-tip">${me ? 'Въведи кода на класа си в Профил → ⚙️, за да играеш за класа си.' : 'Влез в профила си и въведи кода на класа от учителя, за да играеш за класа си.'}</div>`}
+          <div class="qx-cats"><button data-v="teams" class="${tab === 'teams' ? 'on' : ''}">Класове</button><button data-v="schools" class="${tab === 'schools' ? 'on' : ''}">Училища</button></div>
+          ${rows.length ? rows.join('') : '<p class="qx-note">Още няма точки. Първият верен отговор слага класа ти в класацията!</p>'}`;
+      };
+      box.onclick = (e) => { const b = e.target.closest('[data-v]'); if (b) { tab = b.dataset.v; draw(); } };
+      draw();
+    } catch (x) { box.textContent = x.message; }
   }
 
   // ---------- идеи ----------
@@ -231,6 +315,7 @@
   async function status() {
     try {
       const s = await call('/api/status');
+      mailOn = !!s.mail;
       const msg = s.maintenance ? { text: s.maintenance, kind: 'warn' } : s.announcement;
       const key = msg ? msg.kind + ':' + msg.text : '';
       if (!msg || inGame() || ls.get('quizzard-notice-closed') === key) { note.classList.add('qx-hide'); return; }

@@ -1,8 +1,9 @@
 // Акаунти на играчите и предложения за играта.
-// Играчите са деца (7–10 г.), затова пазим само прякор и парола: без имейл, без истинско име.
-// Играта работи и без акаунт; акаунтът пази победите и точността и дава място в класацията.
+// Играчите са деца (7–10 г.): пазим потребителско име, парола и имейл на родителя (за потвърждение,
+// нова парола и седмичен отчет). Без истинско име. Играта работи и без акаунт.
 const crypto = require('crypto');
 const R = require('./rewards');
+const mail = require('./mail');
 
 const COOKIE = 'qz_player';
 const SESSION_DAYS = 180;
@@ -21,6 +22,15 @@ function checkName(name) {
   if (BAD.some((b) => flat.includes(b)) || /^(бот|bot)(\s|$)/i.test(n)) return { error: 'Този прякор не е позволен. Избери друг.' };
   return { name: n };
 }
+const EMAIL_RE = /^[^\s@<>()",;:]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/;
+const normEmail = (e) => String(e || '').trim().toLowerCase();
+function checkEmail(e) {
+  e = normEmail(e);
+  if (!e) return { error: 'Напиши имейла на родител.' };
+  if (e.length > 120 || !EMAIL_RE.test(e)) return { error: 'Имейлът не изглежда правилен. Провери го.' };
+  return { email: e };
+}
+const maskEmail = (e) => { if (!e) return null; const [a, d] = e.split('@'); return `${a.slice(0, 2)}${'•'.repeat(Math.max(1, Math.min(6, a.length - 2)))}@${d}`; };
 const scrypt = (pass, salt) => crypto.scryptSync(String(pass), salt, 32).toString('hex');
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
@@ -34,11 +44,15 @@ class Accounts {
     av.pending ||= {}; av.approved ||= {};
     const c = store.get('community');
     c.ideas ||= []; c.ideaId ||= 0;
-    this.limits = new Map();
+    this.limits = new Map(); this.hooks = [];
   }
   get users() { return this.store.get('players').users; }
   get secret() { return this.store.get('players').secret; }
   byName(name) { const n = normName(name); return Object.values(this.users).find((u) => normName(u.name) === n) || null; }
+  // Един имейл на родител може да има няколко деца (братя и сестри)
+  byEmail(email) { const e = normEmail(email); return e ? Object.values(this.users).filter((u) => u.email === e) : []; }
+  // Чака родителят да потвърди по имейл (само ако изпращането на имейли е включено)
+  needsConsent(u) { return mail.enabled() && !!u.email && !u.consentAt; }
 
   // ---------- сесии ----------
   token(u) {
@@ -91,6 +105,8 @@ class Accounts {
       newBadges: (u.newBadges || []).map((id) => R.BADGES.find((b) => b.id === id)).filter(Boolean).map(({ id, icon, name, desc }) => ({ id, icon, name, desc })),
       subjects: Object.fromEntries(Object.entries(u.subj || {}).map(([k, v]) => [k, { n: v[0], ok: v[1] }])),
       avatars: R.AVATARS, colors: R.COLORS, ranks: this.ranksOf(u),
+      team: this.league ? this.league.publicTeam(this.league.teams[u.team]) : null, hasParentLink: !!u.parentToken,
+      email: maskEmail(u.email), needsConsent: this.needsConsent(u), consentAt: u.consentAt || null, weeklyMail: u.weeklyMail !== false, mail: mail.enabled(),
     };
   }
   // Класации: week – най-активни тази седмица (опит), xp – ниво, wins – победи, accuracy – точност (поне 50 отговора)
@@ -103,31 +119,55 @@ class Accounts {
       accuracy: { f: (u) => (u.answers || 0) >= 50, v: (u) => Math.round((1000 * u.correct) / u.answers) / 10 },
     }[kind] || null;
     if (!K) return [];
-    return Object.values(this.users).filter((u) => !u.banned && K.f(u)).map((u) => ({ u, v: K.v(u) })).sort((a, b) => b.v - a.v || (b.u.xp || 0) - (a.u.xp || 0));
+    return Object.values(this.users).filter((u) => !u.banned && !this.needsConsent(u) && K.f(u)).map((u) => ({ u, v: K.v(u) })).sort((a, b) => b.v - a.v || (b.u.xp || 0) - (a.u.xp || 0));
   }
   leaderboard(kind = 'week', limit = 20) {
     return this.board(kind).slice(0, limit).map(({ u, v }, i) => ({ place: i + 1, name: u.name, value: v, level: R.levelOf(u.xp || 0), avatar: this.avatarOf(u), badges: Object.keys(u.badges || {}).length, grade: u.grade || null }));
   }
   ranksOf(u) { const out = {}; for (const k of ['week', 'xp', 'wins', 'accuracy']) { const i = this.board(k).findIndex((x) => x.u === u); out[k] = i >= 0 ? i + 1 : null; } return out; }
 
-  register({ name, password, grade }) {
+  register({ name, email, password, grade, consent }) {
     const c = checkName(name);
     if (c.error) return c;
-    if (this.byName(c.name)) return { error: 'Този прякор вече е зает. Опитай с друг.' };
+    if (this.byName(c.name)) return { error: 'Това потребителско име вече е заето. Опитай с друго.' };
+    const e = checkEmail(email);
+    if (e.error) return e;
+    if (this.byEmail(e.email).length >= 6) return { error: 'С този имейл вече има 6 профила.' };
     if (String(password || '').length < 4) return { error: 'Паролата трябва да е поне 4 знака.' };
     if (String(password).length > 64) return { error: 'Паролата е твърде дълга.' };
+    if (!consent) return { error: 'Нужно е съгласие от родител. Помоли мама или татко да прочетат и да отметнат квадратчето.' };
     const salt = crypto.randomBytes(16).toString('hex');
-    const u = { id: 'u' + crypto.randomBytes(6).toString('hex'), name: c.name, salt, hash: scrypt(password, salt), pwv: 0, grade: [1, 2, 3, 4].includes(Number(grade)) ? Number(grade) : null, createdAt: new Date().toISOString(), lastSeen: new Date().toISOString(), games: 0, wins: 0, answers: 0, correct: 0, best: 0 };
+    const now = new Date().toISOString();
+    const u = { id: 'u' + crypto.randomBytes(6).toString('hex'), name: c.name, email: e.email, consentAskedAt: now, consentAt: null, weeklyMail: true, salt, hash: scrypt(password, salt), pwv: 0, grade: [1, 2, 3, 4].includes(Number(grade)) ? Number(grade) : null, createdAt: now, lastSeen: now, games: 0, wins: 0, answers: 0, correct: 0, best: 0 };
     this.users[u.id] = u;
     this.store.touch('players');
     return { user: u };
   }
-  login({ name, password }) {
-    const u = this.byName(name);
-    if (!u || !safeEq(scrypt(password, u.salt), u.hash)) return { error: 'Грешен прякор или парола.' };
+  // Вход с потребителско име или с имейл на родителя + парола.
+  // С един имейл може да има няколко деца: влиза профилът, чиято парола съвпада.
+  login({ login, name, password }) {
+    const id = String(login ?? name ?? '').trim();
+    let u = null;
+    if (id.includes('@')) {
+      const hits = this.byEmail(id).filter((x) => safeEq(scrypt(password, x.salt), x.hash));
+      if (hits.length > 1) return { error: 'С този имейл има няколко профила с тази парола. Влез с потребителското име.' };
+      u = hits[0] || null;
+    } else {
+      const x = this.byName(id);
+      u = x && safeEq(scrypt(password, x.salt), x.hash) ? x : null;
+    }
+    if (!u) return { error: id.includes('@') ? 'Грешен имейл или парола.' : 'Грешно потребителско име или парола.' };
     if (u.banned) return { error: 'Този акаунт е спрян. Помоли възрастен да се свърже с нас.' };
     u.lastSeen = new Date().toISOString(); this.store.touch('players');
     return { user: u };
+  }
+  setEmail(u, email) {
+    const e = checkEmail(email);
+    if (e.error) return e;
+    if (e.email === u.email) return { ok: true, same: true };
+    u.email = e.email; u.consentAt = null; u.consentAskedAt = new Date().toISOString(); delete u.consentToken;
+    this.store.touch('players');
+    return { ok: true };
   }
   setPassword(u, password) {
     u.salt = crypto.randomBytes(16).toString('hex'); u.hash = scrypt(password, u.salt); u.pwv = (u.pwv || 0) + 1;
@@ -135,15 +175,41 @@ class Accounts {
   }
 
   // Извиква се от играта: отговор и край на игра
-  onAnswer(uid, ok, subject) { const u = this.users[uid]; if (!u) return; R.onAnswer(u, ok, subject); this.store.touch('players'); }
+  // hooks: (user, спечелен опит, { ok, q, given } или { game, won }) – турнири и отчет за родителя
+  onAnswer(uid, ok, q, given) {
+    const u = this.users[uid]; if (!u) return;
+    const before = u.xp || 0;
+    R.onAnswer(u, ok, q?.subject);
+    for (const h of this.hooks) h(u, (u.xp || 0) - before, { ok, q, given });
+    this.store.touch('players');
+  }
   onGameEnd(uid, info) {
     const u = this.users[uid]; if (!u) return [];
+    const before = u.xp || 0;
     const fresh = R.onGameEnd(u, info);
+    for (const h of this.hooks) h(u, (u.xp || 0) - before, { game: true, won: info.won });
     u.lastSeen = new Date().toISOString(); this.store.touch('players');
     return fresh;
   }
+  // Пълно изтриване на акаунт: профил, снимка, авторство на идеите
+  deleteUser(uid) {
+    const u = this.users[uid]; if (!u) return false;
+    delete this.users[uid];
+    const av = this.store.get('avatars'); delete av.pending[uid]; delete av.approved[uid];
+    for (const i of this.ideas) if (i.uid === uid) { i.uid = null; i.by = null; }
+    for (const t of this.store.get('community').tournaments || []) for (const team of Object.values(t.players || {})) delete team[uid];
+    for (const n of ['players', 'avatars', 'community']) this.store.touch(n);
+    return true;
+  }
+  // Всичко, което пазим за играча (за родителя)
+  exportData(u) {
+    const { salt, hash, pwv, parentToken, consentToken, reset, ...rest } = u;
+    const av = this.store.get('avatars');
+    return { ...rest, photo: av.approved[u.id] || av.pending[u.id]?.data || null, ideas: this.ideas.filter((i) => i.uid === u.id).map(({ voters, uid, ...i }) => i), exportedAt: new Date().toISOString() };
+  }
   // Снимка за профила: малка (до ~40 KB), вижда се от другите едва след одобрение в панела
   setPhoto(u, dataUrl) {
+    if (this.needsConsent(u)) return { error: 'Снимка може да се качи, след като родител потвърди профила по имейл.' };
     const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
     if (!m) return { error: 'Снимката трябва да е JPG, PNG или WEBP.' };
     if (m[2].length > 60000) return { error: 'Снимката е твърде голяма.' };
@@ -184,6 +250,10 @@ function json(res, code, body, headers = {}) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers });
   res.end(JSON.stringify(body));
 }
+function html(res, code, text) {
+  res.writeHead(code, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quizzard</title><body style="font-family:sans-serif;max-width:520px;margin:40px auto;padding:0 16px;line-height:1.5"><h1>🧙 Quizzard</h1><p>${String(text).replace(/[<>&]/g, '')}</p><p><a href="/">Към играта</a></p></body>`);
+}
 async function handlePublic(acc, req, res, url, readBody) {
   const p = url.pathname;
   const pic = p.match(/^\/api\/avatar\/(u[0-9a-f]+)$/);
@@ -200,11 +270,14 @@ async function handlePublic(acc, req, res, url, readBody) {
   if (post && req.headers['x-quizzard'] !== '1') return json(res, 403, { error: 'Забранено.' });
   const body = post ? await readBody(req).catch(() => ({})) : {};
 
+  if (acc.parents && (await acc.parents.handle({ p, url, post, body, me, ip, req, res, json, html })) !== false) return;
   if (p === '/api/account/me') return json(res, 200, { user: acc.profile(me) });
   if (p === '/api/account/register' && post) {
-    if (acc.limited('reg:' + ip, 6, 3600000)) return json(res, 429, { error: 'Твърде много нови акаунти от това място. Опитай по-късно.' });
+    // Цял клас може да се регистрира от една училищна мрежа, затова лимитът е по-висок
+    if (acc.limited('reg:' + ip, 60, 3600000)) return json(res, 429, { error: 'Твърде много нови акаунти от това място. Опитай по-късно.' });
     const out = acc.register(body);
     if (out.error) return json(res, 400, out);
+    if (acc.parents) await acc.parents.askConsent(out.user);
     return json(res, 200, { user: acc.profile(out.user) }, { 'Set-Cookie': acc.cookieFor(out.user, req) });
   }
   if (p === '/api/account/login' && post) {
@@ -225,6 +298,40 @@ async function handlePublic(acc, req, res, url, readBody) {
   if (p === '/api/leaderboard') {
     const kind = ['week', 'xp', 'wins', 'accuracy'].includes(url.searchParams.get('kind')) ? url.searchParams.get('kind') : 'week';
     return json(res, 200, { kind, top: acc.leaderboard(kind, 20), me: me ? { name: me.name, place: acc.ranksOf(me)[kind] } : null });
+  }
+  const L = acc.league;
+  if (p === '/api/tournament') { const t = L.current(); return json(res, 200, { tournament: L.publicTournament(t, me) }); }
+  if (p === '/api/account/team' && post) {
+    if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });
+    if (body.leave) return json(res, 200, { ...L.leaveTeam(me), user: acc.profile(me) });
+    if (acc.limited('team:' + ip, 20, 600000)) return json(res, 429, { error: 'Твърде много опити. Изчакай малко.' });
+    const out = L.joinTeam(me, body.code);
+    return json(res, out.error ? 400 : 200, out.error ? out : { ...out, user: acc.profile(me) });
+  }
+  if (p === '/api/account/parent-link' && post) {
+    if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });
+    return json(res, 200, { token: L.parentLink(me, !!body.renew) });
+  }
+  if (p === '/api/account/export') {
+    if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });
+    return json(res, 200, acc.exportData(me), { 'Content-Disposition': 'attachment; filename="quizzard-moite-danni.json"' });
+  }
+  if (p === '/api/account/delete' && post) {
+    if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });
+    if (acc.limited('del:' + ip, 10, 600000)) return json(res, 429, { error: 'Твърде много опити. Изчакай 10 минути.' });
+    if (!safeEq(scrypt(body.password, me.salt), me.hash)) return json(res, 400, { error: 'Паролата не е вярна.' });
+    acc.deleteUser(me.id); await acc.store.flush();
+    return json(res, 200, { ok: true }, { 'Set-Cookie': acc.cookieFor(null, req) });
+  }
+  // Отчет за родителя по личен линк (без вход): /parent.html#<код>
+  const par = p.match(/^\/api\/parent\/([A-Za-z0-9_-]{20,40})(\/delete|\/export)?$/);
+  if (par) {
+    if (acc.limited('parent:' + ip, 60, 600000)) return json(res, 429, { error: 'Твърде много опити. Изчакай малко.' });
+    const u = L.byParentToken(par[1]);
+    if (!u) return json(res, 404, { error: 'Линкът не е валиден. Може детето да е направило нов линк или профилът да е изтрит.' });
+    if (par[2] === '/export') return json(res, 200, acc.exportData(u), { 'Content-Disposition': 'attachment; filename="quizzard-danni.json"' });
+    if (par[2] === '/delete' && post) { acc.deleteUser(u.id); await acc.store.flush(); return json(res, 200, { ok: true }); }
+    return json(res, 200, { report: L.report(u) });
   }
   if (p === '/api/account/seen' && post) { if (me) { me.newBadges = []; acc.store.touch('players'); } return json(res, 200, { ok: true }); }
   if (p === '/api/account/avatar' && post) {
@@ -271,4 +378,4 @@ async function handlePublic(acc, req, res, url, readBody) {
   return json(res, 404, { error: 'Няма такава функция.' });
 }
 
-module.exports = { Accounts, handlePublic, checkName, IDEA_CATEGORIES, IDEA_STATUS, COOKIE };
+module.exports = { Accounts, handlePublic, checkName, checkEmail, normEmail, maskEmail, scrypt, safeEq, IDEA_CATEGORIES, IDEA_STATUS, COOKIE };
