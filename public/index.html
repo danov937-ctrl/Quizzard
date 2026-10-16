@@ -6,6 +6,13 @@
   <title>Quizzard — завладей България със знания</title>
   <meta name="description" content="Quizzard: куиз игра с карта на България за 1–4 клас. Играй онлайн, с приятели или с ботове.">
   <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#0e2a4a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Quizzard">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kurale&family=Nunito:wght@700;800;900&family=Rubik:wght@700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -48,6 +55,17 @@
         </button>
       </div>
 
+      <div class="modes solo">
+        <button class="mode" id="btnDaily">
+          <span class="mode-icon">🌞</span><span class="mode-title">Предизвикателство на деня</span>
+          <span class="mode-sub" id="dailySub">10 въпроса всеки ден. Не прекъсвай серията!</span>
+        </button>
+        <button class="mode" id="btnPractice">
+          <span class="mode-icon">📚</span><span class="mode-title">Упражнение</span>
+          <span class="mode-sub">Въпроси по предмет, без противници и без бързане.</span>
+        </button>
+      </div>
+
       <div class="panel join">
         <span class="lbl">Имаш код от приятел?</span>
         <div class="row">
@@ -61,6 +79,7 @@
         <button class="link" data-report>🚩 Докладвай проблем</button>
         <button class="link" data-sound="fx">🔊 Звуци</button>
         <button class="link" data-sound="music">🎵 Музика</button>
+        <button class="link hidden" id="btnInstall">📲 Инсталирай</button>
       </div>
     </div>
   </section>
@@ -87,6 +106,12 @@
       <p id="lobbyErr" class="err"></p>
       <button id="btnLeave" class="link">← Излез</button>
     </div>
+  </section>
+
+  <!-- Упражнение и предизвикателство на деня -->
+  <section id="practice" class="screen hidden">
+    <div class="mini-brand center"><img src="logo.svg" alt=""><span>Quizzard</span></div>
+    <div id="practiceCard" class="panel practice-card"></div>
   </section>
 
   <!-- Игра -->

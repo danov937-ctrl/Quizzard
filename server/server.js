@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { Game } = require('./game');
-const { MC, SUBJECTS } = require('./questions');
+const { MC, SUBJECTS, practiceSet } = require('./questions');
 
 const PORT = process.env.PORT || 3000;
 const SPEED = Number(process.env.GAME_SPEED || 1); // 0.3 = по-бърза игра за демонстрация
@@ -20,7 +20,7 @@ const QUICK_WAIT_MS = Number(process.env.QUICK_WAIT_MS || 15000); // онлай�
 const ALL_SUBJECTS = Object.keys(SUBJECTS);
 // Кои предмети имат въпроси за всеки клас (класа и класа под него), за избора на категории в стаята
 const SUBJECTS_BY_GRADE = Object.fromEntries([1, 2, 3, 4].map((g) => [g, ALL_SUBJECTS.filter((s) => MC.filter((q) => q.subject === s && q.grade <= g && q.grade >= g - 1).length >= 15)]));
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
 const server = http.createServer((req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
@@ -193,6 +193,14 @@ wss.on('connection', (ws) => {
       case 'backToLobby':
         if (!isHost || !room.game || room.game.phase !== 'ended') return;
         room.game = null; room.broadcast(); break;
+      // Упражнение без противници и предизвикателство на деня (един и същ избор за деня и класа)
+      case 'practice': {
+        const grade = [1, 2, 3, 4].includes(msg.grade) ? msg.grade : 2;
+        const subjects = Array.isArray(msg.subjects) ? msg.subjects.map(String).filter((s) => ALL_SUBJECTS.includes(s)) : null;
+        const day = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' });
+        const items = msg.daily ? practiceSet({ grade, n: 10, seed: `${day}|${grade}` }) : practiceSet({ grade, subjects, n: 10 });
+        send(ws, { t: 'practiceSet', daily: !!msg.daily, day, grade, items }); break;
+      }
       case 'report': {
         // Сигнали от играчите: data/reports.jsonl (един ред JSON на сигнал)
         const now = Date.now();

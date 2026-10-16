@@ -137,6 +137,7 @@ function handle(m) {
     store.del(SAVE_KEY); me = null; state = null; lastFxId = null; closeOverlay(); show('home');
     if (afterLeave) { const f = afterLeave; afterLeave = null; f(); }
   }
+  else if (m.t === 'practiceSet') startPracticeSet(m);
   else if (m.t === 'reportOk') { closeReport(); toast('Благодарим! Сигналът е изпратен.'); }
   else if (m.t === 'error') { for (const s of ['#homeErr', '#lobbyErr', '#reportErr']) $(s).textContent = m.msg; }
   else if (m.t === 'lobby') { lobby = m.lobby; state = null; lastFxId = null; closeOverlay(); renderLobby(); show('lobby'); }
@@ -485,7 +486,7 @@ function renderModal() {
   }
   modal.innerHTML = `<div class="mhead" style="--sc:${SUBJ_COLOR[q.subject] || '#7a4a22'}"><h3>${esc(c.title || '')}</h3>${duel}
       <div class="meta"><span class="chip">${subjIcon} ${subjName}</span><span class="chip">${q.kind === 'num' ? '🔢 Отговор с число' : '🅰️ Избери отговор'}</span></div></div>
-    <div class="mbody"><div class="qtop"><div class="qtext">${esc(q.text)}</div>
+    <div class="mbody">${picHtml(q.pic)}<div class="qtop"><div class="qtext">${esc(q.text)}</div>
       ${canSpeak ? '<button class="speak" id="btnSpeak" title="Прочети на глас">🔈</button>' : ''}
       ${reveal ? '' : '<div class="clock" id="clock"><span></span></div>'}</div>
       ${body}${jokers}<p class="status">${status}</p><button class="qreport" data-report="q">🚩 Има проблем с този въпрос</button></div>`;
@@ -547,6 +548,12 @@ function renderEnd(c, modal, fresh) {
     <div class="end-actions">${actions}</div></div>`;
   if (fresh) { Sound.play(iWon ? 'win' : 'flag'); if (iWon) confetti(); }
   const again = $('#btnAgain'); if (again) again.onclick = () => send({ t: 'backToLobby' });
+  const weakSubj = a ? Object.entries(a.bySubject).filter(([, b]) => b.ok < b.n).sort((x, y) => (x[1].ok / x[1].n) - (y[1].ok / y[1].n)).slice(0, 3).map(([s]) => s) : [];
+  if (weakSubj.length) {
+    const box = modal.querySelector('.end-actions');
+    box.insertAdjacentHTML('afterbegin', `<button id="btnPracticeWeak" class="btn wood">📚 Упражнявай: ${esc(weakSubj.map((s) => SUBJECTS[s]?.[0] || s).join(', '))}</button>`);
+    $('#btnPracticeWeak').onclick = () => { const g = state.grade; afterLeave = () => requestPractice({ grade: g, subjects: weakSubj }); send({ t: 'leave' }); };
+  }
   const online = $('#btnAgainOnline'); if (online) online.onclick = () => { afterLeave = startQuick; send({ t: 'leave' }); };
   $('#btnHome').onclick = () => send({ t: 'leave' });
 }
@@ -565,6 +572,122 @@ function confetti() {
   }
   setTimeout(() => (box.innerHTML = ''), 5500);
 }
+
+// Картинка към въпроса (емоджи); много на брой (за броене) се показват по-малки
+const picHtml = (pic) => pic ? `<div class="qpic ${pic.length > 6 ? 'many' : ''}">${esc(pic)}</div>` : '';
+
+// ---------- упражнение и предизвикателство на деня ----------
+// Предметите по класове според учебната програма
+const SUBJ_GRADES = { okol: [1, 2], prir: [3, 4], obsht: [3, 4], comp: [3, 4], eng: [2, 3, 4] };
+const subjectsFor = (g) => ['bel', 'mat', 'okol', 'prir', 'obsht', 'eng', 'muz', 'izk', 'tech', 'sport', 'comp'].filter((s) => !SUBJ_GRADES[s] || SUBJ_GRADES[s].includes(g));
+let pr = null, prTimer = null, prLast = null;
+const DAILY_KEY = 'quizzard-daily';
+const dayShift = (day, d) => { const t = new Date(day + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + d); return t.toISOString().slice(0, 10); };
+const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' });
+function dailyInfo() {
+  const d = store.get(DAILY_KEY, {}) || {};
+  const alive = d.last === today() || d.last === dayShift(today(), -1);
+  return { ...d, streak: alive ? d.streak || 0 : 0, doneToday: d.last === today() };
+}
+function renderDailyTile() {
+  const d = dailyInfo();
+  $('#dailySub').textContent = d.doneToday ? `✅ Днес: ${d.todayScore}/10 · 🔥 ${d.streak} ${d.streak === 1 ? 'ден' : 'дни'} подред` : d.streak ? `🔥 ${d.streak} ${d.streak === 1 ? 'ден' : 'дни'} подред. Не прекъсвай серията!` : '10 въпроса всеки ден. Започни серия!';
+}
+renderDailyTile();
+function requestPractice(opts) { prLast = opts; send({ t: 'practice', ...opts }); }
+$('#btnDaily').onclick = () => requestPractice({ grade: homeGrade, daily: true });
+$('#btnPractice').onclick = () => {
+  const subs = subjectsFor(homeGrade);
+  openOverlay(`<div class="mhead"><h3>📚 Упражнение · ${homeGrade} клас</h3></div><div class="mbody"><p class="sub">Избери предмет:</p>
+    <div class="subj-grid practice-subj"><button class="all on" data-ps="all">✨ Всички предмети</button>${subs.map((s) => `<button class="on" data-ps="${s}">${SUBJECTS[s][1]} ${SUBJECTS[s][0]}</button>`).join('')}</div>
+    <button class="link" id="psCancel" style="display:block;margin:12px auto 0;color:var(--muted)">Отказ</button></div>`);
+  for (const b of $$('[data-ps]')) b.onclick = () => { closeOverlay(); requestPractice({ grade: homeGrade, subjects: b.dataset.ps === 'all' ? null : [b.dataset.ps] }); };
+  $('#psCancel').onclick = closeOverlay;
+};
+function startPracticeSet(m) {
+  if (!m.items?.length) return toast('Няма въпроси за този избор.');
+  closeOverlay();
+  pr = { ...m, i: 0, score: 0, results: [], input: '' };
+  show('practice'); renderPractice();
+}
+function practiceAnswer(value) {
+  const q = pr.items[pr.i];
+  if (pr.answered) return;
+  clearInterval(prTimer);
+  const ok = q.kind === 'num' ? Number(value) === q.answer : value === q.correct;
+  pr.answered = { value, ok };
+  if (ok) pr.score++;
+  pr.results.push({ q, value, ok });
+  Sound.play(ok ? 'good' : 'bad');
+  renderPractice();
+}
+function renderPractice() {
+  const card = $('#practiceCard');
+  if (pr.i >= pr.items.length) return renderPracticeEnd();
+  const q = pr.items[pr.i], a = pr.answered;
+  const [subjName, subjIcon] = SUBJECTS[q.subject] || ['Въпрос', '❓'];
+  const dots = pr.items.map((_, k) => `<i class="${k < pr.i ? (pr.results[k]?.ok ? 'ok' : 'bad') : k === pr.i ? 'now' : ''}"></i>`).join('');
+  let body;
+  if (q.kind === 'mc') {
+    body = `<div class="opts ${a ? 'reveal' : ''}">${q.options.map((o, i) => `<button data-po="${esc(o)}" class="${a?.value === o ? 'chosen' : ''} ${a && o === q.correct ? 'right' : ''}" ${a ? 'disabled' : ''}><span class="letter">${'АБВГ'[i]}</span>${esc(o)}</button>`).join('')}</div>`;
+  } else if (!a) {
+    body = `<div class="numbox" id="pnum">${pr.input || '&nbsp;'}</div><div class="numpad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => `<button data-pd="${d}">${d}</button>`).join('')}<button data-pd="back">⌫</button><button data-pd="0">0</button><button data-pd="ok" class="ok">OK</button></div>`;
+  } else body = `<div class="numbox">${esc(a.value ?? '—')}</div>`;
+  const fb = a ? `<div class="feedback ${a.ok ? 'ok' : 'bad'}">${a.ok ? '✅ Браво, вярно!' : `❌ Верният отговор е: <b>${esc(q.kind === 'num' ? q.answer : q.correct)}</b>`}</div>
+    <button id="pNext" class="btn gold big" style="width:100%">${pr.i === pr.items.length - 1 ? 'Виж резултата ▶' : 'Напред ▶'}</button>` : '';
+  card.innerHTML = `<div class="pr-head"><span class="eyebrow">${pr.daily ? `🌞 Предизвикателство на деня · ${pr.grade} клас` : `📚 Упражнение · ${pr.grade} клас`}</span>
+      <span class="pr-score">⭐ ${pr.score}</span></div><div class="pr-dots">${dots}</div>
+    <div class="meta"><span class="chip light">${subjIcon} ${subjName}</span><span class="chip light">Въпрос ${pr.i + 1} от ${pr.items.length}</span></div>
+    ${picHtml(q.pic)}
+    <div class="qtop"><div class="qtext">${esc(q.text)}</div>${canSpeak ? '<button class="speak" id="pSpeak" title="Прочети на глас">🔈</button>' : ''}${pr.daily && !a ? '<div class="clock" id="clock"><span></span></div>' : ''}</div>
+    ${body}${fb}
+    <div class="pr-foot"><button class="link" id="pQuit">← Към началото</button><button class="qreport" data-report="q">🚩 Проблем с въпроса</button></div>`;
+  lastQuestion = { text: q.text, subject: q.subject, options: q.options, grade: pr.grade };
+  for (const b of card.querySelectorAll('[data-po]')) b.onclick = () => practiceAnswer(b.dataset.po);
+  for (const b of card.querySelectorAll('[data-pd]')) b.onclick = () => prNum(b.dataset.pd);
+  const sp = $('#pSpeak'); if (sp) sp.onclick = () => speak(q.text + (q.kind === 'mc' ? '. ' + q.options.map((o, i) => `${'АБВГ'[i]}: ${o}`).join('. ') : ''), sp);
+  const nx = $('#pNext'); if (nx) nx.onclick = () => { pr.i++; pr.answered = null; pr.input = ''; renderPractice(); };
+  $('#pQuit').onclick = () => { clearInterval(prTimer); pr = null; show('home'); renderDailyTile(); };
+  if (pr.daily && !a) { deadline = performance.now() + 20000; deadlineTotal = 20000; runClock(); clearInterval(prTimer); prTimer = setInterval(() => { if (performance.now() >= deadline) practiceAnswer(null); }, 200); }
+}
+function prNum(d) {
+  if (d === 'ok') { if (pr.input) practiceAnswer(Number(pr.input)); return; }
+  pr.input = d === 'back' ? pr.input.slice(0, -1) : (pr.input + d).replace(/^0+(?=\d)/, '').slice(0, 6);
+  const box = $('#pnum'); if (box) box.innerHTML = pr.input || '&nbsp;';
+}
+function renderPracticeEnd() {
+  const n = pr.items.length, s = pr.score, stars = s >= n ? 3 : s >= n * 0.7 ? 2 : s >= n * 0.4 ? 1 : 0;
+  let streakLine = '';
+  if (pr.daily) {
+    const d = store.get(DAILY_KEY, {}) || {};
+    if (d.last !== pr.day) {
+      const streak = d.last === dayShift(pr.day, -1) ? (d.streak || 0) + 1 : 1;
+      store.set(DAILY_KEY, { last: pr.day, streak, best: Math.max(streak, d.best || 0), todayScore: s });
+    }
+    const now = store.get(DAILY_KEY, {});
+    streakLine = `<p class="streak">🔥 ${now.streak} ${now.streak === 1 ? 'ден' : 'дни'} подред${now.best > now.streak ? ` · рекорд ${now.best}` : ''}</p><p class="sub">Ела пак утре за нови 10 въпроса!</p>`;
+  }
+  const wrong = pr.results.filter((r) => !r.ok);
+  $('#practiceCard').innerHTML = `<div class="announce"><div class="ribbon">${pr.daily ? 'Предизвикателство на деня' : 'Упражнение'}</div><br>
+    <span class="big">${['💪', '⭐', '⭐⭐', '⭐⭐⭐'][stars]}</span><h2>${s} от ${n} верни</h2>
+    <p class="sub">${['Не се отказвай, следващия път ще е по-добре!', 'Добро начало!', 'Много добре!', 'Отлично! Без нито една грешка!'][stars]}</p>${streakLine}
+    ${wrong.length ? `<details class="an" open><summary>📝 Къде сгреши (${wrong.length})</summary><ul class="mistakes">${wrong.map((r) => `<li>${SUBJECTS[r.q.subject]?.[1] || ''} ${esc(r.q.text)} ${r.q.pic ? esc(r.q.pic) : ''}<span class="ans">${r.value != null ? `<s>${esc(r.value)}</s>` : '<s>без отговор</s>'} ✔ ${esc(r.q.kind === 'num' ? r.q.answer : r.q.correct)}</span></li>`).join('')}</ul></details>` : ''}
+    <div class="end-actions">${pr.daily ? '' : '<button id="pAgain" class="btn gold big">🔁 Още 10 въпроса</button>'}<button id="pHome" class="btn wood">🏠 Към началото</button></div></div>`;
+  if (stars >= 2) { Sound.play('win'); if (stars === 3) confetti(); }
+  const ag = $('#pAgain'); if (ag) ag.onclick = () => requestPractice(prLast);
+  $('#pHome').onclick = () => { pr = null; show('home'); renderDailyTile(); };
+}
+
+// ---------- инсталиране като приложение ----------
+let installEvt = null;
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; $('#btnInstall').classList.remove('hidden'); });
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+if (isIOS) $('#btnInstall').classList.remove('hidden');
+$('#btnInstall').onclick = async () => {
+  if (installEvt) { installEvt.prompt(); await installEvt.userChoice.catch(() => {}); installEvt = null; $('#btnInstall').classList.add('hidden'); }
+  else openOverlay(`<div class="mhead"><h3>📲 Инсталирай Quizzard</h3></div><div class="mbody"><ol class="rules"><li>Натисни бутона <b>Сподели</b> (квадрат със стрелка) долу в Safari.</li><li>Избери <b>„Добави към началния екран“</b>.</li><li>Натисни <b>„Добави“</b>. Иконката с шапката ще се появи на екрана.</li></ol><button class="btn gold big" id="instOk" style="width:100%">Разбрах!</button></div>`), ($('#instOk').onclick = closeOverlay);
+};
 
 // ---------- докладване на проблем ----------
 const REASONS_Q = ['Грешен верен отговор', 'Правописна грешка', 'Въпросът е неясен', 'Твърде труден за класа'];

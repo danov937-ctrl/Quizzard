@@ -341,3 +341,28 @@ details.an summary { cursor: pointer; font-weight: 900; color: var(--wood2); pad
   #game .pcard .pts { font-size: .95rem; }
 }
 @media (max-height: 560px) and (orientation: landscape) { #game .log { display: none; } #game .map-frame { flex: 1; aspect-ratio: auto; } }
+
+/* ---------- упражнение, предизвикателство на деня, картинки ---------- */
+.modes.solo { grid-template-columns: 1fr 1fr; margin-top: -4px; }
+.modes.solo .mode { background: linear-gradient(180deg, #3f6f2a, #2c5220 60%, #1d3a14); }
+.qpic { text-align: center; font-size: 4.2rem; line-height: 1.15; margin: 0 0 10px; letter-spacing: .05em; word-break: break-all; animation: popIn2 .5s cubic-bezier(.2,1.6,.4,1) both; }
+.practice-card { max-width: 640px; margin: 0 auto; }
+.pr-head { display: flex; justify-content: space-between; align-items: center; }
+.pr-score { font-family: "Rubik", sans-serif; font-weight: 900; font-size: 1.3rem; color: var(--wood2); }
+.pr-dots { display: flex; gap: 5px; margin: 8px 0 10px; }
+.pr-dots i { flex: 1; height: 8px; border-radius: 4px; background: #e3cf9f; }
+.pr-dots i.ok { background: var(--ok); } .pr-dots i.bad { background: var(--bad); } .pr-dots i.now { background: var(--gold2); }
+.practice-card .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.chip.light { background: #fff6dc; color: var(--wood2); border-color: #d9bd7c; }
+.feedback { text-align: center; font-weight: 900; font-size: 1.15rem; margin: 14px 0 10px; padding: 10px; border-radius: 12px; animation: rise .3s ease-out; }
+.feedback.ok { background: #dff3e3; color: #1d6b33; } .feedback.bad { background: #fbe1de; color: #9c241a; }
+.pr-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.pr-foot .qreport { margin: 0; }
+.streak { font-family: "Kurale", serif; font-size: 1.5rem; color: var(--red); margin: 6px 0 0; }
+.practice-subj button.on { opacity: 1; }
+@media (max-width: 900px) {
+  .modes.solo { grid-template-columns: 1fr; }
+  .qpic { font-size: 3.2rem; }
+}
+.qpic.many { font-size: 2.4rem; letter-spacing: .12em; }
+@media (max-width: 900px) { .qpic.many { font-size: 1.9rem; } }

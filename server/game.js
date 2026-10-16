@@ -441,7 +441,7 @@ class Game {
     if (c) {
       cur = { ...c };
       if (c.q) {
-        cur.q = { text: c.q.text, subject: c.q.subject, kind: c.q.kind, options: c.q.options };
+        cur.q = { text: c.q.text, subject: c.q.subject, kind: c.q.kind, options: c.q.options, pic: c.q.pic };
         cur.removed = c.removed?.[forPid] || []; cur.hint = c.hints?.[forPid] || null;
         delete cur.hints;
         if (c.type === 'reveal') { cur.q.correct = c.q.correct; cur.q.answer = c.q.answer; cur.answers = c.answers; }
