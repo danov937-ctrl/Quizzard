@@ -6,7 +6,11 @@
 (function () {
   const cfg = window.QZ_ADS || {};
   const slots = document.querySelectorAll('.ad-slot');
-  if (!slots.length) return;
+  // В приложението (Google Play / App Store) реклами няма: правилата за детски приложения не позволяват реклами от уеб мрежи.
+  // Същата проверка като `inApp` в client.js; повтаря се тук, за да работи и без нея.
+  const inAppView = (typeof inApp !== 'undefined' && inApp) || document.referrer.startsWith('android-app://') || window.navigator.standalone
+    || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+  if (!slots.length || inAppView) return;
 
   if (cfg.sponsor && cfg.sponsor.img) {
     for (const el of slots) {
