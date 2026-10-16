@@ -681,8 +681,10 @@ function renderPracticeEnd() {
 // ---------- инсталиране като приложение ----------
 let installEvt = null;
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; $('#btnInstall').classList.remove('hidden'); });
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+// Вече сме в приложението (от Google Play или от началния екран): бутонът за инсталиране не трябва
+const inApp = document.referrer.startsWith('android-app://') || window.navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); if (inApp) return; installEvt = e; $('#btnInstall').classList.remove('hidden'); });
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !inApp;
 if (isIOS) $('#btnInstall').classList.remove('hidden');
 $('#btnInstall').onclick = async () => {
   if (installEvt) { installEvt.prompt(); await installEvt.userChoice.catch(() => {}); installEvt = null; $('#btnInstall').classList.add('hidden'); }

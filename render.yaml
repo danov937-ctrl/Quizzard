@@ -9,3 +9,8 @@ services:
     envVars:
       - key: ADMIN_KEY
         generateValue: true
+      # Android приложение (Google Play): пакетът и отпечатъкът на ключа от Play Console
+      - key: ANDROID_PACKAGE
+        value: bg.quizzard.app
+      - key: ANDROID_SHA256
+        sync: false
