@@ -385,6 +385,18 @@ class Game {
     return true;
   }
 
+  // Играч излезе по време на игра: бот поема мястото му, за да не чакат другите
+  takeOver(pid) {
+    const p = this.player(pid);
+    if (!p || p.isBot) return;
+    p.isBot = true;
+    const c = this.current;
+    if (c?.type === 'question' && c.participants.includes(pid) && !c.answers[pid]) this.botAnswer(pid, c.q);
+    if (c?.type === 'pick' && c.picker === pid && !c.chosen) this.setTimer(() => this.pick(pid, this.botChooseRegion(pid, c.options, c.mode)), 300);
+    this.say(`${p.name} излезе, бот играе вместо него.`);
+    this.emit();
+  }
+
   // ---------- ботове ----------
   botAnswer(pid, q) {
     const p = this.player(pid);

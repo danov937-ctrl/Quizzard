@@ -310,3 +310,34 @@ details.an { margin-top: 10px; }
 details.an summary { cursor: pointer; font-weight: 900; color: var(--wood2); padding: 6px 0; }
 .end-actions { display: grid; gap: 8px; margin-top: 14px; }
 @media (max-width: 900px) { .overlay.dock .modal { max-height: 52vh; } .overlay.dock .speak { width: 38px; height: 38px; } .bar { grid-template-columns: 1fr 80px 44px; } }
+
+/* ---------- играта се събира в прозореца, без скролване ---------- */
+#game.screen { height: 100vh; height: 100dvh; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+#game .hud { flex: none; }
+#game .board { flex: 1; min-height: 0; }
+#game .map-frame { min-height: 0; display: flex; align-items: center; justify-content: center; }
+#game #map { width: 100%; height: 100%; }
+#game .log { max-height: none; height: 100%; min-height: 0; }
+.icon-btn.exit { background: rgba(200, 53, 44, .55); }
+.modal.small { width: min(420px, 100%); }
+.center-text { text-align: center; }
+@media (max-width: 900px) {
+  #game .board { display: flex; flex-direction: column; }
+  #game .map-frame { flex: 0 1 auto; width: 100%; aspect-ratio: 1012 / 666; max-height: 100%; }
+  #game .log { display: block; flex: 1 1 0; min-height: 0; margin-top: 8px; padding: 8px 10px; font-size: .85rem; border-width: 4px; }
+  #game .hud { gap: 6px; margin-bottom: 6px; }
+  #game .hud-right .phase { padding: 6px 10px; font-size: .9rem; }
+  #game .icon-btn { padding: 4px 6px; font-size: .9rem; }
+  #game .hud-players { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+  #game .pcard { flex-wrap: wrap; row-gap: 2px; }
+  #game .pcard .pinfo { flex-basis: calc(100% - 30px); }
+  #game .pcard .pts { margin-left: auto; }
+  #game .pcard .towers small { display: none; }
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  #game .hud { flex-direction: row; }
+  #game .hud-players { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+  #game .pcard .shield { width: 20px; height: 24px; }
+  #game .pcard .pts { font-size: .95rem; }
+}
+@media (max-height: 560px) and (orientation: landscape) { #game .log { display: none; } #game .map-frame { flex: 1; aspect-ratio: auto; } }

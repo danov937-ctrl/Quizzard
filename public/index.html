@@ -99,6 +99,7 @@
           <button class="icon-btn" data-sound="fx" title="Звуци">🔊</button>
           <button class="icon-btn" data-sound="music" title="Музика">🎵</button>
           <button class="icon-btn" data-report title="Докладвай проблем">🚩</button>
+          <button class="icon-btn exit" id="btnExit" title="Излез от играта">🚪</button>
         </div>
       </div>
     </header>
@@ -125,6 +126,12 @@
       <p id="reportErr" class="err"></p>
       <div class="row two"><button type="button" id="reportCancel" class="btn wood">Отказ</button><button type="submit" class="btn gold">Изпрати</button></div>
     </form>
+  </div></div>
+  <!-- Излизане от игра -->
+  <div id="leaveOverlay" class="overlay report-layer hidden"><div class="modal small">
+    <div class="mhead red"><h3>🚪 Да излезеш ли от играта?</h3></div>
+    <div class="mbody"><p class="sub center-text">Бот ще довърши играта вместо теб.</p>
+      <div class="row two"><button id="leaveNo" class="btn wood">Остани</button><button id="leaveYes" class="btn gold">Излез</button></div></div>
   </div></div>
   <div id="toast" class="toast hidden"></div>
   <div id="confetti" class="confetti" aria-hidden="true"></div>

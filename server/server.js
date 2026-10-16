@@ -160,7 +160,12 @@ wss.on('connection', (ws) => {
           room.members = room.members.filter((x) => x !== me);
           if (room.hostId === me.id) room.hostId = room.humans[0]?.id || null;
           if (!room.humans.length) room.destroy(); else room.broadcast();
-        } else me.ws = null;
+        } else {
+          // Излизане по средата на игра: бот поема мястото
+          me.ws = null; me.isBot = true;
+          if (!room.humans.length) room.destroy();
+          else { room.game.takeOver(me.id); if (room.hostId === me.id) room.hostId = room.humans[0].id; }
+        }
         room = null; me = null; send(ws, { t: 'left' }); break;
       }
       case 'setOptions':

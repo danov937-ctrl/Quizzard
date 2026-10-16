@@ -168,6 +168,10 @@ $('#code').addEventListener('keydown', (e) => e.key === 'Enter' && $('#btnJoin')
 $('#btnBot').onclick = () => send({ t: 'addBot' });
 $('#btnStart').onclick = () => send({ t: 'start' });
 $('#btnLeave').onclick = () => send({ t: 'leave' });
+// Излизане по време на игра (след края излиза веднага)
+$('#btnExit').onclick = () => { if (state?.phase === 'ended') send({ t: 'leave' }); else $('#leaveOverlay').classList.remove('hidden'); };
+$('#leaveNo').onclick = () => $('#leaveOverlay').classList.add('hidden');
+$('#leaveYes').onclick = () => { $('#leaveOverlay').classList.add('hidden'); send({ t: 'leave' }); };
 $('#btnRules').onclick = () => {
   openOverlay(`<div class="mhead"><h3>📜 Как се играе Quizzard?</h3></div><div class="mbody rules"><ol>
     <li>🏰 <b>Столица.</b> Всеки избира своята столица. Тя носи <b>1000 точки</b> и има <b>3 кули</b>.</li>
