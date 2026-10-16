@@ -202,7 +202,7 @@ function renderLobby() {
   $('#members').innerHTML = lobby.members.map((m) => `<li>${shield(m.id)}${esc(m.name)}
     <span class="tags">${m.id === me ? '<span class="tag">ти</span>' : ''}${m.id === lobby.hostId && !lobby.isPublic ? '<span class="tag">👑 домакин</span>' : ''}${!m.connected ? '<span class="tag">няма връзка</span>' : ''}
     ${host && m.id !== me ? `<button data-kick="${m.id}" title="Премахни">✕</button>` : ''}</span></li>`).join('') +
-    Array.from({ length: Math.max(0, (lobby.isPublic ? 4 : 2) - lobby.members.length) }, () => '<li class="empty">свободно място</li>').join('');
+    Array.from({ length: Math.max(0, (lobby.isPublic ? 3 : 2) - lobby.members.length) }, () => '<li class="empty">свободно място</li>').join('');
   for (const b of $$('[data-kick]')) b.onclick = () => send({ t: 'kick', pid: b.dataset.kick });
   $('#hostControls').classList.toggle('hidden', !host);
   $('#guestWait').classList.toggle('hidden', host || lobby.isPublic);
@@ -363,7 +363,7 @@ function tweenScore(id, to, el) {
 function renderGame() {
   if (!mapData) return;
   const c = state.current;
-  $('#phaseLabel').textContent = state.phase === 'battle' ? `⚔️ Война · рунд ${Math.min(state.round, state.battleRounds)} от ${state.battleRounds}` : (PHASES[state.phase] || '');
+  $('#phaseLabel').textContent = state.phase === 'battle' ? `⚔️ Война · рунд ${Math.max(1, Math.min(state.round, state.battleRounds))} от ${state.battleRounds}` : (PHASES[state.phase] || '');
   renderPlayers();
   $('#log').innerHTML = state.log.slice().reverse().map((l) => `<li>${esc(l)}</li>`).join('');
   renderMap();
@@ -423,7 +423,10 @@ function renderModal() {
   const c = state.current, overlay = $('#overlay');
   const isModal = c && (c.type === 'question' || c.type === 'reveal' || c.type === 'end' || (c.type === 'info' && INTRO.includes(c.icon)));
   if (!isModal) { if (lastModalKey !== '#static') { overlay.classList.add('hidden'); lastModalKey = ''; } return; }
-  const key = JSON.stringify({ ...c, timeLeft: 0 });
+  // Докато не съм отговорил, чуждите отговори не прерисуват въпроса (иначе докосване може да се изгуби)
+  const keyObj = { ...c, timeLeft: 0 };
+  if (c.type === 'question' && c.participants.includes(me) && !c.answers[me]) keyObj.answers = {};
+  const key = JSON.stringify(keyObj);
   if (key === lastModalKey) return;
   const prev = lastModalKey && lastModalKey !== '#static' ? JSON.parse(lastModalKey) : null;
   const fresh = !prev || prev.type !== c.type || prev.q?.text !== c.q?.text;
@@ -510,7 +513,11 @@ document.addEventListener('keydown', (e) => {
 
 // ---------- край и анализ на играта ----------
 function renderEnd(c, modal, fresh) {
-  const w = player(c.ranking[0].id), iWon = c.ranking[0].id === me;
+  // Места с равни точки (и еднакъв статус) делят медала
+  const places = []; c.ranking.forEach((r, i) => { const p = c.ranking[i - 1]; places.push(i && p.score === r.score && p.alive === r.alive ? places[i - 1] : i + 1); });
+  const winners = c.ranking.filter((r, i) => places[i] === 1);
+  const w = player(c.ranking[0].id), iWon = winners.some((r) => r.id === me);
+  const title = winners.length > 1 ? `Равенство! Печелят ${winners.map((r) => esc(player(r.id)?.name)).join(' и ')}` : iWon ? 'Ти печелиш!' : `Победител: ${esc(w.name)}!`;
   const a = c.analysis?.[me];
   const pct = (x, n) => (n ? Math.round((x / n) * 100) : 0);
   let analysis = '';
@@ -530,8 +537,8 @@ function renderEnd(c, modal, fresh) {
   else if (lobby.hostId === me) actions = `<button id="btnAgain" class="btn gold big">🔁 Нова игра</button><button id="btnHome" class="btn wood">🏠 Към началото</button>`;
   else actions = `<p class="status">Домакинът може да започне нова игра.</p><button id="btnHome" class="btn wood">🏠 Към началото</button>`;
   modal.innerHTML = `<div class="announce"><div class="ribbon">Край на войната</div><br><span class="big">${iWon ? '👑' : '🏆'}</span>
-    <h2>${iWon ? 'Ти печелиш!' : `Победител: ${esc(w.name)}!`}</h2>
-    <ul class="results podium">${c.ranking.map((r, i) => `<li>${['🥇', '🥈', '🥉', '4.'][i]} ${shield(r.id)} ${pname(r.id)} ${r.alive ? '' : '<small>☠️</small>'}<span class="r">${r.score} т.</span></li>`).join('')}</ul>
+    <h2>${title}</h2>
+    <ul class="results podium">${c.ranking.map((r, i) => `<li>${['🥇', '🥈', '🥉', '4.'][places[i] - 1]} ${shield(r.id)} ${pname(r.id)} ${r.alive ? '' : '<small>☠️</small>'}<span class="r">${r.score} т.</span></li>`).join('')}</ul>
     ${analysis}${others ? `<p class="sub">Точност: ${others}</p>` : ''}
     <div class="end-actions">${actions}</div></div>`;
   if (fresh) { Sound.play(iWon ? 'win' : 'flag'); if (iWon) confetti(); }

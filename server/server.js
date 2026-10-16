@@ -12,6 +12,7 @@ const SPEED = Number(process.env.GAME_SPEED || 1); // 0.3 = по-бърза иг
 const PUBLIC = path.join(__dirname, '..', 'public');
 const MAP_FILE = path.join(__dirname, '..', 'data', 'map.json');
 const MAX_PLAYERS = 4;
+const PUBLIC_PLAYERS = 3; // онлайн игра: трима играчи, както в Тривиадор
 const REPORTS_FILE = process.env.REPORTS_FILE || path.join(__dirname, '..', 'data', 'reports.jsonl');
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const BOT_NAMES = ['Бот Мечо', 'Бот Зайо', 'Бот Лиса', 'Бот Щърко'];
@@ -90,7 +91,7 @@ class Room {
     this.autoTimer = setTimeout(() => {
       this.autoTimer = null;
       if (this.game || !this.humans.length) return;
-      while (this.members.length < 3) this.addBot();
+      while (this.members.length < PUBLIC_PLAYERS) this.addBot();
       this.start();
     }, QUICK_WAIT_MS);
   }
@@ -122,11 +123,11 @@ wss.on('connection', (ws) => {
       // Онлайн игра: влиза в отворена публична стая за същия клас или създава нова
       case 'quick': {
         const grade = [1, 2, 3, 4].includes(msg.grade) ? msg.grade : 2;
-        let r = [...rooms.values()].find((x) => x.isPublic && !x.game && x.grade === grade && x.members.length < MAX_PLAYERS);
+        let r = [...rooms.values()].find((x) => x.isPublic && !x.game && x.grade === grade && x.members.length < PUBLIC_PLAYERS);
         if (!r) { r = new Room(newCode(), { isPublic: true, grade }); rooms.set(r.code, r); }
         const m = { id: newId(), token: newId(), name: cleanName(msg.name), isBot: false };
         r.members.push(m); attach(r, m);
-        if (r.humans.length >= MAX_PLAYERS) r.start(); else r.scheduleAutoStart();
+        if (r.humans.length >= PUBLIC_PLAYERS) r.start(); else r.scheduleAutoStart();
         r.broadcast(); break;
       }
       // Игра с ботове: веднага, без чакане
