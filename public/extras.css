@@ -1,0 +1,89 @@
+/* Quizzard · профил, класация, идеи и съобщения (extras.js). Цветовете идват от style.css. */
+.qx-hide { display: none !important; }
+.qx-account { position: absolute; top: 10px; right: 10px; z-index: 6; }
+.qx-chip { display: flex; align-items: center; gap: 8px; background: linear-gradient(180deg, var(--parch), var(--parch2)); border: 2px solid var(--gold3); border-radius: 999px; padding: 4px 12px 4px 4px; box-shadow: 0 4px 0 var(--wood2), var(--shadow); color: var(--ink); text-align: left; max-width: 230px; }
+.qx-chip.guest { padding: 8px 14px; font-size: 1.1rem; }
+.qx-chip-txt { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.qx-chip-txt b { font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qx-chip-txt small { font-size: .72rem; color: var(--muted); font-weight: 800; }
+.qx-mini-bar { display: block; height: 4px; border-radius: 2px; background: rgba(0,0,0,.12); margin-top: 3px; overflow: hidden; }
+.qx-mini-bar i, .qx-level i, .qx-track i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold1)); border-radius: inherit; }
+.qx-fire { font-weight: 900; font-size: .85rem; }
+.qx-av { display: inline-grid; place-items: center; border-radius: 50%; flex: none; object-fit: cover; box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); line-height: 1; }
+
+.qx-back { position: fixed; inset: 0; z-index: 100; background: rgba(5, 15, 30, .6); display: grid; place-items: center; padding: 12px; animation: qxFade .15s; }
+.qx-modal { width: min(560px, 100%); max-height: calc(100dvh - 24px); display: flex; flex-direction: column; background: linear-gradient(180deg, var(--parch), var(--parch2)); color: var(--ink); border: 3px solid var(--gold3); border-radius: var(--r); box-shadow: var(--shadow); animation: qxPop .18s; }
+.qx-modal.narrow { width: min(400px, 100%); }
+.qx-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: linear-gradient(180deg, var(--wood1), var(--wood2)); color: var(--gold1); border-radius: calc(var(--r) - 3px) calc(var(--r) - 3px) 0 0; }
+.qx-head h2 { margin: 0; flex: 1; font-size: 1.3rem; }
+.qx-x { background: none; color: var(--gold1); padding: 4px 8px; font-size: 1.1rem; }
+.qx-body { padding: 14px 16px 18px; overflow-y: auto; }
+.qx-body h3 { margin: 14px 0 6px; font-size: 1.05rem; }
+@keyframes qxFade { from { opacity: 0; } } @keyframes qxPop { from { transform: scale(.95); opacity: 0; } }
+
+.qx-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+.qx-tabs button, .qx-cats button { background: rgba(122, 74, 34, .12); border-radius: 999px; padding: 7px 12px; font-size: .9rem; }
+.qx-tabs button.on, .qx-cats button.on { background: var(--wood1); color: var(--gold1); }
+.qx-cats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.qx-form { display: flex; flex-direction: column; gap: 10px; }
+.qx-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 900; font-size: .9rem; }
+.qx-form input, .qx-form select, .qx-form textarea { font: inherit; font-weight: 700; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--parch2); background: #fffaf0; color: var(--ink); width: 100%; }
+.qx-form textarea { resize: vertical; }
+.qx-err { color: var(--bad); font-weight: 900; margin: 0; min-height: 1em; }
+.qx-note { color: var(--muted); font-weight: 700; font-size: .88rem; margin: 6px 0; }
+.qx-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #fffaf0; border: 2px solid var(--parch2); border-radius: 12px; padding: 10px 14px; font-weight: 900; cursor: pointer; }
+.qx-btn.gold { background: linear-gradient(180deg, var(--gold1), var(--gold2)); border-color: var(--gold3); box-shadow: 0 3px 0 var(--gold3); }
+.qx-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.qx-hero { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
+.qx-hero > div { flex: 1; min-width: 0; }
+.qx-name { font-family: "Kurale", serif; font-size: 1.5rem; }
+.qx-title { font-weight: 900; color: var(--gold3); }
+.qx-level { height: 12px; border-radius: 6px; background: rgba(0,0,0,.12); overflow: hidden; margin: 6px 0 2px; }
+.qx-hero small { color: var(--muted); font-weight: 700; }
+.qx-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.qx-stats div { background: #fffaf0; border-radius: 12px; padding: 8px; text-align: center; font-size: .78rem; font-weight: 800; color: var(--muted); }
+.qx-stats b { display: block; font-size: 1.35rem; color: var(--ink); }
+.qx-sub { display: grid; grid-template-columns: 1fr 90px 44px; gap: 8px; align-items: center; font-weight: 800; font-size: .88rem; margin: 4px 0; }
+.qx-track { height: 8px; background: rgba(0,0,0,.1); border-radius: 4px; overflow: hidden; }
+.qx-badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.qx-badge { background: #fffaf0; border: 2px solid var(--gold2); border-radius: 12px; padding: 8px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.qx-badge span { font-size: 1.9rem; } .qx-badge b { font-size: .85rem; } .qx-badge small { font-size: .7rem; color: var(--muted); font-weight: 700; }
+.qx-badge.locked { border-color: transparent; background: rgba(0,0,0,.06); } .qx-badge.locked span { filter: grayscale(1); opacity: .4; }
+.qx-avs { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; }
+.qx-pick { font-size: 1.6rem; padding: 6px 0; border-radius: 12px; background: #fffaf0; border: 2px solid transparent; position: relative; }
+.qx-pick.on { border-color: var(--gold3); background: var(--gold1); }
+.qx-pick:disabled { opacity: .45; filter: grayscale(.8); cursor: default; }
+.qx-pick small { position: absolute; right: 2px; bottom: 0; font-size: .6rem; }
+.qx-colors { display: flex; gap: 6px; flex-wrap: wrap; }
+.qx-color { width: 32px; height: 32px; border-radius: 50%; padding: 0; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
+.qx-color.on { box-shadow: 0 0 0 3px var(--ink); }
+
+.qx-rank { display: flex; align-items: center; gap: 10px; background: #fffaf0; border-radius: 12px; padding: 6px 10px; margin-bottom: 6px; font-weight: 800; }
+.qx-rank.me { background: var(--gold1); }
+.qx-place { width: 28px; text-align: center; font-size: 1.2rem; }
+.qx-rname { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.qx-rname small { color: var(--muted); font-size: .75rem; }
+.qx-idea { background: #fffaf0; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; font-weight: 700; word-break: break-word; }
+.qx-reply { margin-top: 6px; padding: 6px 10px; border-left: 3px solid var(--gold2); background: rgba(242,182,50,.12); border-radius: 6px; font-size: .9rem; }
+.qx-idea-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; color: var(--muted); }
+.qx-like { background: rgba(122,74,34,.12); border-radius: 999px; padding: 4px 10px; font-size: .85rem; }
+.qx-like.on { background: var(--gold2); }
+.qx-celebrate { text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.qx-celebrate .qx-badge { width: 200px; animation: qxPop .4s; }
+.qx-big { font-size: 3.5rem; animation: qxPop .5s; }
+
+.qx-toast { position: fixed; left: 50%; bottom: 22px; width: max-content; transform: translateX(-50%); z-index: 110; background: var(--wood2); color: var(--gold1); padding: 10px 16px; border-radius: 12px; font-weight: 900; box-shadow: var(--shadow); max-width: calc(100vw - 32px); }
+.qx-notice { position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 90; width: min(640px, calc(100% - 24px)); margin-top: 8px; display: flex; gap: 10px; align-items: center; justify-content: space-between; color: #fff; font-weight: 800; padding: 8px 14px; border-radius: 12px; box-shadow: var(--shadow); background: #1e6fb8; }
+.qx-notice.party { background: #8e24aa; } .qx-notice.warn { background: var(--red); }
+.qx-notice button { background: none; color: #fff; padding: 2px 6px; }
+
+@media (max-width: 600px) {
+  .qx-account { top: 6px; right: 6px; }
+  .qx-chip { max-width: 170px; } .qx-chip-txt small { display: none; }
+  .qx-stats { grid-template-columns: repeat(2, 1fr); }
+  .qx-notice { margin-top: 64px; }
+}
+/* Двата нови линка да не пращат реда на началния екран на втори ред */
+.home-links { gap: 2px 4px; }
+.home-links button.link { padding: 8px 7px; }
