@@ -26,6 +26,8 @@ const server = http.createServer((req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/map.json') return sendFile(res, MAP_FILE);
   if (url === '/admin/reports') return adminReports(req, res);
+  if (url === '/ads-config.js') return adsConfig(res);
+  if (url === '/ads.txt') return adsTxt(res);
   if (url === '/') url = '/index.html';
   const file = path.normalize(path.join(PUBLIC, url));
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
@@ -40,6 +42,22 @@ function adminReports(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(rows, null, 2));
   });
+}
+// Реклами: всичко се настройва с променливи в Render; без тях не се показва нищо (виж public/ads.js)
+const env = (k) => (process.env[k] || '').trim();
+function adsConfig(res) {
+  const cfg = {};
+  if (env('SPONSOR_IMG')) cfg.sponsor = { img: env('SPONSOR_IMG'), url: env('SPONSOR_URL'), alt: env('SPONSOR_ALT') };
+  else if (/^ca-pub-\d+$/.test(env('ADSENSE_CLIENT'))) cfg.client = env('ADSENSE_CLIENT'), cfg.slots = { home: env('ADSENSE_SLOT_HOME'), lobby: env('ADSENSE_SLOT_LOBBY') };
+  res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
+  res.end('window.QZ_ADS=' + JSON.stringify(cfg).replace(/</g, '\\u003c') + ';');
+}
+// ads.txt казва на рекламодателите, че този сайт наистина е твой в AdSense
+function adsTxt(res) {
+  const m = env('ADSENSE_CLIENT').match(/^ca-(pub-\d+)$/);
+  if (!m) { res.writeHead(404); return res.end('Not found'); }
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end(`google.com, ${m[1]}, DIRECT, f08c47fec0942fa0\n`);
 }
 function sendFile(res, file) {
   fs.readFile(file, (err, data) => {
