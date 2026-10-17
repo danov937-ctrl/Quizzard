@@ -241,6 +241,19 @@ async function playBotGame(jar) {
     const s2 = (await admin.req('GET', '/api/admin/settings')).data.settings;
     await admin.req('PUT', '/api/admin/settings', { ...s2, maintenance: { on: false } });
 
+    // ----- състояние и грешки -----
+    assert.strictEqual((await kid.req('POST', '/api/client-error', { message: 'x is undefined', where: '/client.js:10:5', page: '/' }, true)).status, 403, 'без X-Quizzard не се приема');
+    for (let i = 0; i < 3; i++) await kid.req('POST', '/api/client-error', { message: 'x is undefined', where: '/client.js:10:5', page: '/' }, false);
+    let hl = (await admin.req('GET', '/api/admin/health')).data;
+    assert.ok(hl.uptime >= 0 && hl.storage && hl.live);
+    const be = hl.errors.find((e) => e.source === 'browser');
+    assert.strictEqual(be.count, 3, 'еднаквите грешки се събират в един ред'); assert.strictEqual(be.where, '/client.js:10:5');
+    assert.ok((await admin.req('GET', '/api/admin/overview')).data.errors >= 1);
+    assert.ok((await admin.req('POST', '/api/admin/health/test-mail', { to: 'az@primer.bg' })).data.ok, 'пробно писмо');
+    assert.strictEqual(lastMail('az@primer.bg')?.subject, 'Пробно писмо от играта');
+    await admin.req('POST', '/api/admin/health/clear');
+    assert.strictEqual((await admin.req('GET', '/api/admin/health')).data.errors.length, 0);
+
     // ----- данните оцеляват рестарт -----
     await stopServer();
     await startServer();

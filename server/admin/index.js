@@ -9,6 +9,7 @@ const { Bank, parseLine, toLine, GRADES, norm } = require('./bank');
 const { award, levelOf } = require('./rewards');
 const { League } = require('./league');
 const { Parents } = require('./parents');
+const { Health } = require('./health');
 const { Wallet } = require('./wallet');
 const mail = require('./mail');
 const { Accounts, handlePublic, checkName, IDEA_CATEGORIES, IDEA_STATUS } = require('./accounts');
@@ -24,6 +25,7 @@ const DEFAULT_SETTINGS = {
   maintenance: { on: false, message: 'Играта се обновява. Опитай пак след малко.' },
   announcement: { on: false, text: '', kind: 'info' },
   contact: '', // имейл или телефон за родители (страницата за поверителност)
+  alertEmail: '', // имейл за аларма, когато нещо в играта се счупи (празно = contact)
   controller: '', // кой отговаря за данните: име на човек или фирма (страницата за поверителност)
   retentionMonths: 24, // профил без вход толкова месеца се изтрива сам
 };
@@ -36,7 +38,7 @@ const store = new Store({
   community: { delay: 3000, init: () => ({ ideas: [], ideaId: 0 }) },
   activity: { delay: 5 * 60 * 1000, init: () => ({ days: {}, q: {}, subj: {}, totals: { games: 0, completed: 0, answers: 0, correct: 0 }, reports: [], reportId: 0, gameLog: [] }) },
 });
-let bank = null, accounts = null, league = null, parents = null, wallet = null;
+let bank = null, accounts = null, league = null, parents = null, wallet = null, health = null;
 let ctx = { rooms: new Map(), wss: null, send: () => {}, onBankChange: () => {} };
 const startedAt = Date.now();
 
@@ -58,6 +60,7 @@ function cleanSettings(input, cur) {
     disabledSubjects: Array.isArray(input.disabledSubjects) ? input.disabledSubjects.filter((x) => SUBJECTS[x]) : cur.disabledSubjects,
     maintenance: input.maintenance ? { on: !!input.maintenance.on, message: String(input.maintenance.message || '').slice(0, 200) || DEFAULT_SETTINGS.maintenance.message } : cur.maintenance,
     contact: input.contact !== undefined ? String(input.contact).replace(/[<>]/g, '').trim().slice(0, 120) : cur.contact,
+    alertEmail: input.alertEmail !== undefined ? String(input.alertEmail).replace(/[<>\s]/g, '').slice(0, 120) : cur.alertEmail,
     controller: input.controller !== undefined ? String(input.controller).replace(/[<>]/g, '').trim().slice(0, 160) : cur.controller,
     retentionMonths: clampInt(input.retentionMonths, 6, 60, cur.retentionMonths),
     announcement: input.announcement ? { on: !!input.announcement.on, text: String(input.announcement.text || '').slice(0, 300), kind: ['info', 'warn', 'party'].includes(input.announcement.kind) ? input.announcement.kind : 'info' } : cur.announcement,
@@ -165,7 +168,8 @@ async function init(c) {
   league = accounts.league = new League(store, accounts);
   parents = new Parents(store, accounts, { settings, audit });
   wallet = accounts.wallet = new Wallet(store, accounts);
-  if (!process.env.NO_MAIL_TIMER) parents.start();
+  health = new Health(store, { settings, base: () => parents.base() });
+  if (!process.env.NO_MAIL_TIMER) { parents.start(); health.start(); }
   patchGame();
   importOldReports();
   setInterval(sampleLive, 20000).unref();
@@ -203,6 +207,7 @@ function cookie(req, name) {
   return m ? decodeURIComponent(m.slice(name.length + 1)) : null;
 }
 const attempts = new Map();
+const clientErrs = new Map();
 function ipOf(req) { return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(); }
 
 // ---------- HTTP ----------
@@ -229,6 +234,17 @@ async function handle(req, res) {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   if (p === '/api/status') return json(res, 200, publicStatus());
+  // Грешки от браузърите на играчите → дневник „Състояние“ в панела
+  if (p === '/api/client-error' && req.method === 'POST') {
+    if (req.headers['x-quizzard'] !== '1') return json(res, 403, { error: 'Забранено.' });
+    const ip = ipOf(req), now = Date.now(), k = clientErrs.get(ip) || { n: 0, reset: now + 600000 };
+    if (now > k.reset) { k.n = 0; k.reset = now + 600000; }
+    if (++k.n > 20) return json(res, 429, { ok: false });
+    clientErrs.set(ip, k); if (clientErrs.size > 5000) clientErrs.clear();
+    const b = await readBody(req).catch(() => ({}));
+    health.add('browser', b.message, b.where, { page: String(b.page || '').slice(0, 80), ua: String(req.headers['user-agent'] || '').slice(0, 160) });
+    return json(res, 200, { ok: true });
+  }
   if (p.startsWith('/api/account/') || p === '/api/leaderboard' || p.startsWith('/api/ideas') || p.startsWith('/api/avatar/') || p === '/api/tournament' || p.startsWith('/api/coins') || p.startsWith('/api/parent/') || p.startsWith('/api/consent/') || p.startsWith('/api/reset/') || p === '/api/mail/off') {
     try { await handlePublic(accounts, req, res, url, readBody); } catch (e) { console.error('public api', e); json(res, 500, { error: 'Грешка в сървъра.' }); }
     return true;
@@ -318,6 +334,26 @@ async function api(method, route, qs, body, res) {
 
   if (r0 === 'me') return { ok: true, storage: store.status };
 
+  // ----- състояние -----
+  if (r0 === 'health' && !r1 && method === 'GET') {
+    return {
+      version: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || null, node: process.version, startedAt: new Date(startedAt).toISOString(),
+      uptime: Math.round((Date.now() - startedAt) / 1000), memoryMb: Math.round(process.memoryUsage().rss / 1048576),
+      live: { players: ctx.wss ? ctx.wss.clients.size : 0, rooms: liveRooms().length },
+      storage: store.status, mail: { on: mail.enabled(), base: parents.base(), alertTo: health.alertTo() },
+      errors: health.report(),
+    };
+  }
+  if (r0 === 'health' && r1 === 'clear' && method === 'POST') { health.clear(); return { ok: true }; }
+  if (r0 === 'health' && r1 === 'test-mail' && method === 'POST') {
+    const to = String(body.to || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { error: 'Напиши имейл адрес.' };
+    if (!mail.enabled()) return { error: 'Имейлите не са включени: задай RESEND_API_KEY и MAIL_FROM в Render.' };
+    try { await mail.send({ to, subject: 'Пробно писмо от играта', html: mail.layout('Пробно писмо', '<p>Имейлите работят. 👍</p>').replaceAll('{{BASE}}', parents.base()), text: 'Имейлите работят.' }); }
+    catch (e) { return { error: 'Писмото не тръгна: ' + e.message }; }
+    return { ok: true };
+  }
+
   if (r0 === 'overview' && method === 'GET') {
     const list = bank.list();
     const active = list.filter((q) => !q.hidden);
@@ -332,6 +368,7 @@ async function api(method, route, qs, body, res) {
       ideas: { open: accounts.ideas.filter((i) => i.status === 'new').length, total: accounts.ideas.length },
       photos: Object.keys(store.get('avatars').pending).length,
       problems: bank.problems().length,
+      errors: health.list.filter((e) => Date.now() - Date.parse(e.last) < 86400000).length,
       totals: a.totals, today: lastDays(1)[0], days: lastDays(14),
       maintenance: s.maintenance.on, announcement: s.announcement.on,
       recentGames: a.gameLog.slice(-8).reverse(),
