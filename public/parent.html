@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <title>Знаменосци · Отчет за родителя</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link href="/fonts/fonts.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="extras.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <main class="qx-page">
+    <a href="/" class="qx-back-link">← Към играта</a>
+    <article class="qx-paper" id="out"><p>Зареждане…</p></article>
+  </main>
+  <script>
+  (() => {
+    const SUBJ = { bel: 'Български език', mat: 'Математика', okol: 'Околен свят', prir: 'Човекът и природата', obsht: 'Човекът и обществото', eng: 'Английски език', muz: 'Музика', izk: 'Изобразително изкуство', tech: 'Технологии', sport: 'Физическо възпитание', comp: 'Компютърно моделиране' };
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const out = document.getElementById('out');
+    const token = location.hash.slice(1);
+    const pct = (ok, n) => (n ? Math.round((100 * ok) / n) : 0);
+    const bar = (p) => `<span class="qx-track" style="display:inline-block;width:110px;vertical-align:middle"><i style="width:${p}%"></i></span>`;
+    if (!token) { out.innerHTML = '<h1>Отчет за родителя</h1><p>Отворете линка, който детето ви е копирало от профила си (Профил → ⚙️ → Линк за родител).</p>'; return; }
+    fetch('/api/parent/' + encodeURIComponent(token)).then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d.report; }).then((r) => {
+      const w = r.week, p = r.prev;
+      const trend = p && p.answers ? pct(w.correct, w.answers) - pct(p.correct, p.answers) : null;
+      const weak = r.allTime.subjects.filter((s) => s.n >= 5 && s.pct < 60).slice(0, 3);
+      const strong = r.allTime.subjects.filter((s) => s.n >= 5).sort((a, b) => b.pct - a.pct).slice(0, 3);
+      const av = r.avatar.photo ? `<img class="qx-av" src="${esc(r.avatar.photo)}" style="width:64px;height:64px">` : `<span class="qx-av" style="width:64px;height:64px;font-size:36px;background:${esc(r.avatar.color)}">${esc(r.avatar.icon)}</span>`;
+      out.innerHTML = `
+        <div class="qx-hero">${av}<div><h1 style="margin:0">Седмичен отчет: ${esc(r.name)}</h1><div class="qx-title">Ниво ${r.level} · ${esc(r.title)}${r.grade ? ` · ${r.grade} клас` : ''}${r.team ? ` · ${esc(r.team.name)}, ${esc(r.team.school)}` : ''}</div></div></div>
+        <h2>Тази седмица</h2>
+        <div class="qx-stats"><div><b>${w.days}</b>дни с игра</div><div><b>${w.games}</b>игри</div><div><b>${w.answers}</b>отговора</div><div><b>${pct(w.correct, w.answers)}%</b>верни${trend != null ? `<br><small>${trend >= 0 ? '▲' : '▼'} ${Math.abs(trend)}% спрямо миналата</small>` : ''}</div><div><b>🔥 ${r.streak}</b>дни подред</div><div><b>${w.wins}</b>победи</div></div>
+        ${w.subjects.length ? `<h3>По предмети тази седмица</h3>${w.subjects.map((s) => `<div class="qx-sub"><span>${esc(SUBJ[s.subject] || s.subject)} <small>(${s.n})</small></span>${bar(s.pct)}<b>${s.pct}%</b></div>`).join('')}` : '<p class="qx-note">Тази седмица детето още не е играло с профила си.</p>'}
+        ${weak.length ? `<div class="qx-tip">💡 <b>Където има нужда от помощ:</b> ${weak.map((s) => `${esc(SUBJ[s.subject])} (${s.pct}%)`).join(', ')}. В играта има „Упражнение“ по предмет без противници.</div>` : ''}
+        ${strong.length ? `<div class="qx-tip ok">⭐ <b>Справя се най-добре с:</b> ${strong.map((s) => `${esc(SUBJ[s.subject])} (${s.pct}%)`).join(', ')}.</div>` : ''}
+        <h2>Грешки тази седмица</h2>
+        ${r.mistakes.length ? `<table class="qx-table"><tr><th>Въпрос</th><th>Верен отговор</th><th>Отговорът на детето</th></tr>${r.mistakes.map((m) => `<tr><td>${esc(m.text)}<br><small class="qx-note">${esc(SUBJ[m.subject] || '')}</small></td><td><b>${esc(m.right)}</b></td><td>${m.given == null ? '<i>не отговори</i>' : esc(m.given)}</td></tr>`).join('')}</table><p class="qx-note">Добър начин да помогнете: прегледайте заедно 2–3 от тези въпроси.</p>` : '<p class="qx-note">Няма грешки тази седмица. 👏</p>'}
+        <h2>От началото</h2>
+        <p>${r.allTime.games} игри, ${r.allTime.wins} победи, ${pct(r.allTime.correct, r.allTime.answers)}% верни от ${r.allTime.answers} отговора. Профил от ${new Date(r.createdAt).toLocaleDateString('bg-BG')}.</p>
+        ${r.badges.length ? `<p>${r.badges.map((b) => `<span title="${esc(b.name)}" style="font-size:1.6rem">${b.icon}</span>`).join(' ')}</p>` : ''}
+        ${r.tournament && r.tournament.mine ? `<div class="qx-tip">🏫 <b>Турнир „${esc(r.tournament.name)}“:</b> класът на детето е на ${r.tournament.mine.place} място, а детето е донесло ${r.tournament.myPoints} точки.</div>` : ''}
+        <h2>Данни и поверителност</h2>
+        <p class="qx-note">Този линк е личен: пазете го и не го публикувайте. Детето може да направи нов линк и тогава този спира да работи. <a href="/privacy.html">Как пазим данните →</a></p>
+        <div class="qx-row qx-noprint"><button class="qx-btn gold" onclick="print()">🖨️ Принтирай</button><a class="qx-btn" href="/api/parent/${encodeURIComponent(token)}/export" download>⬇️ Изтегли всички данни</a><button class="qx-btn" id="del" style="color:var(--bad)">🗑 Изтрий профила на детето</button></div>`;
+      document.getElementById('del').onclick = async () => {
+        if (!confirm(`Да изтрием ли профила „${r.name}“ завинаги? Нивата, значките и резултатите ще изчезнат.`)) return;
+        const res = await fetch('/api/parent/' + encodeURIComponent(token) + '/delete', { method: 'POST', headers: { 'X-Quizzard': '1' } });
+        out.innerHTML = res.ok ? '<h1>Профилът е изтрит</h1><p>Всички данни за детето са изтрити. Детето може да продължи да играе като гост.</p>' : '<p>Не успяхме да изтрием профила. Опитайте пак.</p>';
+      };
+    }).catch((e) => { out.innerHTML = `<h1>Отчет за родителя</h1><p>${esc(e.message)}</p>`; });
+  })();
+  </script>
+</body>
+</html>
