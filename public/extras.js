@@ -56,13 +56,38 @@
       bar.innerHTML = `<button class="qx-chip" data-qx="profile" title="Моят профил">${avatar(me.avatar, 38)}<span class="qx-chip-txt"><b>${esc(me.name)}</b><small>Ниво ${me.level} · ${esc(me.title)}</small><span class="qx-mini-bar"><i style="width:${me.progress}%"></i></span></span>${me.streak > 1 ? `<span class="qx-fire" title="Дни подред">🔥${me.streak}</span>` : ''}</button>`;
       if (name) { name.value = me.name; name.readOnly = true; name.title = 'Играеш с потребителското име от профила си'; }
     } else {
-      bar.innerHTML = `<button class="qx-chip guest" data-qx="login">👤 <span class="qx-chip-txt"><b>Вход</b><small>за нива и значки</small></span></button>`;
+      bar.innerHTML = `<button class="qx-chip guest" data-qx="login">👤 <span class="qx-chip-txt"><b>Вход</b></span></button>`;
       if (name && name.readOnly) { name.readOnly = false; name.title = ''; name.value = ls.get('quizzard-name') || ''; }
     }
   }
   // След вход/изход връзката с играта се отваря наново, за да я свърже с профила
   function reconnect() { try { if (typeof ws !== 'undefined' && ws) ws.close(); } catch {} }
-  async function loadMe() { try { me = (await call('/api/account/me')).user; } catch { me = null; } renderBar(); celebrate(); }
+  async function loadMe() { try { me = (await call('/api/account/me')).user; } catch { me = null; } renderBar(); gateUpdate(); celebrate(); }
+
+  // ---------- начален екран: вход, регистрация или „Играй като гост“ ----------
+  // Без профил се играе само след „Играй като гост“ (помни се до затваряне на браузъра).
+  const ss = { get(k) { try { return sessionStorage.getItem(k); } catch { return null; } }, set(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch {} } };
+  const gate = document.createElement('div');
+  gate.className = 'qx-gate qx-wait';
+  const brand = q('.brand', home)?.cloneNode(true);
+  gate.innerHTML = `<div class="qx-gate-box"><div class="qx-gate-brand"></div><p class="tagline">${esc(q('.tagline', home)?.textContent || '')}</p>
+    <div class="qx-gate-btns"><button class="qx-btn gold qx-big-btn" data-g="login">🔑 Вход</button><button class="qx-btn gold qx-big-btn" data-g="register">✨ Регистрация</button>
+    <button class="qx-btn qx-guest-btn" data-g="guest">🎮 Играй като гост</button></div>
+    <p class="qx-gate-note">Като гост играеш веднага, но точките и победите ти не се пазят.</p>
+    <a class="link" href="/privacy.html">🔒 За родители</a></div>`;
+  if (brand) q('.qx-gate-brand', gate).append(brand);
+  document.body.append(gate);
+  gate.addEventListener('click', (e) => {
+    const g = e.target.closest('[data-g]')?.dataset.g;
+    if (g === 'guest') { ss.set('quizzard-guest', '1'); gateUpdate(); }
+    else if (g) showAuth(g);
+  });
+  function gateUpdate() {
+    gate.classList.remove('qx-wait');
+    const show = !me && ss.get('quizzard-guest') !== '1' && !home.classList.contains('hidden');
+    gate.classList.toggle('qx-hide', !show);
+    document.body.classList.toggle('qx-gated', show);
+  }
 
   // ---------- вход и регистрация ----------
   // Регистрация: потребителско име + имейл на родител + парола. Вход: с потребителско име или имейл + парола.
@@ -93,7 +118,7 @@
       try {
         const r = reg ? await call('/api/account/register', { name: f.name, email: f.email, password: f.password, grade: Number(f.grade) || null, consent: !!f.consent })
           : await call('/api/account/login', { login: f.login, password: f.password });
-        me = r.user; renderBar(); close(); reconnect();
+        me = r.user; renderBar(); close(); reconnect(); gateUpdate();
         if (reg && me.needsConsent) open('📧 Почти готово!', `<p>Изпратихме писмо на <b>${esc(me.email)}</b>. Помоли мама или татко да го отворят и да потвърдят профила.</p><p class="qx-note">Дотогава можеш да играеш и да трупаш точки, но не се показваш в класацията и не можеш да качиш снимка. Ако няма писмо, нека проверят папката „Спам“.</p><button class="qx-btn gold" data-ok>Разбрах</button>`, 'narrow').querySelector('[data-ok]').onclick = close;
         else flash(reg ? `Добре дошъл, ${me.name}! 🎉` : `Здравей, ${me.name}!`);
       } catch (x) { err.textContent = x.message; }
@@ -170,7 +195,7 @@
         } catch (x) { flash(x.message); }
         return;
       }
-      if (e.target.closest('[data-logout]')) { await call('/api/account/logout', {}).catch(() => {}); me = null; renderBar(); close(); reconnect(); flash('Излезе от профила. Можеш да играеш и като гост.'); }
+      if (e.target.closest('[data-logout]')) { await call('/api/account/logout', {}).catch(() => {}); me = null; ss.set('quizzard-guest', null); renderBar(); close(); reconnect(); gateUpdate(); }
     });
     q('[data-photo]', m).onchange = async (e) => {
       const f = e.target.files[0]; if (!f) return;
@@ -188,7 +213,7 @@
     q('[data-del]', m).onsubmit = async (e) => {
       e.preventDefault(); const err = q('[data-del] .qx-err', m);
       if (!confirm('Сигурен ли си? Това не може да се върне.')) return;
-      try { await call('/api/account/delete', { password: e.target.password.value }); me = null; renderBar(); close(); reconnect(); flash('Профилът е изтрит. Можеш да играеш като гост.'); } catch (x) { err.textContent = x.message; }
+      try { await call('/api/account/delete', { password: e.target.password.value }); me = null; ss.set('quizzard-guest', null); renderBar(); close(); reconnect(); gateUpdate(); flash('Профилът е изтрит.'); } catch (x) { err.textContent = x.message; }
     };
     q('[data-pw]', m).onsubmit = async (e) => {
       e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const err = q('[data-pw] .qx-err', m);
@@ -302,6 +327,7 @@
     const hidden = home.classList.contains('hidden');
     if (wasHidden && !hidden) { loadMe(); status(); }
     if (hidden) note.classList.add('qx-hide');
+    gateUpdate();
     wasHidden = hidden;
   }).observe(home, { attributes: true, attributeFilter: ['class'] });
   const inGame = () => q('#game') && !q('#game').classList.contains('hidden');
