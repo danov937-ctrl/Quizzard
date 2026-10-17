@@ -8,6 +8,15 @@ const SUBJECTS = {
   obsht: 'Човекът и обществото', eng: 'Английски език', muz: 'Музика', izk: 'Изобразително изкуство',
   tech: 'Технологии', sport: 'Физическо възпитание', comp: 'Компютърно моделиране',
 };
+// Режим за възрастни (18+): отделни категории и „клас“ ADULT, за да не се смесват с детските въпроси
+const ADULT = 9;
+const ADULT_SUBJECTS = {
+  hist: 'История', geo: 'География', sci: 'Природни науки', film: 'Кино и телевизия', music: 'Музика',
+  spt: 'Спорт', lit: 'Литература', art: 'Изкуство и архитектура', tec: 'Наука и технологии', gen: 'Обща култура',
+};
+// Файловете в data/adult/ са по категории: hist_mc.txt, sport_mc.txt… (името на файла дава ключа)
+const ADULT_FILE_KEY = { sport: 'spt', tech: 'tec' };
+Object.assign(SUBJECTS, ADULT_SUBJECTS);
 
 function readLines(file) {
   return fs.readFileSync(path.join(DATA, file), 'utf8').split('\n')
@@ -32,6 +41,30 @@ const MC = readAll('_mc.txt', 'questions_mc.txt')
 const NUM = readAll('_num.txt', 'questions_num.txt')
   .filter((r) => (r.length === 4 || r.length === 5) && [1, 2, 3, 4].includes(+r[0]) && Number.isInteger(+r[3]))
   .map(([g, s, q, a, pic], i) => ({ id: 'num' + i, kind: 'num', grade: +g, subject: s, text: q, answer: +a, ...(pic ? { pic } : {}) }));
+
+// Въпроси за възрастни: категория|трудност 1-3|въпрос|верен|грешен|грешен|грешен (или …|число)
+function readAdult(suffix) {
+  const dir = path.join(DATA, 'adult');
+  if (!fs.existsSync(dir)) return [];
+  const seen = new Set();
+  return fs.readdirSync(dir).filter((f) => f.endsWith(suffix)).sort().flatMap((f) => {
+    const base = f.slice(0, -suffix.length), subject = ADULT_FILE_KEY[base] || base;
+    if (!ADULT_SUBJECTS[subject]) return [];
+    return readLines('adult/' + f).map((r) => ({ subject, r })).filter(({ r }) => {
+      const key = String(r[2] || '').toLowerCase().replace(/[^а-яa-z0-9]/g, '');
+      if (!key || seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+  });
+}
+for (const [i, { subject, r }] of readAdult('_mc.txt').entries()) {
+  if (r.length !== 7 || new Set(r.slice(3, 7)).size !== 4) continue;
+  MC.push({ id: 'amc' + i, kind: 'mc', grade: ADULT, subject, diff: +r[1] || 2, text: r[2], correct: r[3], options: r.slice(3, 7) });
+}
+for (const [i, { subject, r }] of readAdult('_num.txt').entries()) {
+  if (r.length !== 4 || !Number.isInteger(+r[3])) continue;
+  NUM.push({ id: 'anum' + i, kind: 'num', grade: ADULT, subject, diff: +r[1] || 2, text: r[2], answer: +r[3] });
+}
 
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -58,6 +91,12 @@ function mathTask(grade) {
       () => { const b = rnd(3, 9), c = rnd(12, 99); return [`${b * c} : ${b}`, c]; },
       () => { const a = rnd(5, 20), b = rnd(3, 12); return [`Какво е лицето на правоъгълник ${a} см на ${b} см (в кв. см)?`, a * b]; },
     ])(),
+    [ADULT]: () => pick([
+      () => { const a = rnd(12, 49), b = rnd(12, 49); return [`${a} · ${b}`, a * b]; },
+      () => { const p = pick([10, 15, 20, 25, 30, 40, 75]), b = rnd(2, 40) * 20; return [`Колко е ${p}% от ${b}?`, (p * b) / 100]; },
+      () => { const a = rnd(1000, 9999), b = rnd(1000, 9999); return [`${a} + ${b}`, a + b]; },
+      () => { const b = rnd(6, 19), c = rnd(12, 60); return [`${b * c} : ${b}`, c]; },
+    ])(),
   };
   const [expr, answer] = ops[grade]();
   return { text: expr.endsWith('?') ? expr : `Колко е ${expr}?`, answer };
@@ -72,13 +111,13 @@ function mathMC(grade) {
     if (w !== t.answer && w >= 0) wrong.add(w);
   }
   const options = [String(t.answer), ...[...wrong].map(String)];
-  return { id: 'gen', kind: 'mc', grade, subject: 'mat', text: t.text, correct: options[0], options: shuffle(options) };
+  return { id: 'gen', kind: 'mc', grade, subject: grade === ADULT ? 'gen' : 'mat', text: t.text, correct: options[0], options: shuffle(options) };
 }
 
 function mathNum(grade) {
-  const g = Math.min(4, grade + 1); // по-трудно, за да има разлика в отговорите
+  const g = grade === ADULT ? ADULT : Math.min(4, grade + 1); // по-трудно, за да има разлика в отговорите
   const t = mathTask(g);
-  return { id: 'gen', kind: 'num', grade, subject: 'mat', text: t.text, answer: t.answer };
+  return { id: 'gen', kind: 'num', grade, subject: grade === ADULT ? 'gen' : 'mat', text: t.text, answer: t.answer };
 }
 
 // Подбира въпроси за стая с даден клас, без повторения в рамките на една игра.
@@ -95,7 +134,7 @@ class QuestionPicker {
     const base = list.filter((q) => this.allowed(q));
     const fresh = (arr) => arr.filter((q) => !this.used.has(q.id));
     const near = base.filter((q) => q.grade <= this.grade && q.grade >= this.grade - 1);
-    const lower = base.filter((q) => q.grade <= this.grade);
+    const lower = this.grade === ADULT ? near : base.filter((q) => q.grade <= this.grade);
     let ok = fresh(near);
     if (!ok.length) ok = fresh(lower);
     if (!ok.length && lower.length) { for (const q of lower) this.used.delete(q.id); ok = near.length ? near : lower; } // свършили са – започваме отначало
@@ -113,7 +152,7 @@ class QuestionPicker {
     return pick(bySubj[subj]);
   }
   nextMC() {
-    const mathOk = !this.subjects || this.subjects.has('mat');
+    const mathOk = (!this.subjects || this.subjects.has('mat')) && this.grade !== ADULT;
     const pool = this.pool(MC);
     if (mathOk && (!pool.length || Math.random() < 0.1)) return mathMC(this.grade);
     if (!pool.length) return mathMC(this.grade);
@@ -123,7 +162,7 @@ class QuestionPicker {
   // Числовите въпроси решават равенства; ако в избраните предмети няма, ползваме сметка
   nextNum() {
     const pool = this.pool(NUM);
-    if (!pool.length || Math.random() < 0.4) return mathNum(this.grade);
+    if (!pool.length || Math.random() < (this.grade === ADULT ? 0.15 : 0.4)) return mathNum(this.grade);
     return this.take(pick(pool));
   }
 }
@@ -153,12 +192,13 @@ function practiceSet({ grade, subjects = null, n = 10, seed = null }) {
     if (!bySubj[s].length) { order.splice(order.indexOf(s), 1); i--; }
   }
   out.push(...nums);
-  while (out.length < n && (!set || set.has('mat'))) out.push(seed ? { ...mathNumSeeded(grade, r) } : mathMC(grade));
+  while (out.length < n && (!set || set.has('mat') || grade === ADULT)) out.push(seed ? { ...mathNumSeeded(grade, r) } : mathMC(grade));
   return out.map(({ id, ...q }) => q);
 }
 function mathNumSeeded(grade, r) {
   const a = Math.floor(r() * 9) + 2, b = Math.floor(r() * 9) + 2;
+  if (grade === ADULT) { const t = mathTask(ADULT); return { kind: 'num', grade, subject: 'gen', text: t.text, answer: t.answer }; }
   return grade <= 1 ? { kind: 'num', grade, subject: 'mat', text: `Колко е ${a} + ${b}?`, answer: a + b } : { kind: 'num', grade, subject: 'mat', text: `Колко е ${a} · ${b}?`, answer: a * b };
 }
 
-module.exports = { QuestionPicker, SUBJECTS, MC, NUM, mathMC, mathNum, shuffle, practiceSet };
+module.exports = { QuestionPicker, SUBJECTS, ADULT, ADULT_SUBJECTS, MC, NUM, mathMC, mathNum, shuffle, practiceSet };

@@ -4,7 +4,7 @@
 const crypto = require('crypto');
 const { MC, NUM, SUBJECTS } = require('../questions');
 
-const GRADES = [1, 2, 3, 4];
+const GRADES = [1, 2, 3, 4, 9]; // 9 = възрастни (18+)
 const hash = (s) => crypto.createHash('sha1').update(s).digest('hex').slice(0, 12);
 const norm = (s) => String(s || '').toLowerCase().replace(/[^а-яa-z0-9]/g, '');
 // Стабилен ключ на базов въпрос: по вида и оригиналния текст (номерът на реда се мени)
@@ -22,7 +22,7 @@ function clean(input, kind) {
   const q = { kind: kind || input.kind };
   if (!['mc', 'num'].includes(q.kind)) return { error: 'Непознат вид въпрос.' };
   q.grade = Number(input.grade);
-  if (!GRADES.includes(q.grade)) return { error: 'Класът трябва да е от 1 до 4.' };
+  if (!GRADES.includes(q.grade)) return { error: 'Класът трябва да е от 1 до 4 или „възрастни“.' };
   q.subject = String(input.subject || '');
   if (!SUBJECTS[q.subject]) return { error: 'Непознат предмет.' };
   q.text = String(input.text || '').replace(/\|/g, '/').replace(/\s+/g, ' ').trim();
