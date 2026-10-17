@@ -1,4 +1,4 @@
-/* Quizzard — средновековен стил: море, пергаментова карта, дърво и злато */
+/* Знаменосци — средновековен стил: море, пергаментова карта, дърво и злато */
 :root {
   --sea1: #0e2a4a; --sea2: #154a73; --parch: #f4e4bc; --parch2: #e6cf98; --ink: #3a2414; --muted: #7a5c3e;
   --wood1: #7a4a22; --wood2: #4e2c12; --gold1: #ffe08a; --gold2: #f2b632; --gold3: #b07a12;
@@ -474,3 +474,33 @@ details.an summary { cursor: pointer; font-weight: 900; color: var(--wood2); pad
   .overlay.dock { justify-content: flex-end; align-items: center; }
   .overlay.dock .modal { width: min(380px, 46vw); max-height: 96vh; }
 }
+
+/* ---------- коледна украса (season.js слага data-season="xmas" от 1 декември до 6 януари) ---------- */
+html[data-season="xmas"] { --sea1: #0b1d3a; --sea2: #1d3f6e; --wood1: #9b1c1c; --wood2: #5f0f0f; }
+html[data-season="xmas"] .bg { background:
+    radial-gradient(ellipse at 50% 25%, rgba(160, 200, 255, .3), transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(255, 255, 255, .18), transparent 50%),
+    linear-gradient(180deg, var(--sea2), var(--sea1)); }
+.xmas { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.xmas-snow { position: absolute; inset: -200px 0 0; background-image:
+    radial-gradient(circle, #fff 0 2px, transparent 2.5px), radial-gradient(circle, rgba(255,255,255,.85) 0 1.5px, transparent 2px),
+    radial-gradient(circle, rgba(255,255,255,.7) 0 3px, transparent 3.5px);
+  background-size: 120px 120px, 80px 90px, 200px 170px; background-position: 0 0, 40px 30px, 90px 60px; animation: snow 14s linear infinite; }
+.xmas-snow.far { opacity: .5; background-size: 60px 60px, 47px 53px, 95px 85px; animation-duration: 26s; }
+@keyframes snow { to { background-position: 30px 600px, 0 540px, 120px 680px; } }
+.xmas-lights { position: absolute; top: 0; left: 0; right: 0; height: 22px;
+  background: radial-gradient(circle at 12px 14px, #ff4d4d 0 5px, transparent 6px) 0 0 / 96px 22px,
+    radial-gradient(circle at 36px 14px, #ffd84d 0 5px, transparent 6px) 0 0 / 96px 22px,
+    radial-gradient(circle at 60px 14px, #4dff88 0 5px, transparent 6px) 0 0 / 96px 22px,
+    radial-gradient(circle at 84px 14px, #4db8ff 0 5px, transparent 6px) 0 0 / 96px 22px,
+    linear-gradient(180deg, transparent 6px, rgba(20, 60, 30, .9) 6px 8px, transparent 8px);
+  filter: drop-shadow(0 0 6px rgba(255, 240, 180, .8)); animation: twinkle 1.6s steps(2) infinite; }
+@keyframes twinkle { 50% { filter: drop-shadow(0 0 2px rgba(255, 240, 180, .3)) brightness(.75); } }
+html[data-season="xmas"] .panel { border-top-color: #f4f8ff; box-shadow: var(--shadow), inset 0 0 0 2px var(--gold2), inset 0 0 30px rgba(120, 70, 20, .25), 0 -3px 0 #fff; }
+html[data-season="xmas"] .seg button.on { background: linear-gradient(180deg, #2f8f4e, #1d6b37); border-color: #134a25; box-shadow: 0 3px 0 #134a25; }
+@media (prefers-reduced-motion: reduce) { .xmas-snow, .xmas-lights, html[data-season="xmas"] .qx-gate::before { animation: none; } }
+/* началният екран с вход (extras.js) е над всичко, затова има собствен сняг и светлини */
+html[data-season="xmas"] .qx-gate::before, html[data-season="xmas"] .qx-gate::after { content: ""; position: fixed; pointer-events: none; z-index: -1; }
+html[data-season="xmas"] .qx-gate { isolation: isolate; }
+html[data-season="xmas"] .qx-gate::before { inset: -200px 0 0; background-image: radial-gradient(circle, #fff 0 2px, transparent 2.5px), radial-gradient(circle, rgba(255,255,255,.85) 0 1.5px, transparent 2px), radial-gradient(circle, rgba(255,255,255,.7) 0 3px, transparent 3.5px);
+  background-size: 120px 120px, 80px 90px, 200px 170px; background-position: 0 0, 40px 30px, 90px 60px; animation: snow 14s linear infinite; }

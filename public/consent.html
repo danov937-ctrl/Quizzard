@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <meta name="referrer" content="no-referrer">
-  <title>Quizzard · Съгласие на родителя</title>
+  <title>Знаменосци · Съгласие на родителя</title>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link href="/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -32,9 +32,9 @@
     if (!token) { out.innerHTML = '<h1>Съгласие на родителя</h1><p>Отворете линка от писмото, което ви изпратихме.</p>'; return; }
     api('GET').then((d) => {
       if (d.confirmed) return done(d);
-      out.innerHTML = `<h1>👋 Профил на дете в Quizzard</h1>
+      out.innerHTML = `<h1>👋 Профил на дете в „Знаменосци“</h1>
         <p class="qx-lead">С имейла <b>${esc(d.email)}</b> е направен профил <b>„${esc(d.name)}“</b>${d.grade ? ` за ${d.grade} клас` : ''} на ${new Date(d.createdAt).toLocaleDateString('bg-BG')}</p>
-        <p>Quizzard е образователна игра с въпроси по учебните предмети за 1.–4. клас. С профила детето пази нивата, значките и резултатите си и може да участва в турнири между класове.</p>
+        <p>„Знаменосци“ е образователна игра с въпроси по учебните предмети за 1.–4. клас. С профила детето пази нивата, значките и резултатите си и може да участва в турнири между класове.</p>
         <h2>Какво пазим</h2>
         <ul><li>Измисленото потребителско име и паролата (криптирана)</li><li>Вашия имейл</li><li>Резултатите от играта и последните до 40 грешни отговора, за да ви показваме къде детето има нужда от помощ</li><li>Аватар, а снимка само ако детето качи и ние одобрим</li></ul>
         <p>Не искаме истинско име, адрес или телефон и не даваме данните на никого. <a href="/privacy.html" target="_blank">Цялата информация за поверителност →</a></p>

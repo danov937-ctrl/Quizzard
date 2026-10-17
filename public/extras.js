@@ -1,15 +1,17 @@
-// Quizzard · профил, нива и значки, класация, идеи и съобщения от администратора.
+// Знаменосци · профил, нива и значки, класация, идеи и съобщения от администратора.
 // Отделно от client.js: само добавя бутони на началния екран и собствени прозорци.
 (() => {
   'use strict';
   const q = (s, el = document) => el.querySelector(s);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
-  const SUBJ = { bel: 'Български език', mat: 'Математика', okol: 'Околен свят', prir: 'Човекът и природата', obsht: 'Човекът и обществото', eng: 'Английски език', muz: 'Музика', izk: 'Изобразително изкуство', tech: 'Технологии', sport: 'Физическо възпитание', comp: 'Компютърно моделиране' };
+  const SUBJ = { hist: 'История', geo: 'География', sci: 'Природни науки', film: 'Кино и телевизия', music: 'Музика', spt: 'Спорт', lit: 'Литература', art: 'Изкуство и архитектура', tec: 'Наука и технологии', gen: 'Обща култура', bel: 'Български език', mat: 'Математика', okol: 'Околен свят', prir: 'Човекът и природата', obsht: 'Човекът и обществото', eng: 'Английски език', muz: 'Музика', izk: 'Изобразително изкуство', tech: 'Технологии', sport: 'Физическо възпитание', comp: 'Компютърно моделиране' };
   const home = q('#home');
   if (!home) return;
   let me = null;
   let mailOn = false; // сървърът праща имейли (потвърждение, нова парола)
+  // Режим за възрастни (adult.js): от профила или от избора на началния екран
+  const adultMode = () => document.body.classList.contains('mode-adult');
 
   async function call(path, body) {
     const res = await fetch(path, body === undefined ? { credentials: 'same-origin' } : { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Quizzard': '1' }, body: JSON.stringify(body) });
@@ -37,6 +39,8 @@
     const t = document.createElement('div'); t.className = 'qx-toast'; t.textContent = msg;
     document.body.append(t); setTimeout(() => t.remove(), 3200);
   }
+  // за adult.js (магазин, знаме): същите прозорци и обновяване на профила
+  window.ZX = { open, close, flash, call, reload: () => loadMe() };
 
   // ---------- лента горе и бутони на началния екран ----------
   const bar = document.createElement('div');
@@ -51,6 +55,7 @@
   });
 
   function renderBar() {
+    window.dispatchEvent(new CustomEvent('zn:me', { detail: me })); // adult.js: режим, парички, знаме
     const name = q('#name');
     if (me) {
       bar.innerHTML = `<button class="qx-chip" data-qx="profile" title="Моят профил">${avatar(me.avatar, 38)}<span class="qx-chip-txt"><b>${esc(me.name)}</b><small>Ниво ${me.level} · ${esc(me.title)}</small><span class="qx-mini-bar"><i style="width:${me.progress}%"></i></span></span>${me.streak > 1 ? `<span class="qx-fire" title="Дни подред">🔥${me.streak}</span>` : ''}</button>`;
@@ -91,10 +96,15 @@
 
   // ---------- вход и регистрация ----------
   // Регистрация: потребителско име + имейл на родител + парола. Вход: с потребителско име или имейл + парола.
-  function showAuth(tab) {
+  // Регистрация на възрастен (18+): собствен имейл, рождена дата, по-дълга парола, без родител.
+  let regWho = null;
+  function showAuth(tab, who) {
     if (tab === 'forgot') return showForgot();
     const reg = tab === 'register';
+    regWho = who || regWho || (adultMode() ? 'adult' : 'kid');
+    if (reg && regWho === 'adult') return showAdultRegister();
     const m = open('👤 Профил', `<div class="qx-tabs"><button data-t="login" class="${!reg ? 'on' : ''}">Вход</button><button data-t="register" class="${reg ? 'on' : ''}">Регистрация</button></div>
+      ${reg ? whoSwitch() : ''}
       <form class="qx-form" autocomplete="on">
         ${reg ? `<label>Потребителско име<input name="name" maxlength="16" autocomplete="username" required placeholder="напр. Звездичка7"></label>
           <label>Имейл на мама или татко<input name="email" type="email" maxlength="120" autocomplete="email" required placeholder="roditel@primer.bg"></label>`
@@ -109,6 +119,7 @@
         ${reg ? '' : `<button class="qx-linkbtn" type="button" data-forgot>Забравена парола?</button>`}
       </form>`, 'narrow');
     q('.qx-tabs', m).onclick = (e) => { const b = e.target.closest('[data-t]'); if (b) showAuth(b.dataset.t); };
+    q('.qx-who', m)?.addEventListener('click', (e) => { const b = e.target.closest('[data-who]'); if (b) showAuth('register', b.dataset.who); });
     q('[data-forgot]', m)?.addEventListener('click', showForgot);
     q('form', m).onsubmit = async (e) => {
       e.preventDefault();
@@ -124,9 +135,39 @@
       } catch (x) { err.textContent = x.message; }
     };
   }
+  const whoSwitch = () => `<div class="qx-who"><button type="button" data-who="kid" class="${regWho === 'kid' ? 'on' : ''}">👧 За дете · 1–4 клас</button><button type="button" data-who="adult" class="${regWho === 'adult' ? 'on' : ''}">🧑 Аз съм възрастен · 18+</button></div>`;
+  function showAdultRegister() {
+    const max = new Date(); max.setFullYear(max.getFullYear() - 18);
+    const m = open('👤 Профил', `<div class="qx-tabs"><button data-t="login">Вход</button><button data-t="register" class="on">Регистрация</button></div>
+      ${whoSwitch()}
+      <form class="qx-form" autocomplete="on">
+        <label>Потребителско име<input name="name" maxlength="16" autocomplete="username" required placeholder="напр. Знаменосец"></label>
+        <label>Имейл<input name="email" type="email" maxlength="120" autocomplete="email" required placeholder="ime@primer.bg"></label>
+        <label>Рождена дата<input name="birthDate" type="date" required max="${max.toISOString().slice(0, 10)}" min="1900-01-01"></label>
+        <label>Парола (поне 8 знака)<input name="password" type="password" minlength="8" maxlength="64" autocomplete="new-password" required></label>
+        <label>Повтори паролата<input name="password2" type="password" maxlength="64" autocomplete="new-password" required></label>
+        <p class="qx-note">🎁 Започваш с <b>1000 парички</b>. Паричките са само за игра: не се обменят в пари и не се прехвърлят.</p>
+        <label class="qx-check"><input type="checkbox" name="consent" required><span>Навърших 18 години и приемам <a href="/terms.html" target="_blank">условията</a> и <a href="/privacy-adult.html" target="_blank">политиката за поверителност</a>.</span></label>
+        <p class="qx-err"></p>
+        <button class="qx-btn gold" type="submit">Създай профил</button>
+      </form>`, 'narrow');
+    q('.qx-tabs', m).onclick = (e) => { const b = e.target.closest('[data-t]'); if (b) showAuth(b.dataset.t); };
+    q('.qx-who', m).onclick = (e) => { const b = e.target.closest('[data-who]'); if (b) showAuth('register', b.dataset.who); };
+    q('form', m).onsubmit = async (e) => {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(e.target));
+      const err = q('.qx-err', m); err.textContent = '';
+      if (f.password !== f.password2) { err.textContent = 'Паролите не съвпадат.'; return; }
+      try {
+        const r = await call('/api/account/register', { adult: true, name: f.name, email: f.email, birthDate: f.birthDate, password: f.password, consent: !!f.consent });
+        me = r.user; renderBar(); close(); reconnect(); gateUpdate();
+        flash(`Добре дошъл, ${me.name}! 🪙 1000 парички за начало.`);
+      } catch (x) { err.textContent = x.message; }
+    };
+  }
   function showForgot() {
     const m = open('🔑 Забравена парола', `<form class="qx-form">
-      ${mailOn ? `<p class="qx-note">Напиши потребителското име или имейла на родителя. Ще изпратим писмо с линк за нова парола на имейла на родителя.</p>
+      ${mailOn ? `<p class="qx-note">${adultMode() ? 'Напиши потребителското име или имейла си. Ще ти изпратим писмо с линк за нова парола.' : 'Напиши потребителското име или имейла на родителя. Ще изпратим писмо с линк за нова парола на имейла на родителя.'}</p>
         <label>Потребителско име или имейл<input name="login" maxlength="120" required></label><p class="qx-err"></p><button class="qx-btn gold">Изпрати писмо</button>`
       : '<p>Помоли родител или учител да ни пише от <a href="/privacy.html">страницата за поверителност</a> и ще ти помогнем.</p>'}
       <button class="qx-linkbtn" type="button" data-back>← Назад към входа</button></form>`, 'narrow');
@@ -145,9 +186,9 @@
     const m = open('Моят профил', `
       <div class="qx-hero">${avatar(me.avatar, 84)}<div><div class="qx-name">${esc(me.name)}</div><div class="qx-title">Ниво ${me.level} · ${esc(me.title)}</div>
         <div class="qx-level"><i style="width:${me.progress}%"></i></div><small>${me.xp - me.from} / ${me.to - me.from} точки опит до ниво ${me.level + 1}</small></div></div>
-      <div class="qx-tabs"><button data-t="stats" class="${tab === 'stats' ? 'on' : ''}">📊 Успехи</button><button data-t="badges" class="${tab === 'badges' ? 'on' : ''}">🏅 Значки ${earned}/${me.badges.length}</button><button data-t="avatar" class="${tab === 'avatar' ? 'on' : ''}">🎨 Аватар</button><button data-t="more" class="${tab === 'more' ? 'on' : ''}">⚙️</button></div>
+      <div class="qx-tabs"><button data-t="stats" class="${tab === 'stats' ? 'on' : ''}">📊 Успехи</button><button data-t="badges" class="${tab === 'badges' ? 'on' : ''}">🏅 Значки ${earned}/${me.badges.length}</button><button data-t="avatar" class="${tab === 'avatar' ? 'on' : ''}">🎨 Аватар</button><button data-t="flag">🚩 Знаме</button><button data-t="more" class="${tab === 'more' ? 'on' : ''}">⚙️</button></div>
       <div class="qx-pane" data-p="stats">
-        <div class="qx-stats"><div><b>${me.games}</b>игри</div><div><b>${me.wins}</b>победи</div><div><b>${pct}%</b>верни</div><div><b>🔥 ${me.streak}</b>дни подред</div><div><b>${me.week.xp}</b>опит тази седмица</div><div><b>${me.ranks.week ? '#' + me.ranks.week : '—'}</b>в класацията</div></div>
+        <div class="qx-stats">${me.adult ? `<div><b>🪙 ${me.coins}</b>парички</div>` : ''}<div><b>${me.games}</b>игри</div><div><b>${me.wins}</b>победи</div><div><b>${pct}%</b>верни</div><div><b>🔥 ${me.streak}</b>дни подред</div><div><b>${me.week.xp}</b>опит тази седмица</div><div><b>${me.ranks.week ? '#' + me.ranks.week : '—'}</b>в класацията</div></div>
         ${Object.keys(me.subjects).length ? `<h3>По предмети</h3>${Object.entries(me.subjects).sort((a, b) => b[1].n - a[1].n).map(([s, v]) => `<div class="qx-sub"><span>${esc(SUBJ[s] || s)}</span><span class="qx-track"><i style="width:${Math.round((100 * v.ok) / v.n)}%"></i></span><b>${Math.round((100 * v.ok) / v.n)}%</b></div>`).join('')}` : '<p class="qx-note">Изиграй игра, за да видиш успехите си по предмети.</p>'}
         <p class="qx-note">Точки опит: ✅ верен отговор +10 · опит +2 · завършена игра +30 · победа +70 · първа игра за деня +20</p></div>
       <div class="qx-pane qx-hide" data-p="badges"><div class="qx-badges">${me.badges.map((b) => `<div class="qx-badge ${b.at ? '' : 'locked'}" title="${esc(b.desc)}"><span>${b.icon}</span><b>${esc(b.name)}</b><small>${esc(b.desc)}</small></div>`).join('')}</div></div>
@@ -160,20 +201,21 @@
         <div class="qx-row"><label class="qx-btn">📁 Качи снимка<input type="file" accept="image/*" hidden data-photo></label>${me.photoStatus === 'off' || me.photoStatus === 'approved' ? `<button class="qx-btn" data-use-photo ${me.avatar.photo ? 'disabled' : ''}>${me.avatar.photo ? '✓ Ползваш снимката' : '🖼️ Ползвай одобрената снимка'}</button>` : ''}</div></div>
       <div class="qx-pane qx-hide" data-p="more">
         ${me.needsConsent ? `<div class="qx-tip">📧 Родителят още не е потвърдил профила (писмо до ${esc(me.email)}). Дотогава не се показваш в класацията. <button class="qx-linkbtn" data-resend>Изпрати писмото пак</button></div>` : ''}
-        <h3>🏫 Моят клас</h3>
+        ${me.adult ? '' : `<h3>🏫 Моят клас</h3>
         ${me.team ? `<p><b>${esc(me.team.name)}</b> · ${esc(me.team.school)}${me.team.town ? ', ' + esc(me.team.town) : ''}</p><button class="qx-btn" data-leave>Напусни класа</button>`
-          : `<form class="qx-form qx-inline" data-team><input name="code" maxlength="8" placeholder="Код от учителя" required style="text-transform:uppercase"><button class="qx-btn gold">Влез в класа</button></form><p class="qx-note">С кода точките ти отиват и за класа в турнирите между училища.</p>`}
-        <h3>👪 За родителя</h3>
+          : `<form class="qx-form qx-inline" data-team><input name="code" maxlength="8" placeholder="Код от учителя" required style="text-transform:uppercase"><button class="qx-btn gold">Влез в класа</button></form><p class="qx-note">С кода точките ти отиват и за класа в турнирите между училища.</p>`}`}
+        ${me.adult ? `<p class="qx-note">Имейл: <b>${esc(me.email || '')}</b></p>
+        <details class="qx-more"><summary>Смени имейла</summary><form class="qx-form" data-email><label>Нов имейл<input name="email" type="email" maxlength="120" required></label><label>Твоята парола<input name="password" type="password" autocomplete="current-password" required></label><p class="qx-err"></p><button class="qx-btn gold">Запази</button></form></details>` : `<h3>👪 За родителя</h3>
         ${me.email ? `<p class="qx-note">Имейл на родителя: <b>${esc(me.email)}</b>${me.consentAt ? ' ✅ потвърден' : ''}</p>` : ''}
         <div class="qx-row"><button class="qx-btn" data-parent>🔗 ${me.hasParentLink ? 'Копирай' : 'Направи'} линк за родител</button>${me.hasParentLink ? '<button class="qx-btn" data-parent-renew>🔄 Нов линк</button>' : ''}</div>
         ${me.email && me.mail ? `<label class="qx-check"><input type="checkbox" data-weekly ${me.weeklyMail ? 'checked' : ''}><span>Седмичен отчет на имейла всеки понеделник</span></label>` : ''}
-        <details class="qx-more"><summary>Смени имейла на родителя</summary><form class="qx-form" data-email><label>Нов имейл<input name="email" type="email" maxlength="120" required></label><label>Твоята парола<input name="password" type="password" autocomplete="current-password" required></label><p class="qx-err"></p><button class="qx-btn gold">Запази</button></form></details>
+        <details class="qx-more"><summary>Смени имейла на родителя</summary><form class="qx-form" data-email><label>Нов имейл<input name="email" type="email" maxlength="120" required></label><label>Твоята парола<input name="password" type="password" autocomplete="current-password" required></label><p class="qx-err"></p><button class="qx-btn gold">Запази</button></form></details>`}
         <form class="qx-form" data-pw><h3>Смени паролата</h3><label>Стара парола<input name="old" type="password" autocomplete="current-password" required></label><label>Нова парола<input name="password" type="password" autocomplete="new-password" required></label><p class="qx-err"></p><button class="qx-btn gold">Запази</button></form>
         <h3>🔒 Моите данни</h3>
-        <div class="qx-row"><a class="qx-btn" href="/api/account/export" download>⬇️ Изтегли данните</a><a class="qx-btn" href="/privacy.html" target="_blank">Поверителност</a></div>
+        <div class="qx-row"><a class="qx-btn" href="/api/account/export" download>⬇️ Изтегли данните</a><a class="qx-btn" href="${me.adult ? '/privacy-adult.html' : '/privacy.html'}" target="_blank">Поверителност</a></div>
         <details class="qx-more"><summary>Изтрий профила завинаги</summary><form class="qx-form" data-del><p class="qx-note">Нивата, значките и резултатите ще изчезнат завинаги. Можеш да продължиш да играеш като гост.</p><label>Паролата ти<input name="password" type="password" autocomplete="current-password" required></label><p class="qx-err"></p><button class="qx-btn" style="color:var(--bad)">🗑 Изтрий профила</button></form></details>
         <button class="qx-btn" data-logout style="margin-top:14px">🚪 Изход от профила</button></div>`);
-    const show = (t) => { m.querySelectorAll('.qx-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t)); m.querySelectorAll('.qx-pane').forEach((p) => p.classList.toggle('qx-hide', p.dataset.p !== t)); };
+    const show = (t) => { if (t === 'flag') { if (window.ZAdult) window.ZAdult.openFlag(me); return; } m.querySelectorAll('.qx-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t)); m.querySelectorAll('.qx-pane').forEach((p) => p.classList.toggle('qx-hide', p.dataset.p !== t)); };
     show(tab);
     q('.qx-tabs', m).onclick = (e) => { const b = e.target.closest('[data-t]'); if (b) show(b.dataset.t); };
     let color = me.avatar.color || me.colors[0];
@@ -238,15 +280,17 @@
 
   // ---------- класация ----------
   const BOARDS = { week: ['🔥 Седмица', 'опит'], xp: ['⭐ Ниво', 'опит'], wins: ['🏆 Победи', 'победи'], accuracy: ['🎯 Точност', '%'], cup: ['🏫 Турнир', ''] };
+  const ADULT_BOARDS = { week: BOARDS.week, xp: BOARDS.xp, wins: BOARDS.wins, accuracy: BOARDS.accuracy, coins: ['🪙 Парички', 'парички'] };
   async function showBoard(kind = 'week') {
-    const m = open('🏆 Класация', `<div class="qx-tabs">${Object.entries(BOARDS).map(([k, v]) => `<button data-k="${k}" class="${k === kind ? 'on' : ''}">${v[0]}</button>`).join('')}</div><div class="qx-list">Зареждане…</div>`);
+    const adult = adultMode();
+    const m = open(adult ? '🏆 Класация · 18+' : '🏆 Класация', `<div class="qx-tabs">${Object.entries(adult ? ADULT_BOARDS : BOARDS).map(([k, v]) => `<button data-k="${k}" class="${k === kind ? 'on' : ''}">${v[0]}</button>`).join('')}</div><div class="qx-list">Зареждане…</div>`);
     q('.qx-tabs', m).onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) showBoard(b.dataset.k); };
     if (kind === 'cup') return showCup(m);
     try {
-      const d = await call('/api/leaderboard?kind=' + kind);
+      const d = await call('/api/leaderboard?kind=' + kind + (adult ? '&aud=adult' : ''));
       const medal = (p) => ['🥇', '🥈', '🥉'][p - 1] || p;
-      const sub = { week: 'Най-активните тази седмица (започва отначало всеки понеделник)', xp: 'Най-високо ниво', wins: 'Най-много победи', accuracy: 'Най-точни (поне 50 отговора)' }[kind];
-      q('.qx-list', m).innerHTML = `<p class="qx-note">${sub}</p>` + (d.top.length ? d.top.map((r) => `<div class="qx-rank ${me && r.name === me.name ? 'me' : ''}"><span class="qx-place">${medal(r.place)}</span>${avatar(r.avatar, 36)}<span class="qx-rname">${esc(r.name)}<small>ниво ${r.level} · ${r.badges} 🏅</small></span><b>${r.value}${kind === 'accuracy' ? '%' : ''}</b></div>`).join('')
+      const sub = { week: 'Най-активните тази седмица (започва отначало всеки понеделник)', xp: 'Най-високо ниво', wins: 'Най-много победи', accuracy: 'Най-точни (поне 50 отговора)', coins: 'Най-много парички' }[kind];
+      q('.qx-list', m).innerHTML = `<p class="qx-note">${sub}</p>` + (d.top.length ? d.top.map((r) => `<div class="qx-rank ${me && r.name === me.name ? 'me' : ''}"><span class="qx-place">${medal(r.place)}</span>${avatar(r.avatar, 36)}<span class="qx-rname">${esc(r.name)}<small>ниво ${r.level} · ${r.badges} 🏅</small></span>${r.flag && window.ZFlag ? ZFlag.svg(r.flag, 30) : ''}<b>${r.value}${kind === 'accuracy' ? '%' : ''}</b></div>`).join('')
         : '<p class="qx-note">Още никой не е в класацията. Бъди първият! 🚀</p>') +
         (d.me ? `<p class="qx-note"><b>${d.me.place ? `Ти си на ${d.me.place} място.` : 'Изиграй игра, за да влезеш в класацията.'}</b></p>` : '<p class="qx-note">Влез в профила си, за да участваш в класацията. Без профил играеш като гост.</p>');
     } catch (x) { q('.qx-list', m).textContent = x.message; }

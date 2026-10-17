@@ -1,4 +1,4 @@
-// Quizzard · админ панел (без рамки, само браузърен JS)
+// Знаменосци · админ панел (без рамки, само браузърен JS)
 'use strict';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -13,12 +13,18 @@ const ago = (iso) => {
 };
 const dur = (sec) => sec < 60 ? `${sec} сек` : sec < 3600 ? `${Math.floor(sec / 60)} мин ${sec % 60} сек` : `${Math.floor(sec / 3600)} ч ${Math.floor((sec % 3600) / 60)} мин`;
 const debounce = (fn, ms = 250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
-const SUBJ = { bel: 'Български език', mat: 'Математика', okol: 'Околен свят', prir: 'Човекът и природата', obsht: 'Човекът и обществото', eng: 'Английски език', muz: 'Музика', izk: 'Изобразително изкуство', tech: 'Технологии', sport: 'Физическо възпитание', comp: 'Компютърно моделиране' };
-const SUBJ_ICON = { bel: '📖', mat: '➗', okol: '🌳', prir: '🔬', obsht: '🏛️', eng: '🇬🇧', muz: '🎵', izk: '🎨', tech: '🛠️', sport: '⚽', comp: '💻' };
+const SUBJ = { bel: 'Български език', mat: 'Математика', okol: 'Околен свят', prir: 'Човекът и природата', obsht: 'Човекът и обществото', eng: 'Английски език', muz: 'Музика', izk: 'Изобразително изкуство', tech: 'Технологии', sport: 'Физическо възпитание', comp: 'Компютърно моделиране',
+  hist: 'История (18+)', geo: 'География (18+)', sci: 'Природни науки (18+)', film: 'Кино (18+)', music: 'Музика (18+)', spt: 'Спорт (18+)', lit: 'Литература (18+)', art: 'Изкуство (18+)', tec: 'Наука и технологии (18+)', gen: 'Обща култура (18+)' };
+const SUBJ_ICON = { bel: '📖', mat: '➗', okol: '🌳', prir: '🔬', obsht: '🏛️', eng: '🇬🇧', muz: '🎵', izk: '🎨', tech: '🛠️', sport: '⚽', comp: '💻',
+  hist: '📜', geo: '🌍', sci: '🧪', film: '🎬', music: '🎸', spt: '🏅', lit: '📚', art: '🖼️', tec: '🚀', gen: '💡' };
+// 9 = режимът за възрастни
+const Q_GRADES = [1, 2, 3, 4, 9];
+const gradeName = (g) => (Number(g) === 9 ? '18+' : `${g} клас`);
+const ADULT_SUBJ = new Set(['hist', 'geo', 'sci', 'film', 'music', 'spt', 'lit', 'art', 'tec', 'gen']);
 const MODE = { online: 'Онлайн', friends: 'С приятели', bots: 'С ботове' };
 const MODE_COLOR = { online: '#1e88e5', friends: '#43a047', bots: '#fb8c00' };
 const PHASE = { lobby: 'Чака в стаята', start: 'Започва', capitals: 'Избор на столици', expansion: 'Рунд 1: завладяване', battle: 'Рунд 2: война', ended: 'Свършила' };
-const ACTION = { add: 'Добавен въпрос', edit: 'Редакция', hide: 'Скрит', show: 'Показан отново', delete: 'Изтрит', reset: 'Върнат към оригинала', import: 'Внесен', revert: 'Върната промяна', settings: 'Настройки', restore: 'Възстановен архив', 'room-close': 'Затворена стая', kick: 'Изваден играч', 'bulk-hide': 'Скрит (група)', 'bulk-show': 'Показан (група)', 'bulk-delete': 'Изтрит (група)', 'bulk-grade': 'Сменен клас (група)', 'bulk-subject': 'Сменен предмет (група)', 'player-rename': 'Преименуван играч', 'player-ban': 'Спрян акаунт', 'player-unban': 'Пуснат акаунт', 'player-password': 'Нова парола на играч', 'player-delete': 'Изтрит акаунт', 'photo-approve': 'Одобрена снимка', 'photo-reject': 'Отхвърлена снимка', 'team-add': 'Нов клас', 'team-delete': 'Изтрит клас', 'tournament-add': 'Нов турнир', 'tournament-delete': 'Изтрит турнир', 'player-export': 'Изтеглени данни на играч', 'mail-weekly': 'Седмичен отчет', 'players-cleanup': 'Автоматично изтриване' };
+const ACTION = { add: 'Добавен въпрос', edit: 'Редакция', hide: 'Скрит', show: 'Показан отново', delete: 'Изтрит', reset: 'Върнат към оригинала', import: 'Внесен', revert: 'Върната промяна', settings: 'Настройки', restore: 'Възстановен архив', 'room-close': 'Затворена стая', kick: 'Изваден играч', 'bulk-hide': 'Скрит (група)', 'bulk-show': 'Показан (група)', 'bulk-delete': 'Изтрит (група)', 'bulk-grade': 'Сменен клас (група)', 'bulk-subject': 'Сменен предмет (група)', 'player-rename': 'Преименуван играч', 'player-ban': 'Спрян акаунт', 'player-unban': 'Пуснат акаунт', 'player-password': 'Нова парола на играч', 'player-delete': 'Изтрит акаунт', 'photo-approve': 'Одобрена снимка', 'photo-reject': 'Отхвърлена снимка', 'team-add': 'Нов клас', 'team-delete': 'Изтрит клас', 'tournament-add': 'Нов турнир', 'tournament-delete': 'Изтрит турнир', 'player-export': 'Изтеглени данни на играч', 'mail-weekly': 'Седмичен отчет', 'players-cleanup': 'Автоматично изтриване', 'player-coins': 'Парички на играч' };
 const IDEA_STATUS = { new: ['Нова', 'info'], published: ['Публикувана', 'ok'], planned: ['Ще я направим', 'warn'], done: ['Направена', 'ok'], rejected: ['Отхвърлена', 'bad'] };
 const subjOptions = (sel, any) => (any ? `<option value="">${any}</option>` : '') + Object.entries(SUBJ).map(([k, v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${SUBJ_ICON[k]} ${v}</option>`).join('');
 const pctColor = (p) => p == null ? 'var(--line)' : p < 40 ? 'var(--bad)' : p < 65 ? 'var(--warn)' : 'var(--ok)';
@@ -119,7 +125,7 @@ async function route() {
   const id = page();
   const p = PAGES.find((x) => x.id === id) || PAGES[1];
   $('#pageTitle').textContent = p.title;
-  document.title = `${p.title} · Quizzard админ`;
+  document.title = `${p.title} · Знаменосци админ`;
   $('#side').classList.remove('open');
   renderNav();
   const view = $('#view');
@@ -218,7 +224,7 @@ VIEWS.dashboard = async (view) => {
     </div>
     <div class="card"><div class="row between"><h3>Покритие на въпросите</h3><a href="#coverage" class="small">Подробно →</a></div>${heatTable(cov)}</div>
     <div class="grid g2">
-      <div class="card"><h3>Последни игри</h3>${o.recentGames.length ? `<div class="table-wrap"><table><tbody>${o.recentGames.map((g) => `<tr><td><span class="badge" style="color:${MODE_COLOR[g.mode]}">${MODE[g.mode]}</span></td><td>${g.grade} клас</td><td>${g.humans} 👤 ${g.bots ? `+ ${g.bots} 🤖` : ''}</td><td>${g.completed ? dur(g.sec) : '<span class="badge warn">прекъсната</span>'}</td><td class="hint">${ago(g.at)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Още няма изиграни игри.</div>'}</div>
+      <div class="card"><h3>Последни игри</h3>${o.recentGames.length ? `<div class="table-wrap"><table><tbody>${o.recentGames.map((g) => `<tr><td><span class="badge" style="color:${MODE_COLOR[g.mode]}">${MODE[g.mode]}</span></td><td>${gradeName(g.grade)}</td><td>${g.humans} 👤 ${g.bots ? `+ ${g.bots} 🤖` : ''}</td><td>${g.completed ? dur(g.sec) : '<span class="badge warn">прекъсната</span>'}</td><td class="hint">${ago(g.at)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Още няма изиграни игри.</div>'}</div>
       <div class="card"><div class="row between"><h3>Последни промени</h3><a href="#log" class="small">Дневник →</a></div>${o.recentAudit.length ? o.recentAudit.map((x) => `<div class="hist"><span><b>${ACTION[x.action] || x.action}</b> ${h(x.label)}</span><span class="hint">${ago(x.at)}</span></div>`).join('') : '<div class="empty">Още няма промени.</div>'}</div>
     </div>`;
   view.onclick = async (e) => {
@@ -234,18 +240,19 @@ VIEWS.dashboard = async (view) => {
 };
 
 function heatTable(cov, linkable = true) {
-  const grades = [1, 2, 3, 4];
+  const grades = Q_GRADES;
   const cls = (n) => (n < 15 ? 'c0' : n < 40 ? 'c1' : 'c2');
   const off = new Set(cov.disabled || []);
   const rows = Object.entries(cov.coverage).map(([s, g]) => {
     const total = grades.reduce((t, x) => t + g[x].mc + g[x].num, 0);
     return `<tr class="${off.has(s) ? 'off' : ''}"><td>${SUBJ_ICON[s]} ${SUBJ[s]}${off.has(s) ? ' <span class="badge">изключен</span>' : ''}</td>${grades.map((x) => {
+      if (ADULT_SUBJ.has(s) !== (x === 9)) return '<td></td>';
       const n = g[x].mc;
       const inner = `${n}${g[x].num ? `<small class="hint"> +${g[x].num}</small>` : ''}`;
       return `<td>${linkable ? `<a class="cell ${cls(n)}" href="#questions?subject=${s}&grade=${x}" title="${n} с избор, ${g[x].num} числови">${inner}</a>` : `<span class="cell ${cls(n)}">${inner}</span>`}</td>`;
     }).join('')}<td class="num"><b>${total}</b></td></tr>`;
   }).join('');
-  return `<div class="table-wrap"><table class="heat"><thead><tr><th>Предмет</th>${grades.map((g) => `<th>${g} клас</th>`).join('')}<th class="num">Общо</th></tr></thead><tbody>${rows}</tbody></table></div>
+  return `<div class="table-wrap"><table class="heat"><thead><tr><th>Предмет</th>${grades.map((g) => `<th>${gradeName(g)}</th>`).join('')}<th class="num">Общо</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="legend"><span><i style="background:var(--bad-bg)"></i>под 15 (предметът не се показва за класа)</span><span><i style="background:var(--warn-bg)"></i>15–39</span><span><i style="background:var(--ok-bg)"></i>40+</span><span>+N = числови въпроси</span></div>`;
 }
 
@@ -265,7 +272,7 @@ VIEWS.questions = async (view, params) => {
     <div class="filters">
       <input class="search" id="qSearch" placeholder="🔍 Търси във въпроси и отговори…  ( / )" value="${h(qState.q)}">
       <select id="qSubject">${subjOptions(qState.subject, 'Всички предмети')}</select>
-      <select id="qGrade"><option value="">Всички класове</option>${[1, 2, 3, 4].map((g) => `<option value="${g}" ${String(g) === String(qState.grade) ? 'selected' : ''}>${g} клас</option>`).join('')}</select>
+      <select id="qGrade"><option value="">Всички класове</option>${Q_GRADES.map((g) => `<option value="${g}" ${String(g) === String(qState.grade) ? 'selected' : ''}>${gradeName(g)}</option>`).join('')}</select>
       <select id="qKind"><option value="">С избор и числови</option><option value="mc" ${qState.kind === 'mc' ? 'selected' : ''}>С избор (4 отговора)</option><option value="num" ${qState.kind === 'num' ? 'selected' : ''}>Числови</option></select>
       <select id="qSort"><option value="">Подредба: по файл</option><option value="grade">По клас</option><option value="hard">Най-трудни</option><option value="easy">Най-лесни</option><option value="played">Най-често задавани</option><option value="newest">Най-нови</option><option value="text">По азбучен ред</option></select>
     </div>
@@ -331,7 +338,7 @@ function renderBulk() {
   if (!n) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="bulk"><b>Избрани: ${n}</b>
     <button class="btn sm" data-b="hide">🙈 Скрий</button><button class="btn sm" data-b="show">👁 Покажи</button>
-    <select data-b="grade"><option value="">Смени клас…</option>${[1, 2, 3, 4].map((g) => `<option value="${g}">${g} клас</option>`).join('')}</select>
+    <select data-b="grade"><option value="">Смени клас…</option>${Q_GRADES.map((g) => `<option value="${g}">${gradeName(g)}</option>`).join('')}</select>
     <select data-b="subject">${subjOptions('', 'Смени предмет…')}</select>
     <button class="btn sm" data-b="delete">🗑 Изтрий</button>
     <span class="grow"></span><button class="btn sm" data-b="clear">✕ Откажи избора</button></div>`;
@@ -357,7 +364,7 @@ async function editQuestion(key, idx) {
     body: `<div class="editor"><form id="qf" autocomplete="off">
       ${isNew ? `<div class="field"><span>Вид</span><div class="seg" id="fKind"><button type="button" data-k="mc" class="on">С 4 отговора</button><button type="button" data-k="num">Числов (за равенства)</button></div></div>` : ''}
       <div class="row" style="gap:12px;align-items:flex-start">
-        <div class="field"><span>Клас</span><div class="seg" id="fGrade">${[1, 2, 3, 4].map((g) => `<button type="button" data-g="${g}" class="${q.grade === g ? 'on' : ''}">${g}</button>`).join('')}</div></div>
+        <div class="field"><span>Клас</span><div class="seg" id="fGrade">${Q_GRADES.map((g) => `<button type="button" data-g="${g}" class="${q.grade === g ? 'on' : ''}">${g === 9 ? '18+' : g}</button>`).join('')}</div></div>
         <label class="field grow"><span>Предмет</span><select id="fSubject">${subjOptions(q.subject)}</select></label>
       </div>
       <label class="field"><span>Картинка <span class="hint">(по желание: емоджи, напр. 🐘, за по-малките)</span></span><input id="fPic" maxlength="16" value="${h(q.pic || '')}" placeholder="без картинка" style="width:160px"></label>
@@ -374,7 +381,7 @@ async function editQuestion(key, idx) {
       ${isNew ? '' : `<div class="side-box"><h4>Статистика</h4>${data.stats.n ? `${pctCell(data.stats)} <span class="small muted">· ${data.stats.ok} от ${data.stats.n} деца са отговорили вярно${data.stats.n >= 5 && data.stats.pct < 30 ? '<br><b style="color:var(--bad)">Много нисък процент: провери дали верният отговор е правилен.</b>' : ''}</span>` : '<span class="hint">Още не е задаван на деца.</span>'}</div>
       ${data.problems.length ? `<div class="side-box"><h4>🔎 Автоматична проверка</h4>${data.problems.map((p) => `<div class="small">• ${h(p.msg)}</div>`).join('')}</div>` : ''}
       ${data.reports.length ? `<div class="side-box"><h4>🚩 Сигнали (${data.reports.length})</h4>${data.reports.slice(-5).reverse().map((r) => `<div class="hist"><span><b>${h(r.reason)}</b> ${h(r.text)}</span><span class="badge ${r.status === 'new' ? 'bad' : ''}">${r.status === 'new' ? 'нов' : 'решен'}</span></div>`).join('')}</div>` : ''}
-      ${data.original && q.edited ? `<div class="side-box"><h4>Оригинал от файла</h4><div class="small"><b>${h(data.original.text)}</b><br>✓ ${h(data.original.kind === 'mc' ? data.original.options.join(' · ') : data.original.answer)} · ${data.original.grade} клас · ${SUBJ[data.original.subject]}</div></div>` : ''}
+      ${data.original && q.edited ? `<div class="side-box"><h4>Оригинал от файла</h4><div class="small"><b>${h(data.original.text)}</b><br>✓ ${h(data.original.kind === 'mc' ? data.original.options.join(' · ') : data.original.answer)} · ${gradeName(data.original.grade)} · ${SUBJ[data.original.subject]}</div></div>` : ''}
       ${data.history.length ? `<div class="side-box"><h4>История</h4>${data.history.slice(0, 6).map((x) => `<div class="hist"><span>${ACTION[x.action] || x.action}</span><span class="hint">${ago(x.at)}</span></div>`).join('')}</div>` : ''}`}
     </div></div>`,
     foot: `${!isNew && idx != null ? `<button class="btn ghost" data-nav="-1" title="Предишен (Alt+←)">←</button><button class="btn ghost" data-nav="1" title="Следващ (Alt+→)">→</button>` : ''}
@@ -390,7 +397,7 @@ async function editQuestion(key, idx) {
   const preview = () => {
     const f = form();
     $('#fLen', el).textContent = `${f.text.length}/300`;
-    $('#fPreview', el).innerHTML = `<div class="pq"><small>${SUBJ_ICON[f.subject]} ${SUBJ[f.subject]} · ${f.grade} клас</small>${f.pic ? `<div style="font-size:2.6rem;line-height:1.2">${h(f.pic)}</div>` : ''}${h(f.text) || '<span style="opacity:.5">Текстът на въпроса</span>'}</div>` +
+    $('#fPreview', el).innerHTML = `<div class="pq"><small>${SUBJ_ICON[f.subject]} ${SUBJ[f.subject]} · ${gradeName(f.grade)}</small>${f.pic ? `<div style="font-size:2.6rem;line-height:1.2">${h(f.pic)}</div>` : ''}${h(f.text) || '<span style="opacity:.5">Текстът на въпроса</span>'}</div>` +
       (kind === 'mc' ? `<div class="po">${f.options.map((o, i) => `<div class="${i === 0 ? 'right' : ''}">${h(o) || '…'}</div>`).join('')}</div>` : `<div class="pnum">${h(f.answer) || '?'}</div>`);
   };
   preview();
@@ -663,7 +670,7 @@ VIEWS.rooms = async (view) => {
     const playing = d.rooms.filter((r) => r.phase !== 'lobby' && r.phase !== 'ended');
     view.innerHTML = `<div class="row between" style="margin-bottom:12px"><span class="muted"><span class="live-dot"></span>Обновява се сам на всеки 3 секунди · ${d.rooms.length} стаи · ${playing.length} игри вървят</span></div>
       ${d.rooms.length ? `<div class="rooms">${d.rooms.map((r) => `<div class="item" data-code="${r.code}">
-        <div class="head"><b style="color:var(--text);font-size:1.1rem">Стая ${r.code}</b><span class="badge" style="color:${MODE_COLOR[r.mode]}">${MODE[r.mode]}</span><span class="badge">${r.grade} клас</span><span class="grow"></span><span class="badge ${r.phase === 'lobby' ? '' : r.phase === 'ended' ? '' : 'ok'}">${PHASE[r.phase] || r.phase}${r.round && r.phase === 'battle' ? ` ${r.round}/${r.battleRounds}` : ''}</span></div>
+        <div class="head"><b style="color:var(--text);font-size:1.1rem">Стая ${r.code}</b><span class="badge" style="color:${MODE_COLOR[r.mode]}">${MODE[r.mode]}</span><span class="badge">${gradeName(r.grade)}</span><span class="grow"></span><span class="badge ${r.phase === 'lobby' ? '' : r.phase === 'ended' ? '' : 'ok'}">${PHASE[r.phase] || r.phase}${r.round && r.phase === 'battle' ? ` ${r.round}/${r.battleRounds}` : ''}</span></div>
         <div style="margin:8px 0">${r.members.map((m) => `<div class="member"><span class="dot ${m.connected ? 'on' : 'off'}" title="${m.connected ? 'свързан' : 'изгубена връзка'}"></span>${m.isBot ? '🤖' : '👤'} ${h(m.name)}${m.host ? ' <span class="badge">домакин</span>' : ''}${m.alive === false ? ' <span class="badge bad">отпаднал</span>' : ''}<span class="grow"></span>${m.score != null ? `<b>${fmt(m.score)}</b>` : ''}${!m.isBot ? ` <button class="btn sm ghost" data-kick="${m.id}" title="Извади от стаята">✕</button>` : ''}</div>`).join('')}</div>
         ${r.question ? `<div class="quote">❓ ${h(r.question.text)}</div>` : ''}
         <div class="actions"><span class="hint">${r.startedAt ? 'играят от ' + dur(Math.round((Date.now() - r.startedAt) / 1000)) : r.emptySince ? 'празна от ' + ago(new Date(r.emptySince).toISOString()) : ''}</span><span class="grow"></span><button class="btn sm danger" data-close>Затвори стаята</button></div></div>`).join('')}</div>`
@@ -695,8 +702,8 @@ VIEWS.stats = async (view) => {
       <div class="card"><h3>Деца в игра по дни</h3>${lineChart(d.days, 'humans', { color: '#1e88e5' })}</div>
       <div class="card"><h3>Рекорд онлайн по дни</h3>${lineChart(d.days, 'peakPlayers', { color: '#b07a12' })}</div>
     </div>
-    <div class="card"><h3>Успеваемост по предмети и класове</h3><div class="table-wrap"><table class="heat"><thead><tr><th>Предмет</th><th>Общо</th>${[1, 2, 3, 4].map((g) => `<th>${g} клас</th>`).join('')}</tr></thead><tbody>
-      ${d.bySubject.map((s) => `<tr><td>${SUBJ_ICON[s.subject]} ${s.name}</td><td>${s.pct == null ? '—' : `<b style="color:${pctColor(s.pct)}">${s.pct}%</b> <span class="hint">(${fmt(s.n)})</span>`}</td>${[1, 2, 3, 4].map((g) => `<td>${s.grades[g] ? `<span style="color:${pctColor(s.grades[g].pct)};font-weight:900">${s.grades[g].pct}%</span> <span class="hint">${s.grades[g].n}</span>` : '<span class="hint">—</span>'}</td>`).join('')}</tr>`).join('')}
+    <div class="card"><h3>Успеваемост по предмети и класове</h3><div class="table-wrap"><table class="heat"><thead><tr><th>Предмет</th><th>Общо</th>${Q_GRADES.map((g) => `<th>${gradeName(g)}</th>`).join('')}</tr></thead><tbody>
+      ${d.bySubject.map((s) => `<tr><td>${SUBJ_ICON[s.subject]} ${s.name}</td><td>${s.pct == null ? '—' : `<b style="color:${pctColor(s.pct)}">${s.pct}%</b> <span class="hint">(${fmt(s.n)})</span>`}</td>${Q_GRADES.map((g) => `<td>${s.grades[g] ? `<span style="color:${pctColor(s.grades[g].pct)};font-weight:900">${s.grades[g].pct}%</span> <span class="hint">${s.grades[g].n}</span>` : '<span class="hint">—</span>'}</td>`).join('')}</tr>`).join('')}
     </tbody></table></div><div class="hint">Много нисък процент значи, че въпросите може да са твърде трудни за този клас.</div></div>
     <div class="grid g2">
       <div class="card"><h3>🤔 Най-трудни въпроси</h3><p class="hint" style="margin-top:-6px">Под 30% често значи грешен „верен“ отговор: провери ги първо.</p>${qList(d.hardest)}</div>
@@ -753,7 +760,7 @@ VIEWS.settings = async (view) => {
       ${Object.entries(SUBJ).map(([k, v]) => `<label class="switch" style="display:flex;margin:8px 0"><input type="checkbox" class="subjOn" value="${k}" ${s.disabledSubjects.includes(k) ? '' : 'checked'}> ${SUBJ_ICON[k]} ${v}</label>`).join('')}</div>
     <div class="card"><h3>🔒 Родители и лични данни</h3><p class="muted" style="margin-top:-4px">Показва се на <a href="/privacy.html" target="_blank">страницата за поверителност</a>.</p>
       <label class="field"><span>Кой отговаря за данните</span><input id="sController" value="${h(s.controller)}" maxlength="160" placeholder="напр. Иван Иванов или „Квизард“ ЕООД, гр. София"></label>
-      <label class="field"><span>Връзка за родители</span><input id="sContact" value="${h(s.contact)}" maxlength="120" placeholder="напр. roditeli@quizzard.bg"></label>
+      <label class="field"><span>Връзка за родители</span><input id="sContact" value="${h(s.contact)}" maxlength="120" placeholder="напр. roditeli@znamenostsi.bg"></label>
       ${num('sRetention', 'Профил без вход се изтрива след', s.retentionMonths, 6, 60, 'месеца', 'непотвърдените от родител се изтриват след 30 дни')}
       <div class="field"><span>Имейли до родителите</span>${mailInfo.on ? `<div class="banner ok" style="margin:0">✅ Включени. Линковете в писмата водят към <b>${h(mailInfo.base)}</b></div>` : '<div class="banner warn" style="margin:0">⚠️ Изключени: задай RESEND_API_KEY и MAIL_FROM в Render. Дотогава профилите работят без потвърждение по имейл и няма „Забравена парола“.</div>'}</div>
       <div class="row"><button class="btn" id="sWeekly" ${mailInfo.on ? '' : 'disabled'}>📧 Изпрати седмичния отчет сега</button><button class="btn" id="sSweep">🧹 Изтрий старите профили сега</button></div></div>

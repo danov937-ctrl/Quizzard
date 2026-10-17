@@ -39,13 +39,13 @@ class Parents {
     if (!mail.enabled() || !u.email || u.consentAt) return { skipped: true };
     u.consentToken ||= tok(); u.consentAskedAt = new Date().toISOString(); this.store.touch('players');
     const B = this.base(), e = mail.esc;
-    return this.send(u.email, `Потвърдете профила на ${u.name} в Quizzard`, 'Потвърдете профила на детето',
-      `<p>Здравейте! Във Quizzard, образователна игра с въпроси за 1.–4. клас, е направен профил <b>„${e(u.name)}“</b> с вашия имейл.</p>
+    return this.send(u.email, `Потвърдете профила на ${u.name} в „Знаменосци“`, 'Потвърдете профила на детето',
+      `<p>Здравейте! В „Знаменосци“, образователна игра с въпроси за 1.–4. клас, е направен профил <b>„${e(u.name)}“</b> с вашия имейл.</p>
        <p>Децата под 14 години могат да имат профил само със съгласие от родител. С профила детето пази нивата, значките и резултатите си. Пазим само потребителското име, паролата (криптирана), имейла ви и резултатите от играта.</p>
        ${mail.button(`${B}/consent.html#${u.consentToken}`, 'Прегледай и потвърди')}
        <p>Ако не сте вие или не сте съгласни, отворете линка и изберете „Изтрий профила“. Без потвърждение профилът се изтрива сам след ${CONSENT_DAYS} дни.</p>
        <p style="font-size:13px">След потвърждение ще получавате кратък отчет всеки понеделник. Можете да го спрете с един клик от всяко писмо.</p>`,
-      `Потвърдете профила „${u.name}“ в Quizzard: ${B}/consent.html#${u.consentToken}`);
+      `Потвърдете профила „${u.name}“ в „Знаменосци“: ${B}/consent.html#${u.consentToken}`);
   }
   byConsent(t) { return Object.values(this.acc.users).find((u) => eqTok(u.consentToken, t)) || null; }
 
@@ -59,8 +59,8 @@ class Parents {
     if (users.length) this.store.touch('players');
     const B = this.base(), e = mail.esc;
     for (const [to, list] of Object.entries(byMail)) {
-      await this.send(to, 'Нова парола за Quizzard', 'Нова парола',
-        `<p>Някой поиска нова парола за ${list.length > 1 ? 'профилите' : 'профила'} в Quizzard с този имейл.</p>
+      await this.send(to, 'Нова парола за „Знаменосци“', 'Нова парола',
+        `<p>Някой поиска нова парола за ${list.length > 1 ? 'профилите' : 'профила'} в „Знаменосци“ с този имейл.</p>
          ${list.map((u) => `<p><b>${e(u.name)}</b></p>${mail.button(`${B}/reset.html#${u.reset.token}`, 'Нова парола за ' + u.name)}`).join('')}
          <p>Линкът важи 1 час. Ако не сте поискали нова парола, просто не правете нищо.</p>`,
         list.map((u) => `${u.name}: ${B}/reset.html#${u.reset.token}`).join('\n'));
@@ -99,7 +99,7 @@ class Parents {
           ${weak.length ? `<p>💡 Има нужда от помощ при: ${weak.map((x) => `${e(SUBJ[x.s] || x.s)} (${x.p}%)`).join(', ')}</p>` : ''}
           ${mail.button(link, 'Виж грешките и целия отчет')}`;
       }).join('');
-      const out = await this.send(to, `Седмицата в Quizzard: ${list.map((x) => x.u.name).join(', ')}`, 'Какво упражнява детето миналата седмица',
+      const out = await this.send(to, `Седмицата в „Знаменосци“: ${list.map((x) => x.u.name).join(', ')}`, 'Какво упражнява детето миналата седмица',
         `${blocks}<p style="font-size:12px"><a href="${e(this.offLink(to))}" style="color:#7a5c3e">Не искам седмичен отчет</a></p>`,
         list.map(({ u, r }) => `${u.name}: ${r.answers} отговора, ${pct(r.correct, r.answers)}% верни`).join('\n') + `\nСпиране: ${this.offLink(to)}`);
       if (!out.error) sent++;

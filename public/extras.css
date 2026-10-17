@@ -1,4 +1,4 @@
-/* Quizzard · профил, класация, идеи и съобщения (extras.js). Цветовете идват от style.css. */
+/* Знаменосци · профил, класация, идеи и съобщения (extras.js). Цветовете идват от style.css. */
 .qx-hide { display: none !important; }
 .qx-account { position: absolute; top: 10px; right: 10px; z-index: 6; }
 .qx-chip { display: flex; align-items: center; gap: 8px; background: linear-gradient(180deg, var(--parch), var(--parch2)); border: 2px solid var(--gold3); border-radius: 999px; padding: 4px 12px 4px 4px; box-shadow: 0 4px 0 var(--wood2), var(--shadow); color: var(--ink); text-align: left; max-width: 230px; }

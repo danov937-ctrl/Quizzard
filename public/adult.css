@@ -1,0 +1,89 @@
+/* Знаменосци · режим за възрастни (18+): по-изчистен „нощен“ вид със злато, парички, магазин и знамена */
+
+/* ---------- превключвател деца / възрастни ---------- */
+.zn-mode { display: flex; gap: 6px; padding: 4px; margin: 0 0 12px; border-radius: 14px; background: rgba(0, 0, 0, .12); }
+.zn-mode button { flex: 1; padding: 10px 6px; border-radius: 10px; background: transparent; color: var(--muted); font-size: .98rem; }
+.zn-mode button.on { background: linear-gradient(180deg, #a0662f, var(--wood1)); color: #fff; box-shadow: 0 3px 0 var(--wood2); }
+.qx-gate .zn-mode { width: 100%; background: rgba(255, 255, 255, .1); margin: 6px 0 0; }
+.qx-gate .zn-mode button { color: #f5e6c4; }
+.qx-who { display: flex; gap: 6px; margin: 0 0 12px; }
+.qx-who button { flex: 1; padding: 10px 6px; border-radius: 10px; background: #f0dfb4; border: 2px solid #caa760; font-size: .92rem; }
+.qx-who button.on { background: linear-gradient(180deg, #a0662f, var(--wood1)); color: #fff; border-color: var(--wood2); }
+
+/* ---------- парички и знаме на началния екран ---------- */
+.zn-wallet { position: absolute; top: 10px; left: 10px; z-index: 6; display: flex; gap: 8px; align-items: center; }
+.zn-coin-chip { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; font-size: 1.05rem;
+  background: linear-gradient(180deg, var(--gold1), var(--gold2)); color: #4a2a00; border: 2px solid var(--gold3); box-shadow: 0 3px 0 var(--gold3), var(--shadow); }
+.zn-coin-chip span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #4a2a00; color: var(--gold1); font-size: .9rem; }
+.zn-flag-chip { padding: 5px; border-radius: 10px; background: rgba(255, 255, 255, .14); border: 2px solid rgba(255, 224, 138, .6); line-height: 0; }
+.zflag { border-radius: 3px; display: inline-block; vertical-align: middle; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+body.qx-gated .zn-wallet { display: none; }
+.members .tag.coin { color: #4a2a00; background: var(--gold1); }
+.stake-note { margin: 10px 0 0; padding: 8px 12px; border-radius: 12px; background: rgba(242, 182, 50, .18); font-weight: 700; font-size: .92rem; }
+.stake-res { font-weight: 900; font-size: 1.1rem; margin: 6px 0; }
+.stake-res.win { color: #2e7d32; }
+
+/* ---------- магазин ---------- */
+.zn-bal { display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: 14px; background: linear-gradient(180deg, #fff6d4, #f6e2a6); margin-bottom: 6px; }
+.zn-bal b { font-size: 2.2rem; color: #6b4300; }
+.zn-bal small { color: var(--muted); font-weight: 700; text-align: center; }
+.zn-ad { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 12px; background: #fffaf0; border: 2px solid var(--parch2); }
+.zn-ad small { display: block; color: var(--muted); font-weight: 700; }
+.zn-packs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.zn-pack { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 8px 10px; border-radius: 14px; background: #fffaf0; border: 2px solid var(--gold2); }
+.zn-pack-coins { font-size: 1.2rem; font-weight: 900; }
+.zn-bonus { position: absolute; top: -9px; right: 8px; font-size: .75rem; font-weight: 900; color: #fff; background: #c8352c; border-radius: 999px; padding: 2px 8px; }
+.zn-log > div { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--parch2); font-weight: 700; }
+.zn-log small { display: block; color: var(--muted); font-size: .78rem; }
+.zn-log b { color: #2e7d32; } .zn-log b.neg { color: var(--bad); }
+.zn-adplay { text-align: center; }
+.zn-adbox { display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: 12px; background: #1b2433; color: #e8edf5; font-weight: 900; padding: 12px; }
+.zn-adbox small { color: #9aa7bb; font-weight: 700; }
+
+/* ---------- редактор на знаме ---------- */
+.zn-flag-preview { display: grid; place-items: center; padding: 10px; }
+.zn-flag-preview .zflag { width: 180px; height: 120px; }
+.zn-patterns, .zn-emblems { display: flex; flex-wrap: wrap; gap: 6px; }
+.zn-patterns button { padding: 4px; background: #fffaf0; border: 2px solid var(--parch2); line-height: 0; }
+.zn-patterns button.on, .zn-emblems button.on, .zn-slots button.on { border-color: var(--gold3); box-shadow: 0 0 0 3px rgba(242, 182, 50, .45); }
+.zn-slots { display: flex; gap: 8px; margin-bottom: 8px; }
+.zn-slots button { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fffaf0; border: 2px solid var(--parch2); }
+.zn-slots i { width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0, 0, 0, .3); }
+.zn-emblems button { position: relative; width: 46px; height: 46px; padding: 0; font-size: 1.5rem; background: #fffaf0; border: 2px solid var(--parch2); }
+.zn-emblems small { position: absolute; bottom: -2px; right: 0; font-size: .6rem; }
+
+/* ---------- изчистен вид за възрастните ---------- */
+body.mode-adult {
+  --sea1: #0c111b; --sea2: #18233a; --parch: #f6f3ec; --parch2: #e4ddcd; --ink: #1f2430; --muted: #5f6675;
+  --wood1: #2b3a55; --wood2: #141c2b; --free: #ece6d8;
+}
+body.mode-adult .bg { background:
+  radial-gradient(ellipse at 50% 20%, rgba(242, 182, 50, .16), transparent 55%),
+  radial-gradient(ellipse at 80% 90%, rgba(60, 110, 200, .25), transparent 60%),
+  repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 44px),
+  repeating-linear-gradient(90deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 44px),
+  linear-gradient(180deg, var(--sea2), var(--sea1)); }
+body.mode-adult .bg::after { display: none; }
+body.mode-adult .panel { background: linear-gradient(180deg, #fbfaf6, var(--parch)); border-width: 3px; border-color: var(--wood1);
+  box-shadow: var(--shadow), inset 0 0 0 1px rgba(242, 182, 50, .55); }
+body.mode-adult .mode { background: linear-gradient(160deg, #314566, var(--wood1) 55%, var(--wood2)); border: 1px solid rgba(242, 182, 50, .6); border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .12); }
+body.mode-adult .modes.solo .mode { background: linear-gradient(160deg, #3a3550, #26223a 60%, #18152a); }
+body.mode-adult .mode-title { font-family: "Rubik", sans-serif; font-weight: 800; letter-spacing: .01em; text-shadow: none; }
+body.mode-adult .mode-icon { filter: none; }
+body.mode-adult .seg button { background: #efeadf; border-color: #d8cfbd; }
+body.mode-adult .seg button.on, body.mode-adult .zn-mode button.on, body.mode-adult .qx-who button.on { background: linear-gradient(180deg, #3b5078, var(--wood1)); border-color: var(--wood2); }
+body.mode-adult .btn.wood { background: linear-gradient(180deg, #3b5078, var(--wood1)); color: #f2f5fa; }
+body.mode-adult input, body.mode-adult textarea { background: #fff; border-color: #d8cfbd; }
+body.mode-adult .tagline { font-weight: 700; letter-spacing: .01em; }
+body.mode-adult .qx-gate { background: radial-gradient(ellipse at 50% 25%, rgba(242, 182, 50, .18), rgba(8, 12, 20, .95)), var(--sea1); }
+
+/* Коледа и при възрастните: червено-зелени акценти върху нощния фон */
+html[data-season="xmas"] body.mode-adult { --wood1: #7d1d2a; --wood2: #4a0f18; }
+html[data-season="xmas"] body.mode-adult .modes.solo .mode { background: linear-gradient(160deg, #2f6b45, #1d4a2f 60%, #12321f); }
+
+@media (max-width: 560px) {
+  .zn-wallet { top: 6px; left: 6px; }
+  .zn-mode button { font-size: .86rem; }
+  .zn-packs { grid-template-columns: 1fr 1fr; }
+}
