@@ -43,6 +43,8 @@ const server = http.createServer((req, res) => {
   }
   if (url === '/ads-config.js') return adsConfig(res);
   if (url === '/ads.txt') return adsTxt(res);
+  if (url === '/robots.txt') return robotsTxt(res);
+  if (url === '/sitemap.xml') return sitemapXml(res);
   if (url === '/admin/reports') { res.writeHead(302, { Location: '/admin/#reports' }); return res.end(); }
   // Без наклонена черта накрая admin.css и admin.js се търсят в корена и панелът излиза без стилове
   if (url === '/admin') { res.writeHead(301, { Location: '/admin/' }); return res.end(); }
@@ -60,6 +62,19 @@ function adsConfig(res) {
   else if (/^ca-pub-\d+$/.test(env('ADSENSE_CLIENT'))) cfg.client = env('ADSENSE_CLIENT'), cfg.slots = { home: env('ADSENSE_SLOT_HOME'), lobby: env('ADSENSE_SLOT_LOBBY') };
   res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
   res.end('window.QZ_ADS=' + JSON.stringify(cfg).replace(/</g, '\\u003c') + ';');
+}
+// robots.txt и sitemap.xml: търсачките намират началната страница и правилата, но не панела и API-то
+const siteUrl = () => (env('PUBLIC_URL') || 'https://znamenosci.com').replace(/\/+$/, '');
+function robotsTxt(res) {
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+  res.end(`User-agent: *\nDisallow: /admin/\nDisallow: /api/\nDisallow: /parent.html\nDisallow: /consent.html\nDisallow: /reset.html\n\nSitemap: ${siteUrl()}/sitemap.xml\n`);
+}
+function sitemapXml(res) {
+  const pages = ['/', '/privacy.html', '/terms.html'];
+  const body = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    pages.map((p) => `  <url><loc>${siteUrl()}${p}</loc></url>`).join('\n') + '\n</urlset>\n';
+  res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+  res.end(body);
 }
 // ads.txt казва на рекламодателите, че този сайт наистина е твой в AdSense
 function adsTxt(res) {
