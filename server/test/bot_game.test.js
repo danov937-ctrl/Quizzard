@@ -86,11 +86,17 @@ async function capitalScenario() {
   void realAsk;
 }
 
+const untilQuestion = async (g) => { while (g.current?.type !== 'question') await new Promise((r) => setTimeout(r, 2)); };
+
 // Жокери: 50/50 маха 2 грешни, обхват съдържа отговора, +10 сек удължава срока, по веднъж
 async function jokerScenario() {
   const g = new Game([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }], { speed: 0.01 });
   const q = g.questions.nextMC();
   const p = g.askQuestion(q, ['a', 'b'], { title: 't' });
+  assert.strictEqual(g.current.type, 'prep', 'преди въпроса има карта „Въпрос“');
+  assert.ok(!g.view('a').current.q, 'по време на отброяването въпросът не се вижда');
+  assert.ok(!g.useJoker('a', 'fifty'), 'жокер не се ползва преди въпроса');
+  await untilQuestion(g);
   assert.ok(g.useJoker('a', 'fifty'));
   const rem = g.current.removed.a;
   assert.strictEqual(rem.length, 2); assert.ok(!rem.includes(q.correct));
@@ -103,6 +109,7 @@ async function jokerScenario() {
   await p;
   const nq = g.questions.nextNum();
   const pn = g.askNumeric(nq, ['a', 'b'], { title: 't' });
+  await untilQuestion(g);
   assert.ok(g.useJoker('a', 'range'));
   const [lo, hi] = g.current.hints.a.match(/\d+/g).map(Number);
   assert.ok(lo <= nq.answer && nq.answer <= hi, 'обхватът съдържа отговора');
@@ -122,6 +129,6 @@ async function jokerScenario() {
     tot.ended1 += r.alive === 1;
     if (i === 0) console.log(r.log.slice(-12).join('\n'));
   }
-  assert.ok(tot.num > N * 0.8 && tot.attack > N * 0.8 && tot.capitalPick === N && tot.defend > N * 0.5 && tot.tower > N * 0.3 && tot.fall > 0);
+  assert.ok(tot.num > N * 0.8 && tot.attack > N * 0.8 && tot.capitalPick === N && tot.defend > N * 0.5 && tot.tower > N * 0.2 && tot.fall > 0); // по-умните ботове се защитават по-често, затова кулите падат по-рядко
   console.log(`OK: ${N} игри. Числов въпрос: ${tot.num}, нападения: ${tot.attack}, паднали кули: ${tot.tower}, паднали столици: ${tot.fall}, защити: ${tot.defend}, жокери: ${tot.joker}, победа с унищожение: ${tot.ended1}`);
 })().catch((e) => { console.error(e); process.exit(1); });
