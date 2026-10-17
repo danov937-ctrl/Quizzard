@@ -31,9 +31,22 @@
     back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
     q('.qx-x', back).onclick = close;
     document.body.append(back);
+    fitViewport();
     return back;
   }
   function close() { q('.qx-back')?.remove(); }
+  // Отворена клавиатура на телефон (особено хоризонтално): прозорецът се побира във видимата част
+  // над клавиатурата, а полето, в което се пише, се превърта така, че да се вижда.
+  function fitViewport() {
+    const back = q('.qx-back'), vv = window.visualViewport;
+    if (!back) return;
+    if (vv) { back.style.top = vv.offsetTop + 'px'; back.style.left = vv.offsetLeft + 'px'; back.style.height = vv.height + 'px'; back.style.width = vv.width + 'px'; back.style.bottom = back.style.right = 'auto'; }
+    back.classList.toggle('qx-short', (vv ? vv.height : innerHeight) < 460);
+    const a = document.activeElement;
+    if (a && back.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) a.scrollIntoView({ block: 'center' });
+  }
+  if (window.visualViewport) { visualViewport.addEventListener('resize', fitViewport); visualViewport.addEventListener('scroll', fitViewport); }
+  document.addEventListener('focusin', (e) => { if (e.target.closest?.('.qx-back')) { fitViewport(); setTimeout(fitViewport, 350); } });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
   function flash(msg) {
     const t = document.createElement('div'); t.className = 'qx-toast'; t.textContent = msg;
