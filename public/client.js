@@ -836,3 +836,20 @@ if (coarse && canLock) {
   // при влизане в игра на телефон: цял екран и заключено хоризонтално (където браузърът позволява)
   for (const b of $$('.mode, #btnJoin')) b.addEventListener('click', goLandscape);
 }
+
+// Вградени браузъри (Messenger, Facebook, Instagram, Viber, TikTok...) често държат екрана вертикален
+// и не се въртят: показваме подсказка „Отвори в браузъра“ и позволяваме игра и във вертикален режим.
+const ua = navigator.userAgent;
+const inAppBrowser = /FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|Line\/|Viber|musical_ly|TikTok|Snapchat|Twitter|LinkedInApp/i.test(ua);
+if (inAppBrowser && !inApp) {
+  $('#rotateIab').classList.remove('hidden');
+  if (/android/i.test(ua)) {
+    const a = $('#btnOpenBrowser');
+    a.href = 'intent://' + location.host + location.pathname + location.search +
+      '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+    a.classList.remove('hidden');
+  }
+}
+function allowPortrait() { document.body.classList.add('allow-portrait'); try { sessionStorage.setItem('allowPortrait', '1'); } catch {} }
+$('#btnPortrait').onclick = allowPortrait;
+try { if (sessionStorage.getItem('allowPortrait')) allowPortrait(); } catch {}
