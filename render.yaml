@@ -18,3 +18,8 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
+      # Android приложение (Google Play): пакетът и отпечатъкът на ключа от Play Console
+      - key: ANDROID_PACKAGE
+        value: bg.znamenostsi.app
+      - key: ANDROID_SHA256
+        sync: false
