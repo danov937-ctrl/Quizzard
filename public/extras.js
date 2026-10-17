@@ -109,7 +109,7 @@
 
   // ---------- вход и регистрация ----------
   // Регистрация: потребителско име + имейл на родител + парола. Вход: с потребителско име или имейл + парола.
-  // Регистрация на възрастен (18+): собствен имейл, рождена дата, по-дълга парола, без родител.
+  // Регистрация на възрастен: собствен имейл, рождена дата, по-дълга парола, без родител.
   let regWho = null;
   function showAuth(tab, who) {
     if (tab === 'forgot') return showForgot();
@@ -148,7 +148,7 @@
       } catch (x) { err.textContent = x.message; }
     };
   }
-  const whoSwitch = () => `<div class="qx-who"><button type="button" data-who="kid" class="${regWho === 'kid' ? 'on' : ''}">👧 За дете · 1–4 клас</button><button type="button" data-who="adult" class="${regWho === 'adult' ? 'on' : ''}">🧑 Аз съм възрастен · 18+</button></div>`;
+  const whoSwitch = () => `<div class="qx-who"><button type="button" data-who="kid" class="${regWho === 'kid' ? 'on' : ''}">👧 За дете · 1–4 клас</button><button type="button" data-who="adult" class="${regWho === 'adult' ? 'on' : ''}">🧑 Аз съм възрастен</button></div>`;
   function showAdultRegister() {
     const max = new Date(); max.setFullYear(max.getFullYear() - 18);
     const m = open('👤 Профил', `<div class="qx-tabs"><button data-t="login">Вход</button><button data-t="register" class="on">Регистрация</button></div>
@@ -160,7 +160,7 @@
         <label>Парола (поне 8 знака)<input name="password" type="password" minlength="8" maxlength="64" autocomplete="new-password" required></label>
         <label>Повтори паролата<input name="password2" type="password" maxlength="64" autocomplete="new-password" required></label>
         <p class="qx-note">🎁 Започваш с <b>1000 парички</b>. Паричките са само за игра: не се обменят в пари и не се прехвърлят.</p>
-        <label class="qx-check"><input type="checkbox" name="consent" required><span>Навърших 18 години и приемам <a href="/terms.html" target="_blank">условията</a> и <a href="/privacy-adult.html" target="_blank">политиката за поверителност</a>.</span></label>
+        <label class="qx-check"><input type="checkbox" name="consent" required><span>Пълнолетен съм и приемам <a href="/terms.html" target="_blank">условията</a> и <a href="/privacy-adult.html" target="_blank">политиката за поверителност</a>.</span></label>
         <p class="qx-err"></p>
         <button class="qx-btn gold" type="submit">Създай профил</button>
       </form>`, 'narrow');
@@ -296,7 +296,7 @@
   const ADULT_BOARDS = { week: BOARDS.week, xp: BOARDS.xp, wins: BOARDS.wins, accuracy: BOARDS.accuracy, coins: ['🪙 Парички', 'парички'] };
   async function showBoard(kind = 'week') {
     const adult = adultMode();
-    const m = open(adult ? '🏆 Класация · 18+' : '🏆 Класация', `<div class="qx-tabs">${Object.entries(adult ? ADULT_BOARDS : BOARDS).map(([k, v]) => `<button data-k="${k}" class="${k === kind ? 'on' : ''}">${v[0]}</button>`).join('')}</div><div class="qx-list">Зареждане…</div>`);
+    const m = open(adult ? '🏆 Класация · Възрастни' : '🏆 Класация', `<div class="qx-tabs">${Object.entries(adult ? ADULT_BOARDS : BOARDS).map(([k, v]) => `<button data-k="${k}" class="${k === kind ? 'on' : ''}">${v[0]}</button>`).join('')}</div><div class="qx-list">Зареждане…</div>`);
     q('.qx-tabs', m).onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) showBoard(b.dataset.k); };
     if (kind === 'cup') return showCup(m);
     try {

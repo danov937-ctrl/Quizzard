@@ -531,7 +531,7 @@ async function api(method, route, qs, body, res) {
       }
       if (body.banned !== undefined && !!body.banned !== !!u.banned) { u.banned = !!body.banned; u.pwv = (u.pwv || 0) + 1; audit(u.banned ? 'player-ban' : 'player-unban', null, null, null, { label: u.name }); }
       if (body.grade !== undefined) u.grade = [1, 2, 3, 4].includes(Number(body.grade)) ? Number(body.grade) : null;
-      // Подарък или корекция на парички (само профили 18+)
+      // Подарък или корекция на парички (само профили за възрастни)
       if (body.coinsAdd !== undefined && u.adult) {
         const d = Math.round(Number(body.coinsAdd));
         if (!Number.isFinite(d) || Math.abs(d) > 100000) return { error: 'Невалидна сума.' };

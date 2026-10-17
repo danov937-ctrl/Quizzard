@@ -1,4 +1,4 @@
-// Режим за възрастни: регистрация 18+, отделни въпроси, парички и залог, знаме, отделни класации.
+// Режим за възрастни: регистрация за възрастни, отделни въпроси, парички и залог, знаме, отделни класации.
 const assert = require('assert');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -57,7 +57,7 @@ function autoplay(c) {
     let r = await a.req('POST', '/api/account/register', { adult: true, name: 'Знаменосец', email: 'a@primer.bg', password: 'kratka', birthDate: yearsAgo(30), consent: true });
     assert.strictEqual(r.status, 400, 'паролата за възрастни е поне 8 знака');
     r = await a.req('POST', '/api/account/register', { adult: true, name: 'Знаменосец', email: 'a@primer.bg', password: 'dulga-parola', birthDate: yearsAgo(17), consent: true });
-    assert.strictEqual(r.status, 400, 'под 18 не става'); assert.match(r.data.error, /18/);
+    assert.strictEqual(r.status, 400, 'под 18 не става'); assert.match(r.data.error, /пълнолет/);
     r = await a.req('POST', '/api/account/register', { adult: true, name: 'Знаменосец', email: 'a@primer.bg', password: 'dulga-parola', birthDate: yearsAgo(30), consent: true });
     assert.strictEqual(r.status, 200, JSON.stringify(r.data));
     assert.ok(r.data.user.adult && r.data.user.coins === 1000 && !r.data.user.needsConsent, 'възрастен: 1000 парички, без родител');
@@ -82,10 +82,10 @@ function autoplay(c) {
     // ----- достъп до режимите -----
     const k = connect(kid.jar); await k.ready;
     k.ws.send(JSON.stringify({ t: 'bots', grade: 9, bots: 1 }));
-    assert.match((await k.next((m) => m.t === 'error')).msg, /18/, 'дете не влиза в режима за възрастни');
+    assert.match((await k.next((m) => m.t === 'error')).msg, /детския режим/, 'дете не влиза в режима за възрастни');
     const g = connect(); await g.ready;
     g.ws.send(JSON.stringify({ t: 'quick', name: 'Гост', grade: 9 }));
-    assert.match((await g.next((m) => m.t === 'error')).msg, /18\+/, 'гост не играе онлайн със залог');
+    assert.match((await g.next((m) => m.t === 'error')).msg, /профил за възрастни/, 'гост не играе онлайн със залог');
     const ca = connect(a.jar); await ca.ready;
     ca.ws.send(JSON.stringify({ t: 'quick', grade: 2 }));
     assert.match((await ca.next((m) => m.t === 'error')).msg, /само за деца/, 'възрастен не влиза в онлайн игрите на децата');
@@ -123,7 +123,7 @@ function autoplay(c) {
     assert.ok(!kidBoard.includes('Знаменосец') && adultBoard.includes('Знаменосец') && !adultBoard.includes('Звездичка7'), 'децата и възрастните са в отделни класации');
 
     for (const c of [k, g, ca, cb]) c.ws.close();
-    console.log('OK: режим за възрастни: регистрация 18+, знаме, парички и залог, отделни въпроси и класации');
+    console.log('OK: режим за възрастни: регистрация за възрастни, знаме, парички и залог, отделни въпроси и класации');
   } finally {
     await stopServer();
     fs.rmSync(DIR, { recursive: true, force: true });
