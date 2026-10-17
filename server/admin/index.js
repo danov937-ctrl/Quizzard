@@ -13,7 +13,8 @@ const { Wallet } = require('./wallet');
 const mail = require('./mail');
 const { Accounts, handlePublic, checkName, IDEA_CATEGORIES, IDEA_STATUS } = require('./accounts');
 
-const ADMIN_KEY = process.env.ADMIN_KEY || '';
+// Интервали и нови редове около паролата (често при копиране от телефон) не се броят
+const ADMIN_KEY = (process.env.ADMIN_KEY || '').trim();
 const SESSION_HOURS = 12;
 const DEFAULT_BOTS = ['Бот Мечо', 'Бот Зайо', 'Бот Лиса', 'Бот Щърко'];
 const DEFAULT_SETTINGS = {
@@ -258,12 +259,12 @@ async function login(req, res) {
   if (a.until > now) return json(res, 429, { error: `Твърде много опити. Опитай пак след ${Math.ceil((a.until - now) / 60000)} мин.` });
   if (!ADMIN_KEY) return json(res, 503, { error: 'На сървъра не е зададена парола (ADMIN_KEY).', noKey: true });
   const body = await readBody(req).catch(() => ({}));
-  const pass = String(body.password || '');
+  const pass = String(body.password || '').trim();
   const ok = pass.length === ADMIN_KEY.length && crypto.timingSafeEqual(Buffer.from(pass), Buffer.from(ADMIN_KEY));
   if (!ok) {
     a.n++; if (a.n >= 5) { a.until = now + 10 * 60 * 1000; a.n = 0; }
     attempts.set(ip, a);
-    return json(res, 401, { error: 'Грешна парола.' });
+    return json(res, 401, { error: a.n ? `Грешна парола. Остават ${5 - a.n} опита, после изчакваш 10 минути.` : 'Грешна парола. Изчакай 10 минути и опитай пак.' });
   }
   attempts.delete(ip);
   const exp = now + SESSION_HOURS * 3600 * 1000;

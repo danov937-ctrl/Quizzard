@@ -16,7 +16,8 @@
       <img src="../logo.svg" alt="" class="login-logo">
       <h1>Знаменосци</h1>
       <p class="muted">Админ панел</p>
-      <label class="field"><span>Парола</span><input id="password" type="password" autocomplete="current-password" required autofocus></label>
+      <label class="field"><span>Парола</span><input id="password" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" required autofocus></label>
+      <label class="switch" style="margin-top:6px"><input type="checkbox" id="showPass"> Покажи паролата</label>
       <button class="btn primary wide" type="submit">Вход</button>
       <p id="loginErr" class="err"></p>
       <p class="muted small">Паролата е стойността на <b>ADMIN_KEY</b> в Render → Environment.</p>

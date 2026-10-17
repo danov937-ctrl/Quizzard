@@ -78,6 +78,7 @@ function confirmBox(text, { ok = 'Да', danger = false } = {}) {
 
 // ---------- вход ----------
 function showLogin() { $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); clearInterval(timers.live); setTimeout(() => $('#password').focus(), 50); }
+$('#showPass').onchange = (e) => { $('#password').type = e.target.checked ? 'text' : 'password'; };
 $('#loginForm').onsubmit = async (e) => {
   e.preventDefault();
   $('#loginErr').textContent = '';
