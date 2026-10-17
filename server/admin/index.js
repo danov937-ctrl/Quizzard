@@ -588,6 +588,7 @@ async function api(method, route, qs, body, res) {
       const words = ['лъв', 'мечо', 'зайо', 'сова', 'рибка', 'звезда', 'слънце', 'облак', 'ябълка', 'круша'];
       const pass = words[crypto.randomInt(words.length)] + crypto.randomInt(100, 999);
       accounts.setPassword(u, pass);
+      parents.passwordChanged(u).catch(() => {});
       audit('player-password', null, null, null, { label: u.name });
       await store.save('players');
       return { ok: true, password: pass };

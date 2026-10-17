@@ -19,6 +19,17 @@ function lastMail(to, page) {
   return m && { ...m, token: page ? new RegExp(page.replace('.', '\\.') + '#([A-Za-z0-9_-]+)').exec(m.html)?.[1] : null };
 }
 
+// Писмата след потвърждение/смяна на парола тръгват във фонов режим: изчакваме да се появят
+async function waitMail(to, text) {
+  for (let i = 0; i < 40; i++) {
+    const files = fs.existsSync(OUTBOX) ? fs.readdirSync(OUTBOX) : [];
+    const m = files.map((f) => JSON.parse(fs.readFileSync(path.join(OUTBOX, f), 'utf8'))).find((x) => x.to === to && x.html.includes(text));
+    if (m) return m;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return null;
+}
+
 function startServer() {
   proc = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, ADMIN_KEY: 'secret-test', ADMIN_DATA_DIR: DIR, GAME_SPEED: '0.002', GITHUB_TOKEN: '', DATA_REPO: '', MAIL_OUTBOX: OUTBOX, NO_MAIL_TIMER: '1', RESEND_API_KEY: '', PUBLIC_URL: 'https://quizzard.test' }, stdio: ['ignore', 'pipe', 'inherit'] });
   return new Promise((res) => proc.stdout.on('data', (d) => { if (String(d).includes('работи')) res(); }));
@@ -137,6 +148,7 @@ async function playBotGame(jar) {
     const cKid = fs.readdirSync(OUTBOX).sort().map((f) => JSON.parse(fs.readFileSync(path.join(OUTBOX, f), 'utf8'))).find((m) => m.subject.includes('Звездичка7'));
     const cTok = /consent\.html#([A-Za-z0-9_-]+)/.exec(cKid.html)[1];
     assert.strictEqual((await client().req('POST', '/api/consent/' + cTok, { action: 'confirm' }, false)).data.confirmed, true);
+    assert.ok(await waitMail('mama@primer.bg', 'Профилът е потвърден'), 'след потвърждение родителят получава писмо „добре дошъл“');
     assert.ok(!(await kid.req('GET', '/api/account/me', undefined, false)).data.user.needsConsent, 'потвърден');
 
     // ----- турнир между класове -----
@@ -182,6 +194,7 @@ async function playBotGame(jar) {
     assert.strictEqual((await client().req('GET', '/api/reset/' + rTok)).data.name, 'Звездичка7');
     const rr = client();
     assert.strictEqual((await rr.req('POST', '/api/reset/' + rTok, { password: 'нова55' }, false)).status, 200);
+    assert.ok(await waitMail('mama@primer.bg', 'Паролата е сменена'), 'след смяна на паролата родителят получава известие');
     assert.strictEqual((await rr.req('GET', '/api/account/me', undefined, false)).data.user.name, 'Звездичка7', 'влиза след новата парола');
     assert.strictEqual((await client().req('POST', '/api/reset/' + rTok, { password: 'още1' }, false)).status, 404, 'линкът е еднократен');
     kid.jar.qz_player = rr.jar.qz_player;

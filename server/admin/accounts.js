@@ -342,6 +342,7 @@ async function handlePublic(acc, req, res, url, readBody) {
     if (!safeEq(scrypt(body.old, me.salt), me.hash)) return json(res, 400, { error: 'Старата парола не е вярна.' });
     if (String(body.password || '').length < 4) return json(res, 400, { error: 'Новата парола трябва да е поне 4 знака.' });
     acc.setPassword(me, body.password);
+    acc.parents?.passwordChanged(me).catch(() => {});
     return json(res, 200, { ok: true }, { 'Set-Cookie': acc.cookieFor(me, req) });
   }
   if (p === '/api/leaderboard') {

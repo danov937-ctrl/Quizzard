@@ -147,7 +147,7 @@ async function refreshCounts() {
 }
 function storageBadge(s) {
   const b = $('#storageBadge');
-  if (s.remote && !s.lastError) { b.className = 'badge ok'; b.textContent = '☁️ Запазва се в GitHub'; b.title = `${s.repo} · последно: ${s.lastSave ? ago(s.lastSave) : '—'}`; }
+  if (s.remote && !s.lastError) { b.className = 'badge ok'; b.textContent = s.kind === 'db' ? '☁️ Запазва се в базата данни' : '☁️ Запазва се в GitHub'; b.title = `${s.repo} · последно: ${s.lastSave ? ago(s.lastSave) : '—'}`; }
   else if (s.remote) { b.className = 'badge bad'; b.textContent = '⚠️ Грешка при запис'; b.title = s.lastError; }
   else { b.className = 'badge warn'; b.textContent = '⚠️ Само временен запис'; b.title = 'Промените ще изчезнат при рестарт. Виж „Архив и данни“.'; }
   b.style.cursor = 'pointer'; b.onclick = () => (location.hash = 'backup');
@@ -801,7 +801,7 @@ VIEWS.health = async (view) => {
   const day = 86400000, recent = d.errors.filter((e) => Date.now() - Date.parse(e.last) < day);
   view.innerHTML = `<div class="grid g2">
     ${tile(true, 'Сървърът работи', `Без прекъсване от ${dur(d.uptime)}. Версия <b>${h(d.version || 'локална')}</b>, ${fmt(d.memoryMb)} MB памет. В момента: <b>${d.live.players}</b> свързани, <b>${d.live.rooms}</b> стаи.`)}
-    ${tile(st.remote && !st.lastError, 'Запазване на данните', st.remote ? (st.lastError ? `Грешка: ${h(st.lastError)}` : `В GitHub (${h(st.repo)}). Последен запис: ${st.lastSave ? ago(st.lastSave) : 'още няма'}.`) : 'Не е включено: при рестарт всичко се губи. Виж „Архив и данни“.')}
+    ${tile(st.remote && !st.lastError, 'Запазване на данните', st.remote ? (st.lastError ? `Грешка: ${h(st.lastError)}` : `${st.kind === 'db' ? 'В базата данни' : 'В GitHub'} (${h(st.repo)}). Последен запис: ${st.lastSave ? ago(st.lastSave) : 'още няма'}.`) : 'Не е включено: при рестарт всичко се губи. Виж „Архив и данни“.')}
     ${tile(d.mail.on, 'Имейли', d.mail.on ? `Включени. Линковете водят към ${h(d.mail.base)}.` : 'Изключени: задай RESEND_API_KEY и MAIL_FROM в Render.')}
     ${tile(d.mail.on && d.mail.alertTo ? true : null, 'Аларма при проблем', d.mail.alertTo ? (d.mail.on ? `Писмо до <b>${h(d.mail.alertTo)}</b>, ако записът спре или има много грешки (най-много 1 на час).` : `Ще ходи до ${h(d.mail.alertTo)}, щом включиш имейлите.`) : 'Задай имейл в Настройки → „Имейл за аларма“.')}
   </div>
@@ -820,7 +820,7 @@ VIEWS.backup = async (view) => {
   const o = await GET('overview');
   const s = o.storage;
   view.innerHTML = `<div class="card"><h3>☁️ Постоянно запазване</h3>
-    ${s.remote ? `<div class="banner ${s.lastError ? 'bad' : 'ok'}">${s.lastError ? '⚠️' : '✅'} <div>Данните се пазят в частното хранилище <b>${h(s.repo)}</b> (клон ${h(s.branch)}). Последен запис: ${s.lastSave ? ago(s.lastSave) : 'още няма'}.${s.lastError ? `<br>Грешка: ${h(s.lastError)}` : ''}</div></div>`
+    ${s.remote ? `<div class="banner ${s.lastError ? 'bad' : 'ok'}">${s.lastError ? '⚠️' : '✅'} <div>${s.kind === 'db' ? 'Данните се пазят в базата данни' : `Данните се пазят в частното хранилище <b>${h(s.repo)}</b> (клон ${h(s.branch)})`}. Последен запис: ${s.lastSave ? ago(s.lastSave) : 'още няма'}.${s.lastError ? `<br>Грешка: ${h(s.lastError)}` : ''}</div></div>`
       : `<div class="banner warn">⚠️ <div>Постоянното запазване не е включено${s.lastError ? ` (${h(s.lastError)})` : ''}. Безплатният Render изтрива файловете при всеки рестарт, така че въпросите от панела, акаунтите и идеите ще изчезнат.</div></div>
       <ol class="small" style="line-height:1.7"><li>В GitHub създай <b>частно (Private)</b> хранилище, напр. <code>quizzard-data</code>.</li>
       <li>GitHub → Settings → Developer settings → Fine-grained tokens → Generate: достъп само до това хранилище, право <b>Contents: Read and write</b>.</li>

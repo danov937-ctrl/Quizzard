@@ -1,5 +1,5 @@
-// Всичко с имейла на родителя: потвърждение (съгласие за дете под 14 г.), нова парола,
-// седмичен отчет всеки понеделник и автоматично изтриване на стари профили.
+// Всичко с имейла на родителя: потвърждение (съгласие за дете под 14 г.), добре дошъл след потвърждение,
+// нова парола, известие за сменена парола, седмичен отчет всеки понеделник и автоматично изтриване на стари профили.
 // Без RESEND_API_KEY + MAIL_FROM имейли не се пращат: профилите работят без потвърждение.
 const crypto = require('crypto');
 const mail = require('./mail');
@@ -46,6 +46,30 @@ class Parents {
        <p>Ако не сте вие или не сте съгласни, отворете линка и изберете „Изтрий профила“. Без потвърждение профилът се изтрива сам след ${CONSENT_DAYS} дни.</p>
        <p style="font-size:13px">След потвърждение ще получавате кратък отчет всеки понеделник. Можете да го спрете с един клик от всяко писмо.</p>`,
       `Потвърдете профила „${u.name}“ в „Знаменосци“: ${B}/consent.html#${u.consentToken}`);
+  }
+  // ---------- добре дошъл (след потвърждение от родител) ----------
+  async welcome(u) {
+    if (!mail.enabled() || !u.email || !u.consentAt) return { skipped: true };
+    const B = this.base(), e = mail.esc, link = `${B}/parent.html#${this.acc.league.parentLink(u)}`;
+    return this.send(u.email, `Профилът на ${u.name} е потвърден`, 'Профилът е потвърден ✅',
+      `<p>Благодарим! Профилът <b>„${e(u.name)}“</b> в „Знаменосци“ е потвърден и детето вече може да пази нивата, значките и резултатите си.</p>
+       <p><b>Какво да знаете:</b></p>
+       <ul><li>Всеки понеделник ще получавате кратък отчет какво е упражнявало детето.</li>
+       <li>Пълният отчет с грешките е винаги на разположение: ${mail.button(link, 'Отвори отчета')}</li>
+       <li>Ако детето забрави паролата, от входа има „Забравена парола?“ – линкът идва на този имейл.</li>
+       <li>Можете да изтеглите или изтриете данните на детето по всяко време от отчета.</li></ul>`,
+      `Профилът „${u.name}“ в „Знаменосци“ е потвърден. Отчет: ${link}`);
+  }
+  // ---------- известие за сменена парола ----------
+  // Само до потвърдени имейли: на непотвърден адрес пращаме единствено писмото за потвърждение
+  async passwordChanged(u) {
+    if (!mail.enabled() || !u.email || !u.consentAt) return { skipped: true };
+    const B = this.base(), e = mail.esc;
+    return this.send(u.email, `Паролата на ${u.name} беше сменена`, 'Паролата е сменена 🔑',
+      `<p>Паролата на профила <b>„${e(u.name)}“</b> в „Знаменосци“ току-що беше сменена.</p>
+       <p>Ако това сте вие или детето, не е нужно да правите нищо.</p>
+       <p><b>Ако не сте вие:</b> отворете „Забравена парола?“ на входа и си поставете нова парола, а ако не успеете – пишете ни от страницата <a href="${B}/privacy.html" style="color:#7a5c3e">Поверителност</a>.</p>`,
+      `Паролата на профила „${u.name}“ в „Знаменосци“ беше сменена. Ако не сте вие, използвайте „Забравена парола?“ на ${B}`);
   }
   byConsent(t) { return Object.values(this.acc.users).find((u) => eqTok(u.consentToken, t)) || null; }
 
@@ -143,7 +167,9 @@ class Parents {
       if (!post) return json(res, 200, { name: u.name, grade: u.grade, createdAt: u.createdAt, email: S.maskEmail(u.email), confirmed: !!u.consentAt, report: u.consentAt ? acc.league.parentLink(u) : null });
       if (body.action === 'refuse') { acc.deleteUser(u.id); await this.store.flush(); return json(res, 200, { deleted: true }); }
       if (body.action !== 'confirm') return json(res, 400, { error: 'Непознато действие.' });
+      const first = !u.consentAt;
       u.consentAt ||= new Date().toISOString(); this.store.touch('players'); await this.store.flush().catch(() => {});
+      if (first) this.welcome(u).catch(() => {});
       return json(res, 200, { confirmed: true, report: acc.league.parentLink(u) });
     }
     if (p === '/api/account/consent-resend' && post) {
@@ -181,6 +207,7 @@ class Parents {
       if (String(body.password || '').length < 4) return json(res, 400, { error: 'Паролата трябва да е поне 4 знака.' });
       if (String(body.password).length > 64) return json(res, 400, { error: 'Паролата е твърде дълга.' });
       delete u.reset; acc.setPassword(u, body.password);
+      this.passwordChanged(u).catch(() => {});
       return json(res, 200, { user: acc.profile(u) }, { 'Set-Cookie': acc.cookieFor(u, req) });
     }
     if (p === '/api/mail/off') {
