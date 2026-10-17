@@ -250,5 +250,5 @@ setInterval(() => { for (const r of rooms.values()) if (r.emptySince && Date.now
 
 // Първо зареждаме запазените данни от панела (въпроси, настройки, акаунти), после пускаме сървъра
 admin.init({ rooms, wss, send, reportsFile: REPORTS_FILE, onBankChange: computeSubjects }).then(() => {
-  server.listen(PORT, () => console.log(`Quizzard работи на http://localhost:${PORT}`));
+  server.listen(PORT, () => console.log(`Знаменосци работи на http://localhost:${PORT}`));
 });

@@ -422,7 +422,7 @@ async function api(method, route, qs, body, res) {
     if (qs.get('subject')) list = list.filter((q) => q.subject === qs.get('subject'));
     list.sort((x, y) => x.subject.localeCompare(y.subject) || x.grade - y.grade);
     const head = kind === 'mc' ? '# клас|предмет|въпрос|ВЕРЕН|грешен|грешен|грешен' : '# клас|предмет|въпрос|отговор';
-    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Disposition': `attachment; filename="quizzard_${kind}_${scope}.txt"` });
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Disposition': `attachment; filename="znamenostsi_${kind}_${scope}.txt"` });
     res.end([head, ...list.map(toLine)].join('\n') + '\n');
     return undefined;
   }
@@ -531,7 +531,7 @@ async function api(method, route, qs, body, res) {
     }
     if (method === 'GET' && r2 === 'export') {
       audit('player-export', null, null, null, { label: u.name });
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="quizzard-${u.id}.json"` });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="znamenostsi-${u.id}.json"` });
       res.end(JSON.stringify(accounts.exportData(u), null, 2));
       return undefined;
     }
@@ -643,7 +643,7 @@ async function api(method, route, qs, body, res) {
 
   // ----- архив -----
   if (r0 === 'backup' && method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="quizzard-backup-${today()}.json"` });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="znamenostsi-backup-${today()}.json"` });
     res.end(JSON.stringify({ version: 1, at: new Date().toISOString(), content: c, activity: a, players: store.get('players'), community: store.get('community'), avatars: store.get('avatars') }));
     return undefined;
   }

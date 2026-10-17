@@ -2,7 +2,7 @@
   "name": "quizzard",
   "version": "0.1.0",
   "private": true,
-  "description": "Quizzard: мултиплейър куиз игра с карта на България за 1–4 клас",
+  "description": "Знаменосци: мултиплейър куиз игра с карта на България за 1–4 клас",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

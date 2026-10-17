@@ -252,7 +252,7 @@ function json(res, code, body, headers = {}) {
 }
 function html(res, code, text) {
   res.writeHead(code, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-  res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quizzard</title><body style="font-family:sans-serif;max-width:520px;margin:40px auto;padding:0 16px;line-height:1.5"><h1>🧙 Quizzard</h1><p>${String(text).replace(/[<>&]/g, '')}</p><p><a href="/">Към играта</a></p></body>`);
+  res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Знаменосци</title><body style="font-family:sans-serif;max-width:520px;margin:40px auto;padding:0 16px;line-height:1.5"><h1>🚩 Знаменосци</h1><p>${String(text).replace(/[<>&]/g, '')}</p><p><a href="/">Към играта</a></p></body>`);
 }
 async function handlePublic(acc, req, res, url, readBody) {
   const p = url.pathname;
@@ -314,7 +314,7 @@ async function handlePublic(acc, req, res, url, readBody) {
   }
   if (p === '/api/account/export') {
     if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });
-    return json(res, 200, acc.exportData(me), { 'Content-Disposition': 'attachment; filename="quizzard-moite-danni.json"' });
+    return json(res, 200, acc.exportData(me), { 'Content-Disposition': 'attachment; filename="znamenostsi-moite-danni.json"' });
   }
   if (p === '/api/account/delete' && post) {
     if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });
@@ -329,7 +329,7 @@ async function handlePublic(acc, req, res, url, readBody) {
     if (acc.limited('parent:' + ip, 60, 600000)) return json(res, 429, { error: 'Твърде много опити. Изчакай малко.' });
     const u = L.byParentToken(par[1]);
     if (!u) return json(res, 404, { error: 'Линкът не е валиден. Може детето да е направило нов линк или профилът да е изтрит.' });
-    if (par[2] === '/export') return json(res, 200, acc.exportData(u), { 'Content-Disposition': 'attachment; filename="quizzard-danni.json"' });
+    if (par[2] === '/export') return json(res, 200, acc.exportData(u), { 'Content-Disposition': 'attachment; filename="znamenostsi-danni.json"' });
     if (par[2] === '/delete' && post) { acc.deleteUser(u.id); await acc.store.flush(); return json(res, 200, { ok: true }); }
     return json(res, 200, { report: L.report(u) });
   }

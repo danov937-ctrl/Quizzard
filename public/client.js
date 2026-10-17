@@ -1,4 +1,4 @@
-// Quizzard клиент: екрани, карта (SVG), въпроси, анимации и звуци.
+// Знаменосци клиент: екрани, карта (SVG), въпроси, анимации и звуци.
 // Сървърът решава всичко; клиентът само показва състоянието и изпраща ходове.
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -77,9 +77,12 @@ const Sound = {
       case 'win': [523, 523, 523, 659, 784, 659, 784, 1047].forEach((f, i) => T(f, i === 7 ? 0.8 : 0.16, { type: 'square', at: i * 0.15, vol: 0.06 })); break;
     }
   },
-  // Кратка средновековна мелодия (ре дорийски), тиха, на кръг
-  MEL: [62, 65, 69, 67, 65, 64, 62, 0, 60, 64, 67, 65, 64, 62, 60, 0, 62, 65, 69, 72, 71, 69, 67, 0, 69, 67, 65, 64, 62, 64, 62, 0],
-  BASS: [38, 36, 41, 38],
+  // Кратка средновековна мелодия (ре дорийски), тиха, на кръг; през празниците (season.js) — „Джингъл белс“
+  MEL: document.documentElement.dataset.season === 'xmas'
+    ? [64, 64, 64, 0, 64, 64, 64, 0, 64, 67, 60, 62, 64, 0, 0, 0, 65, 65, 65, 65, 65, 64, 64, 64, 64, 62, 62, 64, 62, 0, 67, 0,
+      64, 64, 64, 0, 64, 64, 64, 0, 64, 67, 60, 62, 64, 0, 0, 0, 65, 65, 65, 65, 65, 64, 64, 64, 67, 67, 65, 62, 60, 0, 0, 0]
+    : [62, 65, 69, 67, 65, 64, 62, 0, 60, 64, 67, 65, 64, 62, 60, 0, 62, 65, 69, 72, 71, 69, 67, 0, 69, 67, 65, 64, 62, 64, 62, 0],
+  BASS: document.documentElement.dataset.season === 'xmas' ? [36, 41, 43, 36] : [38, 36, 41, 38],
   startMusic() {
     if (!this.music || this.musicTimer || !this.ac()) return;
     const hz = (m) => 440 * 2 ** ((m - 69) / 12);
@@ -174,7 +177,7 @@ $('#btnExit').onclick = () => { if (state?.phase === 'ended') send({ t: 'leave' 
 $('#leaveNo').onclick = () => $('#leaveOverlay').classList.add('hidden');
 $('#leaveYes').onclick = () => { $('#leaveOverlay').classList.add('hidden'); send({ t: 'leave' }); };
 $('#btnRules').onclick = () => {
-  openOverlay(`<div class="mhead"><h3>📜 Как се играе Quizzard?</h3></div><div class="mbody rules"><ol>
+  openOverlay(`<div class="mhead"><h3>📜 Как се играе „Знаменосци“?</h3></div><div class="mbody rules"><ol>
     <li>🏰 <b>Столица.</b> Всеки избира своята столица. Тя носи <b>1000 точки</b> и има <b>3 кули</b>.</li>
     <li>🗺️ <b>Рунд 1: Завладяване.</b> Всички отговарят на въпрос с 4 отговора. Който познае, избира свободна област до своите. Всяка област носи <b>300 точки</b>.</li>
     <li>🎯 Ако познаят няколко, идва <b>въпрос с число</b>. Най-близкият взима 2 области, другите по 1. При еднакъв отговор печели по-бързият.</li>
@@ -686,7 +689,7 @@ const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator
 if (isIOS) $('#btnInstall').classList.remove('hidden');
 $('#btnInstall').onclick = async () => {
   if (installEvt) { installEvt.prompt(); await installEvt.userChoice.catch(() => {}); installEvt = null; $('#btnInstall').classList.add('hidden'); }
-  else openOverlay(`<div class="mhead"><h3>📲 Инсталирай Quizzard</h3></div><div class="mbody"><ol class="rules"><li>Натисни бутона <b>Сподели</b> (квадрат със стрелка) долу в Safari.</li><li>Избери <b>„Добави към началния екран“</b>.</li><li>Натисни <b>„Добави“</b>. Иконката с шапката ще се появи на екрана.</li></ol><button class="btn gold big" id="instOk" style="width:100%">Разбрах!</button></div>`), ($('#instOk').onclick = closeOverlay);
+  else openOverlay(`<div class="mhead"><h3>📲 Инсталирай „Знаменосци“</h3></div><div class="mbody"><ol class="rules"><li>Натисни бутона <b>Сподели</b> (квадрат със стрелка) долу в Safari.</li><li>Избери <b>„Добави към началния екран“</b>.</li><li>Натисни <b>„Добави“</b>. Иконката с шапката ще се появи на екрана.</li></ol><button class="btn gold big" id="instOk" style="width:100%">Разбрах!</button></div>`), ($('#instOk').onclick = closeOverlay);
 };
 
 // ---------- докладване на проблем ----------

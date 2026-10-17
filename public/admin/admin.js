@@ -1,4 +1,4 @@
-// Quizzard · админ панел (без рамки, само браузърен JS)
+// Знаменосци · админ панел (без рамки, само браузърен JS)
 'use strict';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -119,7 +119,7 @@ async function route() {
   const id = page();
   const p = PAGES.find((x) => x.id === id) || PAGES[1];
   $('#pageTitle').textContent = p.title;
-  document.title = `${p.title} · Quizzard админ`;
+  document.title = `${p.title} · Знаменосци админ`;
   $('#side').classList.remove('open');
   renderNav();
   const view = $('#view');
@@ -753,7 +753,7 @@ VIEWS.settings = async (view) => {
       ${Object.entries(SUBJ).map(([k, v]) => `<label class="switch" style="display:flex;margin:8px 0"><input type="checkbox" class="subjOn" value="${k}" ${s.disabledSubjects.includes(k) ? '' : 'checked'}> ${SUBJ_ICON[k]} ${v}</label>`).join('')}</div>
     <div class="card"><h3>🔒 Родители и лични данни</h3><p class="muted" style="margin-top:-4px">Показва се на <a href="/privacy.html" target="_blank">страницата за поверителност</a>.</p>
       <label class="field"><span>Кой отговаря за данните</span><input id="sController" value="${h(s.controller)}" maxlength="160" placeholder="напр. Иван Иванов или „Квизард“ ЕООД, гр. София"></label>
-      <label class="field"><span>Връзка за родители</span><input id="sContact" value="${h(s.contact)}" maxlength="120" placeholder="напр. roditeli@quizzard.bg"></label>
+      <label class="field"><span>Връзка за родители</span><input id="sContact" value="${h(s.contact)}" maxlength="120" placeholder="напр. roditeli@znamenostsi.bg"></label>
       ${num('sRetention', 'Профил без вход се изтрива след', s.retentionMonths, 6, 60, 'месеца', 'непотвърдените от родител се изтриват след 30 дни')}
       <div class="field"><span>Имейли до родителите</span>${mailInfo.on ? `<div class="banner ok" style="margin:0">✅ Включени. Линковете в писмата водят към <b>${h(mailInfo.base)}</b></div>` : '<div class="banner warn" style="margin:0">⚠️ Изключени: задай RESEND_API_KEY и MAIL_FROM в Render. Дотогава профилите работят без потвърждение по имейл и няма „Забравена парола“.</div>'}</div>
       <div class="row"><button class="btn" id="sWeekly" ${mailInfo.on ? '' : 'disabled'}>📧 Изпрати седмичния отчет сега</button><button class="btn" id="sSweep">🧹 Изтрий старите профили сега</button></div></div>
