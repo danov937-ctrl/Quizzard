@@ -65,6 +65,9 @@ async function playBotGame(jar) {
 
 (async () => {
   await startServer();
+  // /admin без наклонена черта води към /admin/, иначе стиловете и скриптът на панела не се зареждат
+  assert.strictEqual((await fetch(BASE + '/admin', { redirect: 'manual' })).headers.get('location'), '/admin/');
+  assert.ok((await (await fetch(BASE + '/admin/')).text()).includes('/admin/admin.js'));
   const admin = client(), kid = client();
   try {
     // ----- вход в панела -----
