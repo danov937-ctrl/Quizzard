@@ -6,7 +6,8 @@ const { QuestionPicker } = require('./questions');
 const REGIONS = Object.fromEntries(MAP.regions.map((r) => [r.id, r]));
 const REGION_IDS = Object.keys(REGIONS);
 const COLORS = ['#e53935', '#1e88e5', '#43a047', '#fb8c00'];
-const BASE_TIMES = { mc: 20000, num: 20000, pick: 15000, reveal: 3500, info: 2500 };
+// picked: пауза след избрана област (анимация на картата); prep: карта „Въпрос“ с отброяване преди всеки въпрос
+const BASE_TIMES = { mc: 20000, num: 20000, pick: 15000, reveal: 3500, info: 2500, picked: 1800, prep: 3000 };
 // Точки: столица 1000; област в рунд 1 (завладяване) 300; област, превзета във войната, 400;
 // успешна защита (верен отговор на защитника) +100.
 const VALUES = { capital: 1000, region: 300, war: 400, defend: 100 };
@@ -38,7 +39,7 @@ class Game {
     this.questions = new QuestionPicker(this.grade, opts.subjects);
     this.players = players.map((p, i) => ({
       id: p.id, name: p.name, isBot: !!p.isBot, color: COLORS[i % COLORS.length],
-      alive: true, capital: null, towers: CAPITAL_TOWERS, bonus: 0, jokers: { ...JOKERS }, skill: p.skill ?? rnd(0.55, 0.85),
+      alive: true, capital: null, towers: CAPITAL_TOWERS, bonus: 0, jokers: { ...JOKERS }, skill: p.skill ?? rnd(0.66, 0.84),
     }));
     this.fx = []; this.fxId = 0;
     this.owner = Object.fromEntries(REGION_IDS.map((id) => [id, null]));
@@ -119,6 +120,7 @@ class Game {
       this.say(`${p.name} избра столица ${REGIONS[r].name}.`);
       this.addFx({ type: 'capital', region: r, pid: p.id, points: VALUES.capital });
       this.emit();
+      await this.sleep(this.t('picked'));
     }
     this.current = { type: 'info', icon: 'map', title: 'Рунд 1: Завладяване', text: 'Отговаряйте вярно и избирайте свободни области. Всяка област носи 300 точки.' };
     this.emit();
@@ -157,6 +159,7 @@ class Game {
           this.say(`${this.player(pid).name} завзе ${REGIONS[r].name} (+${VALUES.region}).`);
           this.addFx({ type: 'conquer', region: r, pid, points: VALUES.region });
           this.emit();
+          await this.sleep(this.t('picked'));
         }
       }
     }
@@ -215,6 +218,8 @@ class Game {
     this.say(`${att.name} напада ${REGIONS[region].name} (${def.name}).`);
     this.addFx({ type: 'attack', from, region, pid: attId });
     const ctx = { attacker: attId, defender: defId, region };
+    this.emit();
+    await this.sleep(this.t('picked'));
 
     if (!isCapital) {
       const { winner, defCorrect } = await this.duelQuestion(attId, defId, { ...ctx, title: `${att.name} напада ${REGIONS[region].name}` });
@@ -278,6 +283,7 @@ class Game {
 
   // ---------- въпроси и избор ----------
   async askQuestion(q, participants, ctx) {
+    await this.prep(q, participants, ctx);
     const answers = {};
     const started = Date.now();
     this.current = { type: 'question', kind: 'mc', q, participants, answers, started, endsAt: started + this.t('mc'), removed: {}, hints: {}, extended: 0, ...ctx };
@@ -293,6 +299,7 @@ class Game {
 
   // Връща участниците подредени: най-близък отговор, после по-бърз
   async askNumeric(q, participants, ctx) {
+    await this.prep(q, participants, ctx);
     const answers = {};
     const started = Date.now();
     this.current = { type: 'question', kind: 'num', q, participants, answers, started, endsAt: started + this.t('num'), removed: {}, hints: {}, extended: 0, ...ctx };
@@ -341,7 +348,17 @@ class Game {
     if (this.player(pid).isBot) this.setTimer(() => this.pick(pid, this.botChooseRegion(pid, options, mode)), this.t('pick') * rnd(0.08, 0.2));
     this.emit();
     await this.waitFor(this.t('pick'), () => cur.chosen);
-    return cur.chosen || pickOne(options);
+    const region = cur.chosen || pickOne(options);
+    this.current = { type: 'picked', mode, picker: pid, region };
+    return region;
+  }
+
+  // Преди всеки въпрос: карта „Въпрос“ с предмета и отброяване, за да се види какво стана на картата
+  async prep(q, participants, ctx) {
+    const started = Date.now();
+    this.current = { type: 'prep', kind: q.kind, subject: q.subject, participants, started, endsAt: started + this.t('prep'), ...ctx };
+    this.emit();
+    await this.sleep(this.t('prep'));
   }
 
   // Извиква се от сървъра при отговор на играч
@@ -404,11 +421,14 @@ class Game {
     const limit = this.t(q.kind === 'num' ? 'num' : 'mc');
     this.setTimer(() => {
       if (q.kind === 'num') {
-        const noise = (Math.random() - 0.5) * 0.4 * (1.2 - p.skill);
+        // по-умен, но не безгрешен: понякога ползва жокера „обхват“ и тогава е по-точен
+        let spread = 0.32;
+        if (p.jokers.range && Math.random() < 0.2 && this.useJoker(pid, 'range')) spread = 0.15;
+        const noise = (Math.random() - 0.5) * spread * (1.2 - p.skill);
         this.answer(pid, Math.max(0, Math.round(q.answer * (1 + noise))));
       } else {
         let skill = p.skill;
-        if (p.jokers.fifty && Math.random() < 0.15 && this.useJoker(pid, 'fifty')) skill = Math.min(0.95, skill + 0.2);
+        if (p.jokers.fifty && Math.random() < 0.2 && this.useJoker(pid, 'fifty')) skill = Math.min(0.92, skill + 0.2);
         const removed = this.current?.removed?.[pid] || [];
         const right = Math.random() < skill;
         this.answer(pid, right ? q.correct : pickOne(q.options.filter((o) => o !== q.correct && !removed.includes(o))));
@@ -425,13 +445,25 @@ class Game {
       const best = Math.max(...options.map(score));
       return pickOne(options.filter((r) => score(r) === best));
     }
+    // Понякога (около 1 на 4) ботът избира наслуки, за да може да бъде победен
+    if (Math.random() < 0.25) return pickOne(options);
+    const mine = (r) => REGIONS[r].neighbors.filter((n) => this.owner[n] === pid).length;
     if (mode === 'attack') {
-      const caps = options.filter((r) => this.players.some((p) => p.capital === r));
+      const capOf = (r) => this.players.find((p) => p.alive && p.capital === r);
+      const caps = options.filter(capOf);
+      // слаба столица (1 кула) е голяма награда; иначе столица само понякога
+      const weak = caps.filter((r) => capOf(r).towers <= 1);
+      if (weak.length) return pickOne(weak);
       if (caps.length && (Math.random() < 0.3 || caps.length === options.length)) return pickOne(caps);
-      const nonCap = options.filter((r) => !caps.includes(r));
-      return nonCap.slice().sort((a, b) => this.value[a] - this.value[b] || Math.random() - 0.5)[0];
+      // иначе: евтина област на водещия противник, по-добре обградена от нашите (по-лесно се пази после)
+      const lead = this.alivePlayers().filter((p) => p.id !== pid).sort((a, b) => this.score(b.id) - this.score(a.id))[0]?.id;
+      const score = (r) => mine(r) * 2 + (this.owner[r] === lead ? 2 : 0) - this.value[r] / 200 + Math.random();
+      return options.filter((r) => !caps.includes(r)).sort((a, b) => score(b) - score(a))[0];
     }
-    return pickOne(options);
+    // завладяване: области, които свързват нашите земи и имат още свободни съседи за следващ ход
+    const free = (r) => REGIONS[r].neighbors.filter((n) => !this.owner[n]).length;
+    const score = (r) => mine(r) * 2 + free(r) * 0.5 + Math.random();
+    return options.slice().sort((a, b) => score(b) - score(a))[0];
   }
 
   // ---------- изглед за клиента (без верните отговори преди разкриването) ----------
