@@ -498,4 +498,9 @@ html[data-season="xmas"] .bg { background:
 @keyframes twinkle { 50% { filter: drop-shadow(0 0 2px rgba(255, 240, 180, .3)) brightness(.75); } }
 html[data-season="xmas"] .panel { border-top-color: #f4f8ff; box-shadow: var(--shadow), inset 0 0 0 2px var(--gold2), inset 0 0 30px rgba(120, 70, 20, .25), 0 -3px 0 #fff; }
 html[data-season="xmas"] .seg button.on { background: linear-gradient(180deg, #2f8f4e, #1d6b37); border-color: #134a25; box-shadow: 0 3px 0 #134a25; }
-@media (prefers-reduced-motion: reduce) { .xmas-snow, .xmas-lights { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .xmas-snow, .xmas-lights, html[data-season="xmas"] .qx-gate::before { animation: none; } }
+/* началният екран с вход (extras.js) е над всичко, затова има собствен сняг и светлини */
+html[data-season="xmas"] .qx-gate::before, html[data-season="xmas"] .qx-gate::after { content: ""; position: fixed; pointer-events: none; z-index: -1; }
+html[data-season="xmas"] .qx-gate { isolation: isolate; }
+html[data-season="xmas"] .qx-gate::before { inset: -200px 0 0; background-image: radial-gradient(circle, #fff 0 2px, transparent 2.5px), radial-gradient(circle, rgba(255,255,255,.85) 0 1.5px, transparent 2px), radial-gradient(circle, rgba(255,255,255,.7) 0 3px, transparent 3.5px);
+  background-size: 120px 120px, 80px 90px, 200px 170px; background-position: 0 0, 40px 30px, 90px 60px; animation: snow 14s linear infinite; }

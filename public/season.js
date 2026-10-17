@@ -17,7 +17,7 @@
     if (bg) bg.after(deco); else document.body.prepend(deco);
     var logos = document.querySelectorAll('img[src$="logo.svg"]');
     for (var i = 0; i < logos.length; i++) logos[i].src = logos[i].getAttribute('src').replace(/logo\.svg$/, 'logo-xmas.svg');
-    var tag = document.querySelector('.tagline');
-    if (tag) tag.textContent = '🎄 Весела Коледа! Завладей заснежена България със знания! 🎁';
+    var tags = document.querySelectorAll('.tagline'); // и на началния екран с вход (extras.js)
+    for (var j = 0; j < tags.length; j++) tags[j].textContent = '🎄 Весела Коледа! Завладей заснежена България със знания! 🎁';
   });
 })();
