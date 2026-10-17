@@ -44,7 +44,9 @@ const server = http.createServer((req, res) => {
   if (url === '/ads-config.js') return adsConfig(res);
   if (url === '/ads.txt') return adsTxt(res);
   if (url === '/admin/reports') { res.writeHead(302, { Location: '/admin/#reports' }); return res.end(); }
-  if (url === '/admin' || url === '/admin/') url = '/admin/index.html';
+  // Без наклонена черта накрая admin.css и admin.js се търсят в корена и панелът излиза без стилове
+  if (url === '/admin') { res.writeHead(301, { Location: '/admin/' }); return res.end(); }
+  if (url === '/admin/') url = '/admin/index.html';
   if (url === '/') url = '/index.html';
   const file = path.normalize(path.join(PUBLIC, url));
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
