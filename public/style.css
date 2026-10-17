@@ -538,3 +538,36 @@ html[data-season="xmas"] .qx-gate::before { inset: -200px 0 0; background-image:
   .prep-note { display: none; }
   .map-banner.picked { font-size: 1rem; }
 }
+
+/* ---------- начален екран на телефон хоризонтално: горна лента (лого · парички и знаме · профил), без застъпване ---------- */
+@media (orientation: landscape) and (max-height: 560px) {
+  #home { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); column-gap: 14px; row-gap: 0; align-content: start; }
+  #home > * { grid-column: 1 / -1; }
+  #home > .hero { display: contents; }
+  #home .hero > * { grid-column: 1; }
+  #home .hero > .brand { grid-row: 1; align-self: center; margin-bottom: 4px; }
+  #home > .zn-wallet, #home > .qx-account { position: static; grid-column: 2; grid-row: 1; align-self: center; margin-bottom: 6px; z-index: auto; }
+  #home > .zn-wallet { justify-self: start; }
+  #home > .qx-account { justify-self: end; }
+  #home > .zn-wallet .zn-coin-chip { padding-top: 4px; padding-bottom: 4px; }
+  #home .qx-chip { max-width: 190px; padding-top: 2px; padding-bottom: 2px; box-shadow: 0 3px 0 var(--wood2); }
+  #home .qx-chip .qx-av { width: 30px !important; height: 30px !important; font-size: 18px !important; }
+  #home .qx-chip-txt small { display: block; font-size: .65rem; }
+  #home .qx-mini-bar { display: none; }
+  #home .hero > .home-modes { grid-column: 2; grid-row: 2 / span 3; }
+  #home .hero > .setup { grid-row: 2; margin-top: 0; }
+  #home .hero > .join { grid-row: 3; }
+  #home .hero > #homeErr, #home .hero > .home-links, #home .hero > .ad-slot { grid-column: 1 / -1; }
+  #home .brand-logo { width: 42px; height: 42px; }
+  #home .brand-name { font-size: 2.2rem; }
+  /* долните връзки: малки бутони вместо подчертан текст */
+  #home .home-links { gap: 5px; margin-top: 8px; }
+  #home .home-links .link { text-decoration: none; font-size: .78rem; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255, 231, 166, .35); white-space: nowrap; }
+  #home .home-links [data-flagl] { display: none; }
+  #home .zn-mode { margin: 0 0 6px; padding: 3px; }
+  #home .zn-mode button { padding: 5px 4px; font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (orientation: landscape) and (max-height: 400px) {
+  #home .mode { min-height: 44px; padding: 3px 12px; }
+  #home .home-modes .modes { gap: 5px; } #home .home-modes .modes.solo { margin-top: 5px; }
+}
