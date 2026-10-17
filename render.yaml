@@ -9,6 +9,9 @@ services:
     envVars:
       - key: ADMIN_KEY
         generateValue: true
+      # База данни (PostgreSQL, напр. Neon или Supabase): тук се пазят профилите, въпросите от панела и настройките
+      - key: DATABASE_URL
+        sync: false
       - key: GITHUB_TOKEN
         sync: false
       - key: DATA_REPO

@@ -6,8 +6,13 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test/bot_game.test.js && node test/admin.test.js && node test/adult.test.js"
+    "test": "node test/bot_game.test.js && node test/admin.test.js && node test/adult.test.js && node test/store_db.test.js"
   },
-  "engines": { "node": ">=18" },
-  "dependencies": { "ws": "^8.18.0" }
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "pg": "^8.13.0"
+  }
 }
