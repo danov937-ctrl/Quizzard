@@ -3,7 +3,6 @@ services:
     name: quizzard
     runtime: node
     plan: free
-    region: frankfurt # данните на децата остават в ЕС (важи при създаване на услугата)
     buildCommand: cd server && npm install
     startCommand: cd server && npm start
     healthCheckPath: /
