@@ -723,3 +723,20 @@ $('#reportForm').onsubmit = (e) => {
 
 loadMap();
 connect();
+
+// ---------- хоризонтален режим на телефони и таблети ----------
+document.body.classList.add('has-rotate');
+const coarse = matchMedia('(pointer: coarse)').matches;
+const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || window.navigator.standalone;
+const canLock = !!(screen.orientation && screen.orientation.lock && document.fullscreenEnabled);
+async function goLandscape() {
+  if (!canLock) return;
+  try { if (!document.fullscreenElement && !standalone) await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch {}
+  try { await screen.orientation.lock('landscape'); } catch {}
+}
+if (coarse && canLock) {
+  $('#btnRotate').classList.remove('hidden');
+  $('#btnRotate').onclick = goLandscape;
+  // при влизане в игра на телефон: цял екран и заключено хоризонтално (където браузърът позволява)
+  for (const b of $$('.mode, #btnJoin')) b.addEventListener('click', goLandscape);
+}
