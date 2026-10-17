@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="flag" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ef4444"/><stop offset="1" stop-color="#991b1b"/></linearGradient>
+    <linearGradient id="pole" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#b45309"/></linearGradient>
+    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#bcd3ea"/></linearGradient>
+  </defs>
+  <ellipse cx="60" cy="104" rx="50" ry="11" fill="#8fb0d1"/>
+  <path d="M10 104 C26 80 46 72 60 72 C76 72 94 80 110 104 Z" fill="url(#hill)"/>
+  <rect x="35" y="12" width="6" height="84" rx="3" fill="url(#pole)"/>
+  <path d="M28 14 C30 4 42 0 50 6 C54 9 56 14 58 20 C52 14 46 12 40 14 Z" fill="#dc2626"/>
+  <rect x="26" y="11" width="24" height="6" rx="3" fill="#fff"/>
+  <circle cx="58" cy="21" r="3.6" fill="#fff"/>
+  <path d="M41 18 C58 12 70 26 92 18 L88 38 L94 58 C72 66 60 52 41 58 Z" fill="url(#flag)" stroke="#7f1d1d" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M44 22 C58 17 68 29 86 24" fill="none" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+  <path d="M42 19 C58 13 70 27 91 19 L90 24 C86 27 82 23 78 26 C74 29 70 24 66 26 C62 28 58 21 54 24 C50 26 46 21 42 25 Z" fill="#fff"/>
+  <text x="66" y="50" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="800" font-size="26" fill="#fde047" stroke="#7f1d1d" stroke-width="1">?</text>
+  <circle cx="104" cy="14" r="2.4" fill="#fff"/><circle cx="16" cy="40" r="2" fill="#fff"/><circle cx="104" cy="70" r="1.8" fill="#fff"/><circle cx="22" cy="20" r="1.6" fill="#fff"/>
+</svg>

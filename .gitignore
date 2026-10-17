@@ -1,3 +1,4 @@
 node_modules/
 *.log
 data/reports.jsonl
+data/admin-local/

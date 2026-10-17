@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <title>Знаменосци · Съгласие на родителя</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link href="/fonts/fonts.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="extras.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <main class="qx-page">
+    <a href="/" class="qx-back-link">← Към играта</a>
+    <article class="qx-paper" id="out"><p>Зареждане…</p></article>
+  </main>
+  <script>
+  (() => {
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const out = document.getElementById('out');
+    const token = location.hash.slice(1);
+    const api = (method) => fetch('/api/consent/' + encodeURIComponent(token), method === 'GET' ? {} : { method: 'POST', headers: { 'X-Quizzard': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ action: method }) })
+      .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
+    const done = (d) => {
+      out.innerHTML = `<h1>✅ Благодарим!</h1><p>Профилът е потвърден. Детето вече се вижда в класациите и може да качи снимка (тя се показва след наша проверка).</p>
+        <p>Всеки понеделник ще получавате кратък отчет на този имейл. ${d.report ? `Пълният отчет за детето е винаги тук: <a href="/parent.html#${esc(d.report)}">Отчет за родителя</a>.` : ''}</p>
+        <p><a class="qx-btn gold" href="/">Към играта</a></p>`;
+    };
+    if (!token) { out.innerHTML = '<h1>Съгласие на родителя</h1><p>Отворете линка от писмото, което ви изпратихме.</p>'; return; }
+    api('GET').then((d) => {
+      if (d.confirmed) return done(d);
+      out.innerHTML = `<h1>👋 Профил на дете в „Знаменосци“</h1>
+        <p class="qx-lead">С имейла <b>${esc(d.email)}</b> е направен профил <b>„${esc(d.name)}“</b>${d.grade ? ` за ${d.grade} клас` : ''} на ${new Date(d.createdAt).toLocaleDateString('bg-BG')}</p>
+        <p>„Знаменосци“ е образователна игра с въпроси по учебните предмети за 1.–4. клас. С профила детето пази нивата, значките и резултатите си и може да участва в турнири между класове.</p>
+        <h2>Какво пазим</h2>
+        <ul><li>Измисленото потребителско име и паролата (криптирана)</li><li>Вашия имейл</li><li>Резултатите от играта и последните до 40 грешни отговора, за да ви показваме къде детето има нужда от помощ</li><li>Аватар, а снимка само ако детето качи и ние одобрим</li></ul>
+        <p>Не искаме истинско име, адрес или телефон и не даваме данните на никого. <a href="/privacy.html" target="_blank">Цялата информация за поверителност →</a></p>
+        <h2>Съгласни ли сте?</h2>
+        <div class="qx-row"><button class="qx-btn gold" id="yes">✅ Да, потвърждавам профила</button><button class="qx-btn" id="no" style="color:var(--bad)">🗑 Не, изтрий профила</button></div>
+        <p class="qx-note">Можете да оттеглите съгласието си по всяко време, като изтриете профила от отчета за родителя или от профила на детето.</p>`;
+      document.getElementById('yes').onclick = () => api('confirm').then(done).catch((e) => alert(e.message));
+      document.getElementById('no').onclick = () => { if (!confirm(`Да изтрием ли профила „${d.name}“ и всички негови данни?`)) return; api('refuse').then(() => { out.innerHTML = '<h1>Профилът е изтрит</h1><p>Изтрихме профила и всички данни за него. Детето може да играе и без профил, като гост.</p>'; }).catch((e) => alert(e.message)); };
+    }).catch((e) => { out.innerHTML = `<h1>Съгласие на родителя</h1><p>${esc(e.message)}</p>`; });
+  })();
+  </script>
+</body>
+</html>

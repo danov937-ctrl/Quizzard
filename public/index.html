@@ -3,19 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>Quizzard — завладей България със знания</title>
-  <meta name="description" content="Quizzard: куиз игра с карта на България за 1–4 клас. Играй онлайн, с приятели или с ботове.">
+  <title>Знаменосци — завладей България със знания</title>
+  <meta name="description" content="Знаменосци: куиз игра с карта на България. За деца от 1–4 клас и за възрастни: история, география, кино, наука и още. Играй онлайн, с приятели или с ботове.">
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="theme-color" content="#0e2a4a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Quizzard">
+  <meta name="apple-mobile-web-app-title" content="Знаменосци">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kurale&family=Nunito:wght@700;800;900&family=Rubik:wght@700;800;900&display=swap" rel="stylesheet">
+  <script src="season.js"></script>
+  <link href="/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="extras.css">
+  <link rel="stylesheet" href="adult.css">
 </head>
 <body>
   <div class="bg" aria-hidden="true"></div>
@@ -25,7 +27,7 @@
     <div class="hero">
       <div class="brand">
         <img src="logo.svg" alt="" class="brand-logo">
-        <h1 class="brand-name">Quizzard</h1>
+        <h1 class="brand-name">Знаменосци</h1>
       </div>
       <p class="tagline">Отговаряй на въпроси, завладей областите и спечели войната за България!</p>
 
@@ -40,6 +42,7 @@
         </div>
       </div>
 
+      <div class="home-modes">
       <div class="modes">
         <button class="mode" id="btnQuick">
           <span class="mode-icon">⚔️</span><span class="mode-title">Онлайн игра</span>
@@ -65,6 +68,7 @@
           <span class="mode-sub">Въпроси по предмет, без противници и без бързане.</span>
         </button>
       </div>
+      </div>
 
       <div class="panel join">
         <span class="lbl">Имаш код от приятел?</span>
@@ -81,12 +85,13 @@
         <button class="link" data-sound="music">🎵 Музика</button>
         <button class="link hidden" id="btnInstall">📲 Инсталирай</button>
       </div>
+      <div class="ad-slot" data-ad="home" aria-label="Реклама"></div>
     </div>
   </section>
 
   <!-- Стая -->
   <section id="lobby" class="screen hidden">
-    <div class="mini-brand center"><img src="logo.svg" alt=""><span>Quizzard</span></div>
+    <div class="mini-brand center"><img src="logo.svg" alt=""><span>Знаменосци</span></div>
     <div class="panel lobby-card">
       <div id="lobbyHead" class="room-head"></div>
       <ul id="members" class="members"></ul>
@@ -106,11 +111,12 @@
       <p id="lobbyErr" class="err"></p>
       <button id="btnLeave" class="link">← Излез</button>
     </div>
+    <div class="ad-slot" data-ad="lobby" aria-label="Реклама"></div>
   </section>
 
   <!-- Упражнение и предизвикателство на деня -->
   <section id="practice" class="screen hidden">
-    <div class="mini-brand center"><img src="logo.svg" alt=""><span>Quizzard</span></div>
+    <div class="mini-brand center"><img src="logo.svg" alt=""><span>Знаменосци</span></div>
     <div id="practiceCard" class="panel practice-card"></div>
   </section>
 
@@ -158,9 +164,21 @@
     <div class="mbody"><p class="sub center-text">Бот ще довърши играта вместо теб.</p>
       <div class="row two"><button id="leaveNo" class="btn wood">Остани</button><button id="leaveYes" class="btn gold">Излез</button></div></div>
   </div></div>
+  <!-- Завърти устройството (телефон или таблет в портрет) -->
+  <div id="rotate" class="rotate" role="alert">
+    <div class="rot-device" aria-hidden="true"><i></i></div>
+    <b>Завърти устройството</b>
+    <span>„Знаменосци“ се играе хоризонтално, за да се вижда цялата карта.</span>
+    <button id="btnRotate" class="btn gold big hidden">↻ Завърти на цял екран</button>
+  </div>
   <div id="toast" class="toast hidden"></div>
   <div id="confetti" class="confetti" aria-hidden="true"></div>
 
+  <script src="flag.js"></script>
   <script src="client.js"></script>
+  <script src="extras.js"></script>
+  <script src="adult.js"></script>
+  <script src="ads-config.js"></script>
+  <script src="ads.js"></script>
 </body>
 </html>

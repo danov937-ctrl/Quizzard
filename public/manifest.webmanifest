@@ -1,6 +1,6 @@
 {
-  "name": "Quizzard — завладей България със знания",
-  "short_name": "Quizzard",
+  "name": "Знаменосци — завладей България със знания",
+  "short_name": "Знаменосци",
   "description": "Куиз игра с карта на България за 1–4 клас.",
   "id": "/",
   "lang": "bg",
@@ -9,7 +9,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",
-  "orientation": "any",
+  "orientation": "landscape",
   "background_color": "#0e2a4a",
   "theme_color": "#0e2a4a",
   "icons": [

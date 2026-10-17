@@ -9,8 +9,17 @@ services:
     envVars:
       - key: ADMIN_KEY
         generateValue: true
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: DATA_REPO
+        sync: false
+      # Имейли до родителите (Resend): без тях профилите работят без потвърждение по имейл
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
       # Android приложение (Google Play): пакетът и отпечатъкът на ключа от Play Console
       - key: ANDROID_PACKAGE
-        value: bg.quizzard.app
+        value: bg.znamenostsi.app
       - key: ANDROID_SHA256
         sync: false
