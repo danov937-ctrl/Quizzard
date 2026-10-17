@@ -30,6 +30,17 @@ function checkEmail(e) {
   if (e.length > 120 || !EMAIL_RE.test(e)) return { error: 'Имейлът не изглежда правилен. Провери го.' };
   return { email: e };
 }
+// Навършени години от дата ГГГГ-ММ-ДД (null при невалидна дата)
+function ageOf(d) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d || ''));
+  if (!m) return null;
+  const y = +m[1], mo = +m[2], da = +m[3], t = new Date(Date.UTC(y, mo - 1, da));
+  if (t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== da) return null;
+  const now = new Date();
+  let age = now.getUTCFullYear() - y;
+  if (now.getUTCMonth() + 1 < mo || (now.getUTCMonth() + 1 === mo && now.getUTCDate() < da)) age--;
+  return age;
+}
 const maskEmail = (e) => { if (!e) return null; const [a, d] = e.split('@'); return `${a.slice(0, 2)}${'•'.repeat(Math.max(1, Math.min(6, a.length - 2)))}@${d}`; };
 const scrypt = (pass, salt) => crypto.scryptSync(String(pass), salt, 32).toString('hex');
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -92,7 +103,7 @@ class Accounts {
     return { icon: a.icon || R.AVATARS[i % 12].icon, color: a.color || R.COLORS[i % R.COLORS.length] };
   }
   // Кратко описание за стаята: аватар и ниво на играч с акаунт
-  badgeOf(uid) { const u = uid && this.users[uid]; return u ? { avatar: this.avatarOf(u), level: R.levelOf(u.xp || 0) } : {}; }
+  badgeOf(uid) { const u = uid && this.users[uid]; return u ? { avatar: this.avatarOf(u), level: R.levelOf(u.xp || 0), flag: u.flag || null, adult: !!u.adult } : {}; }
   profile(u) {
     if (!u) return null;
     const av = this.store.get('avatars');
@@ -101,32 +112,39 @@ class Accounts {
       id: u.id, name: u.name, grade: u.grade || null, createdAt: u.createdAt, games: u.games || 0, wins: u.wins || 0, answers: u.answers || 0, correct: u.correct || 0, best: u.best || 0,
       ...R.levelInfo(u.xp || 0), streak: u.lastDay === new Date().toISOString().slice(0, 10) || u.lastDay === new Date(Date.now() - 86400000).toISOString().slice(0, 10) ? u.streak || 0 : 0, bestStreak: u.bestStreak || 0,
       week, avatar: this.avatarOf(u), avatarChoice: u.avatar || {}, photoStatus: av.pending[u.id] ? 'pending' : av.approved[u.id] ? (u.avatar?.photo ? 'approved' : 'off') : u.photoRejected ? 'rejected' : null,
-      badges: R.BADGES.map((b) => ({ id: b.id, icon: b.icon, name: b.name, desc: b.desc, at: u.badges?.[b.id] || null })),
+      badges: R.badgesFor(u).map((b) => ({ id: b.id, icon: b.icon, name: b.name, desc: b.desc, at: u.badges?.[b.id] || null })),
       newBadges: (u.newBadges || []).map((id) => R.BADGES.find((b) => b.id === id)).filter(Boolean).map(({ id, icon, name, desc }) => ({ id, icon, name, desc })),
       subjects: Object.fromEntries(Object.entries(u.subj || {}).map(([k, v]) => [k, { n: v[0], ok: v[1] }])),
       avatars: R.AVATARS, colors: R.COLORS, ranks: this.ranksOf(u),
       team: this.league ? this.league.publicTeam(this.league.teams[u.team]) : null, hasParentLink: !!u.parentToken,
+      adult: !!u.adult, coins: u.adult ? u.coins ?? 0 : null, flag: u.flag || null,
+      flagOptions: { patterns: R.FLAG_PATTERNS, colors: R.FLAG_COLORS, emblems: R.FLAG_EMBLEMS },
       email: maskEmail(u.email), needsConsent: this.needsConsent(u), consentAt: u.consentAt || null, weeklyMail: u.weeklyMail !== false, mail: mail.enabled(),
     };
   }
   // Класации: week – най-активни тази седмица (опит), xp – ниво, wins – победи, accuracy – точност (поне 50 отговора)
-  board(kind) {
+  // Децата и възрастните имат отделни класации; при възрастните има и класация по парички
+  board(kind, adult = false) {
     const wk = R.weekKey();
     const K = {
       week: { f: (u) => u.week?.key === wk && u.week.xp > 0, v: (u) => u.week.xp },
       xp: { f: (u) => (u.xp || 0) > 0, v: (u) => u.xp || 0 },
       wins: { f: (u) => (u.wins || 0) > 0, v: (u) => u.wins || 0 },
       accuracy: { f: (u) => (u.answers || 0) >= 50, v: (u) => Math.round((1000 * u.correct) / u.answers) / 10 },
+      coins: { f: (u) => u.adult && (u.coins || 0) > 0, v: (u) => u.coins || 0 },
     }[kind] || null;
     if (!K) return [];
-    return Object.values(this.users).filter((u) => !u.banned && !this.needsConsent(u) && K.f(u)).map((u) => ({ u, v: K.v(u) })).sort((a, b) => b.v - a.v || (b.u.xp || 0) - (a.u.xp || 0));
+    return Object.values(this.users).filter((u) => !u.banned && !!u.adult === !!adult && !this.needsConsent(u) && K.f(u)).map((u) => ({ u, v: K.v(u) })).sort((a, b) => b.v - a.v || (b.u.xp || 0) - (a.u.xp || 0));
   }
-  leaderboard(kind = 'week', limit = 20) {
-    return this.board(kind).slice(0, limit).map(({ u, v }, i) => ({ place: i + 1, name: u.name, value: v, level: R.levelOf(u.xp || 0), avatar: this.avatarOf(u), badges: Object.keys(u.badges || {}).length, grade: u.grade || null }));
+  leaderboard(kind = 'week', limit = 20, adult = false) {
+    return this.board(kind, adult).slice(0, limit).map(({ u, v }, i) => ({ place: i + 1, name: u.name, value: v, level: R.levelOf(u.xp || 0), avatar: this.avatarOf(u), badges: Object.keys(u.badges || {}).length, grade: u.grade || null, flag: u.flag || null }));
   }
-  ranksOf(u) { const out = {}; for (const k of ['week', 'xp', 'wins', 'accuracy']) { const i = this.board(k).findIndex((x) => x.u === u); out[k] = i >= 0 ? i + 1 : null; } return out; }
+  ranksOf(u) { const out = {}; for (const k of ['week', 'xp', 'wins', 'accuracy', ...(u.adult ? ['coins'] : [])]) { const i = this.board(k, u.adult).findIndex((x) => x.u === u); out[k] = i >= 0 ? i + 1 : null; } return out; }
 
-  register({ name, email, password, grade, consent }) {
+  // Регистрация на дете (с имейл и съгласие на родител) или на възрастен 18+ (adult: true, рождена дата).
+  // От рождената дата пазим само годината.
+  register({ name, email, password, grade, consent, adult, birthDate }) {
+    if (adult) return this.registerAdult({ name, email, password, consent, birthDate });
     const c = checkName(name);
     if (c.error) return c;
     if (this.byName(c.name)) return { error: 'Това потребителско име вече е заето. Опитай с друго.' };
@@ -140,6 +158,28 @@ class Accounts {
     const now = new Date().toISOString();
     const u = { id: 'u' + crypto.randomBytes(6).toString('hex'), name: c.name, email: e.email, consentAskedAt: now, consentAt: null, weeklyMail: true, salt, hash: scrypt(password, salt), pwv: 0, grade: [1, 2, 3, 4].includes(Number(grade)) ? Number(grade) : null, createdAt: now, lastSeen: now, games: 0, wins: 0, answers: 0, correct: 0, best: 0 };
     this.users[u.id] = u;
+    this.store.touch('players');
+    return { user: u };
+  }
+  registerAdult({ name, email, password, consent, birthDate }) {
+    const c = checkName(name);
+    if (c.error) return c;
+    if (this.byName(c.name)) return { error: 'Това потребителско име вече е заето. Опитай с друго.' };
+    const e = checkEmail(email);
+    if (e.error) return e;
+    if (this.byEmail(e.email).some((u) => u.adult)) return { error: 'С този имейл вече има профил за възрастен. Влез с него.' };
+    const age = ageOf(birthDate);
+    if (age === null) return { error: 'Въведи рождената си дата.' };
+    if (age < 18) return { error: 'Режимът за възрастни е от 18 години. Можеш да играеш в детския режим с профил, направен от родител.' };
+    if (age > 120) return { error: 'Провери рождената дата.' };
+    if (String(password || '').length < 8) return { error: 'Паролата трябва да е поне 8 знака.' };
+    if (String(password).length > 64) return { error: 'Паролата е твърде дълга.' };
+    if (!consent) return { error: 'Нужно е да приемеш условията и политиката за поверителност.' };
+    const salt = crypto.randomBytes(16).toString('hex');
+    const now = new Date().toISOString();
+    const u = { id: 'u' + crypto.randomBytes(6).toString('hex'), adult: true, birthYear: Number(String(birthDate).slice(0, 4)), name: c.name, email: e.email, termsAt: now, consentAt: now, weeklyMail: false, salt, hash: scrypt(password, salt), pwv: 0, grade: null, createdAt: now, lastSeen: now, games: 0, wins: 0, answers: 0, correct: 0, best: 0 };
+    this.users[u.id] = u;
+    if (this.wallet) this.wallet.ensure(u);
     this.store.touch('players');
     return { user: u };
   }
@@ -165,6 +205,7 @@ class Accounts {
     const e = checkEmail(email);
     if (e.error) return e;
     if (e.email === u.email) return { ok: true, same: true };
+    if (u.adult) { u.email = e.email; this.store.touch('players'); return { ok: true, same: true }; } // без писмо до родител
     u.email = e.email; u.consentAt = null; u.consentAskedAt = new Date().toISOString(); delete u.consentToken;
     this.store.touch('players');
     return { ok: true };
@@ -270,6 +311,14 @@ async function handlePublic(acc, req, res, url, readBody) {
   if (post && req.headers['x-quizzard'] !== '1') return json(res, 403, { error: 'Забранено.' });
   const body = post ? await readBody(req).catch(() => ({})) : {};
 
+  if (acc.wallet && (await acc.wallet.handle({ p, post, body, me, ip, req, res, json })) !== false) return;
+  if (p === '/api/account/flag' && post) {
+    if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });
+    const out = R.cleanFlag(body, me);
+    if (out.error) return json(res, 400, out);
+    me.flag = out.flag; acc.store.touch('players');
+    return json(res, 200, { user: acc.profile(me) });
+  }
   if (acc.parents && (await acc.parents.handle({ p, url, post, body, me, ip, req, res, json, html })) !== false) return;
   if (p === '/api/account/me') return json(res, 200, { user: acc.profile(me) });
   if (p === '/api/account/register' && post) {
@@ -296,8 +345,9 @@ async function handlePublic(acc, req, res, url, readBody) {
     return json(res, 200, { ok: true }, { 'Set-Cookie': acc.cookieFor(me, req) });
   }
   if (p === '/api/leaderboard') {
-    const kind = ['week', 'xp', 'wins', 'accuracy'].includes(url.searchParams.get('kind')) ? url.searchParams.get('kind') : 'week';
-    return json(res, 200, { kind, top: acc.leaderboard(kind, 20), me: me ? { name: me.name, place: acc.ranksOf(me)[kind] } : null });
+    const adult = url.searchParams.get('aud') === 'adult';
+    const kind = ['week', 'xp', 'wins', 'accuracy', ...(adult ? ['coins'] : [])].includes(url.searchParams.get('kind')) ? url.searchParams.get('kind') : 'week';
+    return json(res, 200, { kind, adult, top: acc.leaderboard(kind, 20, adult), me: me && !!me.adult === adult ? { name: me.name, place: acc.ranksOf(me)[kind] } : null });
   }
   const L = acc.league;
   if (p === '/api/tournament') { const t = L.current(); return json(res, 200, { tournament: L.publicTournament(t, me) }); }
@@ -378,4 +428,4 @@ async function handlePublic(acc, req, res, url, readBody) {
   return json(res, 404, { error: 'Няма такава функция.' });
 }
 
-module.exports = { Accounts, handlePublic, checkName, checkEmail, normEmail, maskEmail, scrypt, safeEq, IDEA_CATEGORIES, IDEA_STATUS, COOKIE };
+module.exports = { Accounts, handlePublic, ageOf, checkName, checkEmail, normEmail, maskEmail, scrypt, safeEq, IDEA_CATEGORIES, IDEA_STATUS, COOKIE };

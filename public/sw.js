@@ -1,6 +1,6 @@
 // Знаменосци: прост service worker, за да се инсталира като приложение.
 // Мрежата е първа (играта е онлайн), а кешът е резерва за основните файлове.
-const CACHE = 'znamenostsi-v2';
+const CACHE = 'znamenostsi-v3';
 const SHELL = ['/', '/style.css', '/client.js', '/logo.svg', '/logo-xmas.svg', '/season.js', '/map.json', '/icon-192.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))); self.clients.claim(); });

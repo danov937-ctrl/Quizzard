@@ -9,6 +9,7 @@ const { Bank, parseLine, toLine, GRADES, norm } = require('./bank');
 const { award, levelOf } = require('./rewards');
 const { League } = require('./league');
 const { Parents } = require('./parents');
+const { Wallet } = require('./wallet');
 const mail = require('./mail');
 const { Accounts, handlePublic, checkName, IDEA_CATEGORIES, IDEA_STATUS } = require('./accounts');
 
@@ -34,7 +35,7 @@ const store = new Store({
   community: { delay: 3000, init: () => ({ ideas: [], ideaId: 0 }) },
   activity: { delay: 5 * 60 * 1000, init: () => ({ days: {}, q: {}, subj: {}, totals: { games: 0, completed: 0, answers: 0, correct: 0 }, reports: [], reportId: 0, gameLog: [] }) },
 });
-let bank = null, accounts = null, league = null, parents = null;
+let bank = null, accounts = null, league = null, parents = null, wallet = null;
 let ctx = { rooms: new Map(), wss: null, send: () => {}, onBankChange: () => {} };
 const startedAt = Date.now();
 
@@ -112,13 +113,14 @@ function patchGame() {
     const a = store.get('activity');
     a.totals.completed++; day().completed++;
     const w = this.player(this.winner);
+    if (wallet.onGameEnd(this)) this.emit(); // показва резултата от залога
     for (const [pid, uid] of Object.entries(this.meta.uids)) if (!this.player(pid)?.isBot) accounts.onGameEnd(uid, { won: pid === this.winner, score: this.score(pid), mode: this.meta.mode, run: this.meta.runs[pid] });
     logGame(this, true, w && !w.isBot);
   };
   const origAbort = Game.prototype.abort;
   Game.prototype.abort = function () {
     origAbort.call(this);
-    if (this.meta && !this.meta.ended) { this.meta.ended = true; logGame(this, false, false); }
+    if (this.meta && !this.meta.ended) { this.meta.ended = true; wallet.onAbort(this); logGame(this, false, false); }
   };
 }
 function logGame(g, completed, humanWon) {
@@ -133,6 +135,7 @@ function onGameStart(room, game) {
   const humans = room.members.filter((m) => !m.isBot).length;
   game.meta = { at: Date.now(), mode: room.isPublic ? 'online' : room.mode === 'bots' ? 'bots' : 'friends', humans, bots: room.members.length - humans,
     runs: {}, uids: Object.fromEntries(room.members.filter((m) => m.uid && !m.isBot).map((m) => [m.id, m.uid])) };
+  wallet.onGameStart(room, game);
   const a = store.get('activity'), d = day();
   a.totals.games++; d.games++; d[game.meta.mode]++; d.humans += humans;
   store.touch('activity');
@@ -160,6 +163,7 @@ async function init(c) {
   accounts = new Accounts(store);
   league = accounts.league = new League(store, accounts);
   parents = new Parents(store, accounts, { settings, audit });
+  wallet = accounts.wallet = new Wallet(store, accounts);
   if (!process.env.NO_MAIL_TIMER) parents.start();
   patchGame();
   importOldReports();
@@ -224,7 +228,7 @@ async function handle(req, res) {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   if (p === '/api/status') return json(res, 200, publicStatus());
-  if (p.startsWith('/api/account/') || p === '/api/leaderboard' || p.startsWith('/api/ideas') || p.startsWith('/api/avatar/') || p === '/api/tournament' || p.startsWith('/api/parent/') || p.startsWith('/api/consent/') || p.startsWith('/api/reset/') || p === '/api/mail/off') {
+  if (p.startsWith('/api/account/') || p === '/api/leaderboard' || p.startsWith('/api/ideas') || p.startsWith('/api/avatar/') || p === '/api/tournament' || p.startsWith('/api/coins') || p.startsWith('/api/parent/') || p.startsWith('/api/consent/') || p.startsWith('/api/reset/') || p === '/api/mail/off') {
     try { await handlePublic(accounts, req, res, url, readBody); } catch (e) { console.error('public api', e); json(res, 500, { error: 'Грешка в сървъра.' }); }
     return true;
   }
@@ -507,7 +511,7 @@ async function api(method, route, qs, body, res) {
   // ----- играчи -----
   if (r0 === 'players' && !r1 && method === 'GET') {
     const term = norm(qs.get('q') || ''), sort = qs.get('sort') || 'recent';
-    let items = Object.values(accounts.users).map((u) => ({ id: u.id, name: u.name, grade: u.grade, createdAt: u.createdAt, lastSeen: u.lastSeen, games: u.games || 0, wins: u.wins || 0, answers: u.answers || 0, correct: u.correct || 0, best: u.best || 0, xp: u.xp || 0, level: levelOf(u.xp || 0), badges: Object.keys(u.badges || {}).length, avatar: accounts.avatarOf(u), team: league.teams[u.team] ? `${league.teams[u.team].name} · ${league.teams[u.team].school}` : null, banned: !!u.banned, pct: u.answers ? Math.round((100 * u.correct) / u.answers) : null, email: u.email || null, consent: !u.email ? 'none' : u.consentAt ? 'yes' : accounts.needsConsent(u) ? 'waiting' : 'nomail', weeklyMail: u.weeklyMail !== false }));
+    let items = Object.values(accounts.users).map((u) => ({ id: u.id, name: u.name, grade: u.grade, createdAt: u.createdAt, lastSeen: u.lastSeen, games: u.games || 0, wins: u.wins || 0, answers: u.answers || 0, correct: u.correct || 0, best: u.best || 0, xp: u.xp || 0, level: levelOf(u.xp || 0), badges: Object.keys(u.badges || {}).length, avatar: accounts.avatarOf(u), team: league.teams[u.team] ? `${league.teams[u.team].name} · ${league.teams[u.team].school}` : null, banned: !!u.banned, pct: u.answers ? Math.round((100 * u.correct) / u.answers) : null, email: u.email || null, consent: u.adult ? 'adult' : !u.email ? 'none' : u.consentAt ? 'yes' : accounts.needsConsent(u) ? 'waiting' : 'nomail', weeklyMail: u.weeklyMail !== false, adult: !!u.adult, coins: u.adult ? u.coins || 0 : null }));
     if (term) items = items.filter((u) => norm(u.name).includes(term) || (u.email || '').includes(term));
     const S = { recent: (x, y) => String(y.lastSeen).localeCompare(String(x.lastSeen)), new: (x, y) => String(y.createdAt).localeCompare(String(x.createdAt)), wins: (x, y) => y.wins - x.wins, games: (x, y) => y.games - x.games, name: (x, y) => x.name.localeCompare(y.name, 'bg') };
     items.sort(S[sort] || S.recent);
@@ -526,6 +530,12 @@ async function api(method, route, qs, body, res) {
       }
       if (body.banned !== undefined && !!body.banned !== !!u.banned) { u.banned = !!body.banned; u.pwv = (u.pwv || 0) + 1; audit(u.banned ? 'player-ban' : 'player-unban', null, null, null, { label: u.name }); }
       if (body.grade !== undefined) u.grade = [1, 2, 3, 4].includes(Number(body.grade)) ? Number(body.grade) : null;
+      // Подарък или корекция на парички (само профили 18+)
+      if (body.coinsAdd !== undefined && u.adult) {
+        const d = Math.round(Number(body.coinsAdd));
+        if (!Number.isFinite(d) || Math.abs(d) > 100000) return { error: 'Невалидна сума.' };
+        if (d) { wallet.add(u, d, d > 0 ? 'Подарък от екипа' : 'Корекция от екипа'); audit('player-coins', null, null, null, { label: `${u.name}: ${d > 0 ? '+' : ''}${d}` }); }
+      }
       store.touch('players'); await store.save('players');
       return { ok: true };
     }
@@ -660,6 +670,7 @@ async function api(method, route, qs, body, res) {
     accounts = new Accounts(store);
     league = accounts.league = new League(store, accounts);
     parents = new Parents(store, accounts, { settings, audit });
+    wallet = accounts.wallet = new Wallet(store, accounts);
     audit('restore', null, null, null, { label: 'Възстановен архив от ' + (body.at || '?') });
     for (const n of ['content', 'activity', 'players', 'community', 'avatars']) store.touch(n);
     await store.flush();

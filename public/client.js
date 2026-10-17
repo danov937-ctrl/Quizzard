@@ -8,8 +8,15 @@ const SUBJECTS = {
   izk: ['Изобразително изкуство', '🎨'], tech: ['Технологии и предприемачество', '🛠️'],
   comp: ['Компютърно моделиране', '💻'], eng: ['Английски език', '🇬🇧'], sport: ['Физическо възпитание и спорт', '⚽'],
   arts: ['Изкуства', '🎭'],
+  // режим за възрастни (18+)
+  hist: ['История', '📜'], geo: ['География', '🌍'], sci: ['Природни науки', '🧪'], film: ['Кино и телевизия', '🎬'], music: ['Музика', '🎸'],
+  spt: ['Спорт', '🏅'], lit: ['Литература', '📚'], art: ['Изкуство и архитектура', '🖼️'], tec: ['Наука и технологии', '🚀'], gen: ['Обща култура', '💡'],
 };
-const SUBJ_COLOR = { mat: '#2f6fd0', bel: '#b8323f', okol: '#2f8f4e', prir: '#2b8a3e', obsht: '#9a5b17', muz: '#b8337a', izk: '#c7591a', tech: '#0e7a8f', comp: '#6a3fc0', eng: '#3c46b8', sport: '#b5302a', arts: '#a33a8a' };
+const ADULT = 9, ADULT_SUBJ = ['hist', 'geo', 'sci', 'film', 'music', 'spt', 'lit', 'art', 'tec', 'gen'];
+// Режимът за възрастни се включва от adult.js (клас mode-adult на body)
+const isAdultMode = () => document.body.classList.contains('mode-adult');
+const gradeLabel = (g) => (g === ADULT ? 'Възрастни 18+' : `${g} клас`);
+const SUBJ_COLOR = { hist: '#8a5a2b', geo: '#1f7a8c', sci: '#2b8a3e', film: '#6a3fc0', music: '#b8337a', spt: '#b5302a', lit: '#9a3412', art: '#c7591a', tec: '#2f6fd0', gen: '#7a6a12', mat: '#2f6fd0', bel: '#b8323f', okol: '#2f8f4e', prir: '#2b8a3e', obsht: '#9a5b17', muz: '#b8337a', izk: '#c7591a', tech: '#0e7a8f', comp: '#6a3fc0', eng: '#3c46b8', sport: '#b5302a', arts: '#a33a8a' };
 const LABEL_FIX = { SFO: [35, -40], SOF: [0, 4] };
 const SAVE_KEY = 'quizzard-session';
 
@@ -29,9 +36,16 @@ const member = (id) => lobby?.members.find((m) => m.id === id);
 const pname = (id) => esc(player(id)?.name || member(id)?.name || '?');
 const COLORS = ['#d83b2d', '#2c6fd1', '#2f9d48', '#e08a12'];
 const colorOf = (id) => player(id)?.color || COLORS[Math.max(0, lobby?.members.findIndex((m) => m.id === id) ?? 0)] || '#888';
+const flagOf = (id) => (!(player(id)?.isBot ?? member(id)?.isBot) && member(id)?.flag) || null;
 const shield = (id) => {
   const c = colorOf(id), isBot = player(id)?.isBot ?? member(id)?.isBot;
   const l = isBot ? '🤖' : (player(id)?.name || member(id)?.name || '?')[0].toUpperCase();
+  // Играч със свое знаме: щитът е в шарката на знамето, с ръб в цвета на играча
+  const fl = flagOf(id);
+  if (fl && window.ZFlag) {
+    const cid = 'sh-' + String(id).replace(/[^a-z0-9]/gi, '');
+    return `<svg class="shield" viewBox="0 0 30 34"><defs><clipPath id="${cid}"><path d="M2 2h26v12c0 9-6 15-13 18C8 29 2 23 2 14z"/></clipPath></defs><g clip-path="url(#${cid})"><g transform="translate(-6 0) scale(1.4 1.7)">${ZFlag.inner(fl, 30, 20)}</g></g><path d="M2 2h26v12c0 9-6 15-13 18C8 29 2 23 2 14z" fill="none" stroke="${c}" stroke-width="3"/></svg>`;
+  }
   return `<svg class="shield" viewBox="0 0 30 34"><path d="M2 2h26v12c0 9-6 15-13 18C8 29 2 23 2 14z" fill="${c}" stroke="#ffe08a" stroke-width="2.5"/><path d="M2 2h26v6H2z" fill="rgba(255,255,255,.25)"/><text x="15" y="${isBot ? 20 : 21}" text-anchor="middle" font-size="${isBot ? 11 : 14}" font-weight="900" fill="#fff" font-family="Rubik,sans-serif">${esc(l)}</text></svg>`;
 };
 
@@ -157,14 +171,15 @@ renderHomeGrade();
 $('#name').value = store.get('quizzard-name', '') || '';
 const myName = () => { const n = $('#name').value.trim(); store.set('quizzard-name', n); return n; };
 const needName = () => { if (myName()) return false; $('#homeErr').textContent = 'Напиши името си.'; $('#name').focus(); return true; };
-const startQuick = () => send({ t: 'quick', name: myName(), grade: homeGrade });
+const playGrade = () => (isAdultMode() ? ADULT : homeGrade);
+const startQuick = () => send({ t: 'quick', name: myName(), grade: playGrade() });
 $('#btnQuick').onclick = () => { if (!needName()) startQuick(); };
-$('#btnFriends').onclick = () => { if (!needName()) send({ t: 'create', name: myName(), grade: homeGrade }); };
+$('#btnFriends').onclick = () => { if (!needName()) send({ t: 'create', name: myName(), grade: playGrade() }); };
 $('#btnBots').onclick = () => {
   if (needName()) return;
   openOverlay(`<div class="mhead"><h3>🤖 Срещу колко бота?</h3></div><div class="mbody"><div class="seg">${[1, 2, 3].map((n) => `<button data-nb="${n}">${n} ${n === 1 ? 'бот' : 'бота'}</button>`).join('')}</div>
     <button class="link" id="nbCancel" style="display:block;margin:12px auto 0;color:var(--muted)">Отказ</button></div>`);
-  for (const b of $$('[data-nb]')) b.onclick = () => { closeOverlay(); send({ t: 'bots', name: myName(), grade: homeGrade, bots: +b.dataset.nb }); };
+  for (const b of $$('[data-nb]')) b.onclick = () => { closeOverlay(); send({ t: 'bots', name: myName(), grade: playGrade(), bots: +b.dataset.nb }); };
   $('#nbCancel').onclick = closeOverlay;
 };
 $('#btnJoin').onclick = () => { if (!needName()) send({ t: 'join', name: myName(), code: $('#code').value.trim() }); };
@@ -201,14 +216,14 @@ function renderLobby() {
   if (lobby.isPublic) {
     const until = Date.now() + (lobby.autoStartIn ?? 0);
     const tick = () => { const s = Math.ceil(Math.max(0, until - Date.now()) / 1000); const el = $('#lobbyHead .count'); if (el) el.textContent = s; };
-    $('#lobbyHead').innerHTML = `<div class="eyebrow">Онлайн игра · ${lobby.grade} клас</div><p class="searching">⚔️ Търсим играчи… <span class="count"></span></p>
-      <p class="sub">Ако не дойдат още деца, ще влязат ботове.</p>`;
+    $('#lobbyHead').innerHTML = `<div class="eyebrow">Онлайн игра · ${gradeLabel(lobby.grade)}</div><p class="searching">⚔️ Търсим играчи… <span class="count"></span></p>
+      <p class="sub">${lobby.adult ? 'Ако не дойдат още играчи, ще влязат ботове.' : 'Ако не дойдат още деца, ще влязат ботове.'}</p>${stakeNote()}`;
     tick(); lobbyTimer = setInterval(tick, 250);
   } else {
-    $('#lobbyHead').innerHTML = `<div class="eyebrow">Код на стаята</div><div class="room-code">${esc(lobby.code)}</div><p class="sub">Кажи кода на приятелите си, за да влязат.</p>`;
+    $('#lobbyHead').innerHTML = `<div class="eyebrow">Код на стаята${lobby.adult ? ' · Възрастни 18+' : ''}</div><div class="room-code">${esc(lobby.code)}</div><p class="sub">Кажи кода на приятелите си, за да влязат.</p>${stakeNote()}`;
   }
   $('#members').innerHTML = lobby.members.map((m) => `<li>${shield(m.id)}${esc(m.name)}
-    <span class="tags">${m.id === me ? '<span class="tag">ти</span>' : ''}${m.id === lobby.hostId && !lobby.isPublic ? '<span class="tag">👑 домакин</span>' : ''}${!m.connected ? '<span class="tag">няма връзка</span>' : ''}
+    <span class="tags">${m.coins != null ? `<span class="tag coin">🪙 ${m.coins}</span>` : ''}${m.id === me ? '<span class="tag">ти</span>' : ''}${m.id === lobby.hostId && !lobby.isPublic ? '<span class="tag">👑 домакин</span>' : ''}${!m.connected ? '<span class="tag">няма връзка</span>' : ''}
     ${host && m.id !== me ? `<button data-kick="${m.id}" title="Премахни">✕</button>` : ''}</span></li>`).join('') +
     Array.from({ length: Math.max(0, (lobby.isPublic ? 3 : 2) - lobby.members.length) }, () => '<li class="empty">свободно място</li>').join('');
   for (const b of $$('[data-kick]')) b.onclick = () => send({ t: 'kick', pid: b.dataset.kick });
@@ -216,6 +231,9 @@ function renderLobby() {
   $('#guestWait').classList.toggle('hidden', host || lobby.isPublic);
   $('#guestWait').textContent = '⏳ Изчакай домакина да започне играта.';
   if (!host) return;
+  // В стая за възрастни класът не се сменя
+  $('#gradeBtns').classList.toggle('hidden', !!lobby.adult); $('#gradeBtns').previousElementSibling?.classList.toggle('hidden', !!lobby.adult);
+  $('#subjCount').previousSibling.textContent = lobby.adult ? 'Категории ' : 'Предмети ';
   $('#gradeBtns').innerHTML = [1, 2, 3, 4].map((g) => `<button class="${lobby.grade === g ? 'on' : ''}" data-g="${g}">${g} клас</button>`).join('');
   $('#roundBtns').innerHTML = [2, 3, 4, 5].map((r) => `<button class="${lobby.battleRounds === r ? 'on' : ''}" data-r="${r}">${r}</button>`).join('');
   for (const b of $$('[data-g]')) b.onclick = () => send({ t: 'setOptions', grade: +b.dataset.g });
@@ -223,7 +241,7 @@ function renderLobby() {
   const avail = lobby.available || [];
   const on = lobby.allSubjects ? avail : (lobby.subjects || []).filter((s) => avail.includes(s));
   $('#subjCount').textContent = lobby.allSubjects ? '(всички)' : `(${on.length} от ${avail.length})`;
-  $('#subjBtns').innerHTML = `<button class="all ${lobby.allSubjects ? 'on' : ''}" data-sub="all">✨ Всички предмети</button>` +
+  $('#subjBtns').innerHTML = `<button class="all ${lobby.allSubjects ? 'on' : ''}" data-sub="all">✨ ${lobby.adult ? 'Всички категории' : 'Всички предмети'}</button>` +
     avail.map((s) => `<button class="${on.includes(s) ? 'on' : ''}" data-sub="${s}">${SUBJECTS[s]?.[1] || '❓'} ${SUBJECTS[s]?.[0] || s}</button>`).join('');
   for (const b of $$('[data-sub]')) b.onclick = () => {
     const k = b.dataset.sub;
@@ -234,6 +252,12 @@ function renderLobby() {
   };
   $('#btnBot').disabled = lobby.members.length >= 4;
   $('#btnStart').disabled = lobby.members.length < 2;
+}
+
+// Залог в стая за възрастни: кой залага и колко е банката
+function stakeNote() {
+  if (!lobby?.stake) return '';
+  return `<p class="stake-note">🪙 Залог <b>${lobby.stake}</b> на играч. Победителят взима залозите на другите. Ботовете и гостите не залагат, а ако победи бот, всеки си получава залога.</p>`;
 }
 
 // ---------- карта ----------
@@ -257,6 +281,8 @@ async function loadMap() {
 }
 
 function castleSvg(p, x, y, prev) {
+  const fl = flagOf(p.id);
+  const pennant = fl && window.ZFlag ? `<g transform="translate(15 -12)">${ZFlag.inner(fl, 13, 9)}<rect width="13" height="9" fill="none" stroke="#2b1a0c" stroke-width=".7"/></g>` : '<path d="M15 -10l8 3-8 3z" fill="#ffe08a" stroke="#2b1a0c" stroke-width=".8"/>';
   const towers = [[1, 5, 8, 21], [11, 0, 8, 26], [21, 5, 8, 21]];
   const tw = towers.map(([tx, ty, w, h], i) => {
     const down = i >= p.towers, fresh = down && prev != null && i < prev;
@@ -264,7 +290,7 @@ function castleSvg(p, x, y, prev) {
     return `<path class="tw ${fresh ? 'down' : down ? 'gone' : ''}" d="${d}" fill="${p.color}" stroke="#2b1a0c" stroke-width="1.2"/>`;
   }).join('');
   return `<g class="castle" transform="translate(${x - 21} ${y - 58}) scale(1.4)">${tw}<rect x="4" y="13" width="22" height="13" fill="${p.color}" stroke="#2b1a0c" stroke-width="1.2"/>
-    <path d="M12 26v-6a3 3 0 0 1 6 0v6z" fill="#2b1a0c"/><path d="M15 0v-10" stroke="#2b1a0c" stroke-width="1.2"/><path d="M15 -10l8 3-8 3z" fill="#ffe08a" stroke="#2b1a0c" stroke-width=".8"/></g>`;
+    <path d="M12 26v-6a3 3 0 0 1 6 0v6z" fill="#2b1a0c"/><path d="M15 0v-12" stroke="#2b1a0c" stroke-width="1.2"/>${pennant}</g>`;
 }
 
 function renderMap() {
@@ -291,7 +317,7 @@ function renderMap() {
   // замъци на столиците (3 кули)
   const g = $('#castles');
   for (const p of state.players) {
-    const k = p.capital && p.alive ? `${p.capital}|${p.color}|${p.towers}` : '';
+    const k = p.capital && p.alive ? `${p.capital}|${p.color}|${p.towers}|${JSON.stringify(flagOf(p.id))}` : '';
     if (castleKeys[p.id]?.k === k) continue;
     const prev = castleKeys[p.id]?.towers;
     castleKeys[p.id] = { k, towers: p.towers };
@@ -432,7 +458,7 @@ function renderModal() {
   const isModal = c && (c.type === 'question' || c.type === 'reveal' || c.type === 'end' || (c.type === 'info' && INTRO.includes(c.icon)));
   if (!isModal) { if (lastModalKey !== '#static') { overlay.classList.add('hidden'); lastModalKey = ''; } return; }
   // Докато не съм отговорил, чуждите отговори не прерисуват въпроса (иначе докосване може да се изгуби)
-  const keyObj = { ...c, timeLeft: 0 };
+  const keyObj = { ...c, timeLeft: 0, stakes: c.type === 'end' ? lobby?.stakes?.result || null : undefined };
   if (c.type === 'question' && c.participants.includes(me) && !c.answers[me]) keyObj.answers = {};
   const key = JSON.stringify(keyObj);
   if (key === lastModalKey) return;
@@ -547,7 +573,7 @@ function renderEnd(c, modal, fresh) {
   modal.innerHTML = `<div class="announce"><div class="ribbon">Край на войната</div><br><span class="big">${iWon ? '👑' : '🏆'}</span>
     <h2>${title}</h2>
     <ul class="results podium">${c.ranking.map((r, i) => `<li>${['🥇', '🥈', '🥉', '4.'][places[i] - 1]} ${shield(r.id)} ${pname(r.id)} ${r.alive ? '' : '<small>☠️</small>'}<span class="r">${r.score} т.</span></li>`).join('')}</ul>
-    ${analysis}${others ? `<p class="sub">Точност: ${others}</p>` : ''}
+    ${stakeResult()}${analysis}${others ? `<p class="sub">Точност: ${others}</p>` : ''}
     <div class="end-actions">${actions}</div></div>`;
   if (fresh) { Sound.play(iWon ? 'win' : 'flag'); if (iWon) confetti(); }
   const again = $('#btnAgain'); if (again) again.onclick = () => send({ t: 'backToLobby' });
@@ -559,6 +585,14 @@ function renderEnd(c, modal, fresh) {
   }
   const online = $('#btnAgainOnline'); if (online) online.onclick = () => { afterLeave = startQuick; send({ t: 'leave' }); };
   $('#btnHome').onclick = () => send({ t: 'leave' });
+}
+function stakeResult() {
+  const s = lobby?.stakes;
+  if (!s || !s.result) return '';
+  const mine = s.by.includes(me);
+  if (s.result.refund) return `<p class="stake-res">🪙 Залогът се върна${mine ? ' и при теб' : ''}.</p>`;
+  if (s.result.winner === me) return `<p class="stake-res win">🪙 Спечели банката: <b>+${s.result.pot}</b> парички!</p>`;
+  return mine ? `<p class="stake-res">🪙 Загуби залога си (${lobby.stake}). Следващия път!</p>` : `<p class="stake-res">🪙 ${pname(s.result.winner)} взе банката (${s.result.pot}).</p>`;
 }
 function weakest(subj) {
   const weak = subj.filter(([, b]) => b.n >= 2 && b.ok / b.n < 0.5).map(([s]) => SUBJECTS[s]?.[0] || s);
@@ -582,9 +616,9 @@ const picHtml = (pic) => pic ? `<div class="qpic ${pic.length > 6 ? 'many' : ''}
 // ---------- упражнение и предизвикателство на деня ----------
 // Предметите по класове според учебната програма
 const SUBJ_GRADES = { okol: [1, 2], prir: [3, 4], obsht: [3, 4], comp: [3, 4], eng: [2, 3, 4] };
-const subjectsFor = (g) => ['bel', 'mat', 'okol', 'prir', 'obsht', 'eng', 'muz', 'izk', 'tech', 'sport', 'comp'].filter((s) => !SUBJ_GRADES[s] || SUBJ_GRADES[s].includes(g));
+const subjectsFor = (g) => g === ADULT ? ADULT_SUBJ : ['bel', 'mat', 'okol', 'prir', 'obsht', 'eng', 'muz', 'izk', 'tech', 'sport', 'comp'].filter((s) => !SUBJ_GRADES[s] || SUBJ_GRADES[s].includes(g));
 let pr = null, prTimer = null, prLast = null;
-const DAILY_KEY = 'quizzard-daily';
+let DAILY_KEY = 'quizzard-daily'; // в режима за възрастни: 'zn-daily-adult' (adult.js)
 const dayShift = (day, d) => { const t = new Date(day + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + d); return t.toISOString().slice(0, 10); };
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' });
 function dailyInfo() {
@@ -598,13 +632,13 @@ function renderDailyTile() {
 }
 renderDailyTile();
 function requestPractice(opts) { prLast = opts; send({ t: 'practice', ...opts }); }
-$('#btnDaily').onclick = () => requestPractice({ grade: homeGrade, daily: true });
+$('#btnDaily').onclick = () => requestPractice({ grade: playGrade(), daily: true });
 $('#btnPractice').onclick = () => {
-  const subs = subjectsFor(homeGrade);
-  openOverlay(`<div class="mhead"><h3>📚 Упражнение · ${homeGrade} клас</h3></div><div class="mbody"><p class="sub">Избери предмет:</p>
-    <div class="subj-grid practice-subj"><button class="all on" data-ps="all">✨ Всички предмети</button>${subs.map((s) => `<button class="on" data-ps="${s}">${SUBJECTS[s][1]} ${SUBJECTS[s][0]}</button>`).join('')}</div>
+  const g = playGrade(), subs = subjectsFor(g);
+  openOverlay(`<div class="mhead"><h3>📚 Упражнение · ${gradeLabel(g)}</h3></div><div class="mbody"><p class="sub">${g === ADULT ? 'Избери категория:' : 'Избери предмет:'}</p>
+    <div class="subj-grid practice-subj"><button class="all on" data-ps="all">✨ ${g === ADULT ? 'Всички категории' : 'Всички предмети'}</button>${subs.map((s) => `<button class="on" data-ps="${s}">${SUBJECTS[s][1]} ${SUBJECTS[s][0]}</button>`).join('')}</div>
     <button class="link" id="psCancel" style="display:block;margin:12px auto 0;color:var(--muted)">Отказ</button></div>`);
-  for (const b of $$('[data-ps]')) b.onclick = () => { closeOverlay(); requestPractice({ grade: homeGrade, subjects: b.dataset.ps === 'all' ? null : [b.dataset.ps] }); };
+  for (const b of $$('[data-ps]')) b.onclick = () => { closeOverlay(); requestPractice({ grade: g, subjects: b.dataset.ps === 'all' ? null : [b.dataset.ps] }); };
   $('#psCancel').onclick = closeOverlay;
 };
 function startPracticeSet(m) {
@@ -638,7 +672,7 @@ function renderPractice() {
   } else body = `<div class="numbox">${esc(a.value ?? '—')}</div>`;
   const fb = a ? `<div class="feedback ${a.ok ? 'ok' : 'bad'}">${a.ok ? '✅ Браво, вярно!' : `❌ Верният отговор е: <b>${esc(q.kind === 'num' ? q.answer : q.correct)}</b>`}</div>
     <button id="pNext" class="btn gold big" style="width:100%">${pr.i === pr.items.length - 1 ? 'Виж резултата ▶' : 'Напред ▶'}</button>` : '';
-  card.innerHTML = `<div class="pr-head"><span class="eyebrow">${pr.daily ? `🌞 Предизвикателство на деня · ${pr.grade} клас` : `📚 Упражнение · ${pr.grade} клас`}</span>
+  card.innerHTML = `<div class="pr-head"><span class="eyebrow">${pr.daily ? `🌞 Предизвикателство на деня · ${gradeLabel(pr.grade)}` : `📚 Упражнение · ${gradeLabel(pr.grade)}`}</span>
       <span class="pr-score">⭐ ${pr.score}</span></div><div class="pr-dots">${dots}</div>
     <div class="meta"><span class="chip light">${subjIcon} ${subjName}</span><span class="chip light">Въпрос ${pr.i + 1} от ${pr.items.length}</span></div>
     ${picHtml(q.pic)}
