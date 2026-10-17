@@ -147,7 +147,10 @@ body.qx-gated .qx-account, body.qx-gated .qx-notice { display: none; }
 }
 
 /* Малка височина (хоризонтален телефон или отворена клавиатура): по-компактен прозорец, който се превърта */
-.qx-back.qx-short { place-items: start center; padding: 4px; overflow: hidden; }
+.qx-back.qx-short { display: block; padding: 4px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+/* с отворена клавиатура целият прозорец се превърта с пръст, за да стигнеш до другите полета и бутона */
+.qx-short .qx-modal { max-height: none; margin: 0 auto 40vh; }
+.qx-short .qx-body { overflow: visible; }
 .qx-short .qx-modal { border-width: 2px; }
 .qx-short .qx-head { padding: 4px 12px; }
 .qx-short .qx-head h2 { font-size: 1.05rem; }
