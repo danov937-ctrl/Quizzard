@@ -366,3 +366,111 @@ details.an summary { cursor: pointer; font-weight: 900; color: var(--wood2); pad
 }
 .qpic.many { font-size: 2.4rem; letter-spacing: .12em; }
 @media (max-width: 900px) { .qpic.many { font-size: 1.9rem; } }
+
+/* ---------- хоризонтално на телефони и таблети ---------- */
+.rotate { display: none; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center;
+  background: radial-gradient(ellipse at 50% 35%, #1d4f80, var(--sea1) 70%); color: #f5e6c4; }
+.rotate b { font-family: "Kurale", serif; font-size: 1.9rem; color: var(--gold1); text-shadow: 0 2px 0 #3a1d05; }
+.rotate span { font-weight: 800; font-size: 1.05rem; max-width: 320px; line-height: 1.35; }
+.rotate .btn { margin-top: 8px; }
+.rot-device { width: 74px; height: 124px; border: 6px solid var(--gold1); border-radius: 16px; position: relative; margin-bottom: 18px; animation: rotDev 2.4s ease-in-out infinite; box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+.rot-device i { position: absolute; left: 50%; bottom: 6px; width: 16px; height: 4px; margin-left: -8px; border-radius: 2px; background: var(--gold1); }
+@keyframes rotDev { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate { display: flex; }
+  body.has-rotate > :not(.rotate):not(.bg) { visibility: hidden; }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .screen { padding: 8px 12px; }
+  /* начален екран: две колони */
+  .hero { max-width: 1100px; padding-top: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); column-gap: 14px; align-items: start; text-align: left; }
+  .hero > * { grid-column: 1; }
+  .hero > .home-modes { grid-column: 2; grid-row: 1 / span 3; }
+  .hero > .home-links, .hero > #homeErr, .hero > .ad-slot { grid-column: 1 / -1; }
+  .home-modes .modes { grid-template-columns: 1fr; gap: 6px; margin: 0; }
+  .home-modes .modes.solo { margin-top: 6px; }
+  .brand { justify-content: flex-start; gap: 4px; }
+  .brand-logo { width: 54px; height: 54px; }
+  .brand-name { font-size: 2.7rem; }
+  .tagline { display: none; }
+  .setup { grid-template-columns: 1fr; gap: 6px; padding: 10px 12px; margin-top: 6px; }
+  .setup input { padding: 8px 12px; }
+  .seg button { padding: 8px 4px; }
+  .join { margin-top: 8px; padding: 8px 12px; gap: 8px; }
+  .join .row input, .join .row button { padding-top: 8px; padding-bottom: 8px; }
+  .home-links { justify-content: center; gap: 2px 10px; margin-top: 6px; }
+  .home-links .link { font-size: .85rem; padding: 4px 6px; }
+  .mode { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; text-align: left; padding: 8px 12px; }
+  .mode-icon { grid-row: 1 / span 2; font-size: 1.8rem; }
+  .mode-title { font-size: 1.1rem; }
+  .mode-sub { display: none; }
+  .mode-icon { grid-row: auto; font-size: 1.6rem; }
+  .mode { min-height: 50px; padding: 6px 12px; }
+  .hero .seg { gap: 4px; }
+  .hero .seg button { white-space: nowrap; font-size: .82rem; padding: 7px 2px; min-width: 0; }
+  .hero .join { flex-direction: row; align-items: center; }
+  .hero .join .lbl { font-size: .85rem; flex: 1 1 0; min-width: 0; white-space: normal; }
+  .hero .join .row { flex: 1.4 1 0; min-width: 0; max-width: none; gap: 6px; }
+  .hero .join .row .btn { padding-left: 12px; padding-right: 12px; }
+  .hero .join .code-input { flex: 1 1 0; min-width: 70px; width: 0; letter-spacing: .08em; padding-left: 4px; padding-right: 4px; }
+  .hero .home-links .link { font-size: .8rem; padding: 3px 4px; }
+  #homeErr { margin: 4px 0 0; } #homeErr:empty { display: none; }
+  .setup .lbl { font-size: .9rem; }
+  /* стая и упражнение: две колони, без голямото лого */
+  #lobby .mini-brand, #practice .mini-brand { display: none; }
+  .lobby-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-auto-flow: row dense; column-gap: 16px; align-items: start; }
+  .lobby-card > * { grid-column: 1; }
+  .lobby-card > #hostControls { grid-column: 2; grid-row: 1 / span 4; }
+  .lobby-card .room-code { font-size: 2.4rem; padding: 2px 16px; }
+  .lobby-card #hostControls .lbl { margin-top: 6px; }
+  .lobby-card .subj-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .lobby-card .subj-grid button { padding: 4px 6px; font-size: .74rem; }
+  .lobby-card .seg button { padding: 6px 4px; }
+  .lobby-card .lbl { font-size: .9rem; }
+  .lobby-card .members { margin: 8px 0 4px; } .lobby-card .members li { padding: 6px 10px; margin-bottom: 5px; }
+  .lobby-card .row.two { margin-top: 8px; }
+  .practice-card:has(> .qtop) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-auto-flow: row dense; column-gap: 16px; align-items: start; }
+  .practice-card:has(> .qtop) > * { grid-column: 2; }
+  .practice-card:has(> .qtop) > :is(.pr-head, .pr-dots, .pr-foot) { grid-column: 1 / -1; }
+  .practice-card:has(> .qtop) > :is(.meta, .qpic, .qtop) { grid-column: 1; }
+  .practice-card .numpad { gap: 6px; } .practice-card .numpad button { padding: 2px; min-height: 36px; font-size: 1.15rem; }
+  .practice-card .numbox { min-height: 44px; font-size: 1.7rem; padding: 2px; margin-bottom: 6px; }
+  .lobby-card, .practice-card { max-width: 820px; padding: 12px 14px; }
+  .qpic { font-size: 2.6rem; margin-bottom: 4px; }
+  .practice-card .opts { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .practice-card .opts button { min-height: 48px; padding: 9px 8px 9px 36px; font-size: 1rem; }
+  .practice-card .qtext { font-size: 1.15rem; margin: 0 0 8px; }
+  .feedback { margin: 8px 0 6px; padding: 6px; }
+  /* играта: играчите в колона вляво, картата заема останалото */
+  #game.screen { flex-direction: row; gap: 8px; padding: 6px 8px; }
+  #game .hud { flex-direction: column; width: clamp(130px, 19vw, 180px); margin: 0; gap: 6px; }
+  #game .hud-players { grid-template-columns: 1fr; gap: 5px; align-content: start; }
+  #game .hud-right { flex-direction: column; gap: 5px; }
+  #game .hud-right .phase { white-space: normal; font-size: .8rem; padding: 5px 6px; line-height: 1.2; }
+  #game .icon-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  #game .icon-btn { padding: 4px 0; font-size: .85rem; }
+  #game .pcard { padding: 4px 6px; gap: 2px 5px; }
+  #game .pcard.turn { transform: translateX(3px) scale(1.02); }
+  #game .pcard .pname { font-size: .8rem; }
+  #game .pcard .towers { font-size: .62rem; }
+  #game .pcard .pts { font-size: .9rem; padding: 1px 5px; }
+  #game .board { flex: 1; min-width: 0; display: flex; }
+  #game .map-frame { flex: 1; height: 100%; aspect-ratio: auto; padding: 4px; }
+  .map-banner { font-size: .85rem; top: 10px; }
+  #overlay:not(.dock) { padding: 6px; }
+  #overlay:not(.dock) .modal { max-height: 100%; }
+  #overlay:not(.dock) .mhead { padding: 8px 16px; }
+  #overlay:not(.dock) .mhead h3 { font-size: 1.05rem; }
+  #overlay:not(.dock) .duel { margin-top: 2px; font-size: .95rem; }
+  #overlay:not(.dock) .duel .shield { width: 24px; height: 28px; }
+  #overlay:not(.dock) .mbody { padding: 10px 16px; }
+  #overlay:not(.dock) .qtext { font-size: 1.1rem; }
+  #overlay:not(.dock) .clock { width: 48px; height: 48px; font-size: 1.1rem; }
+  #overlay:not(.dock) .speak { width: 40px; height: 40px; }
+  #overlay:not(.dock) .opts button { min-height: 48px; padding: 8px 8px 8px 36px; font-size: 1rem; }
+  #overlay:not(.dock) .opts { gap: 8px; }
+  .announce .big { font-size: 2.6rem; } .announce h2 { margin: 4px 0; }
+  .overlay.dock { justify-content: flex-end; align-items: center; }
+  .overlay.dock .modal { width: min(380px, 46vw); max-height: 96vh; }
+}
