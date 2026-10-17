@@ -79,6 +79,8 @@ const Sound = {
     switch (name) {
       case 'click': T(660, 0.06, { type: 'square', vol: 0.05 }); break;
       case 'tick': T(1100, 0.04, { type: 'square', vol: 0.04 }); break;
+      case 'drum': T(130, 0.18, { vol: 0.22, to: 70 }); this.noise(0.08, { vol: 0.12, freq: 900 }); break;
+      case 'go': [523, 784].forEach((f, i) => T(f, i ? 0.32 : 0.12, { type: 'triangle', at: i * 0.1, vol: 0.1 })); break;
       case 'good': [523, 659, 784, 1047].forEach((f, i) => T(f, 0.18, { type: 'triangle', at: i * 0.08 })); break;
       case 'bad': T(220, 0.35, { type: 'sawtooth', vol: 0.08, to: 110 }); break;
       case 'flag': [392, 523, 659].forEach((f, i) => T(f, 0.22, { type: 'triangle', at: i * 0.1, vol: 0.12 })); break;
@@ -158,7 +160,12 @@ function handle(m) {
   else if (m.t === 'reportOk') { closeReport(); toast('Благодарим! Сигналът е изпратен.'); }
   else if (m.t === 'error') { for (const s of ['#homeErr', '#lobbyErr', '#reportErr']) $(s).textContent = m.msg; }
   else if (m.t === 'lobby') { lobby = m.lobby; state = null; lastFxId = null; closeOverlay(); renderLobby(); show('lobby'); }
-  else if (m.t === 'game') { lobby = m.lobby; state = m.state; show('game'); renderGame(); }
+  else if (m.t === 'game') {
+    // нова игра (друга стая, други играчи или „Играй пак“): картата се чисти от замъците и анимациите на старата
+    const ids = (st) => st.players.map((p) => p.id).join();
+    if (!state || ids(state) !== ids(m.state) || (state.phase === 'ended' && m.state.phase !== 'ended')) resetMap();
+    lobby = m.lobby; state = m.state; show('game'); renderGame();
+  }
 }
 
 // ---------- начален екран ----------
@@ -297,7 +304,8 @@ function renderMap() {
   if (!mapData || !state) return;
   const c = state.current;
   const canPick = c?.type === 'pick' && c.picker === me ? new Set(c.options) : new Set();
-  const target = c?.region && (c.type === 'question' || c.type === 'reveal') ? c.region : null;
+  const target = c?.region && (c.type === 'question' || c.type === 'reveal' || c.type === 'prep' || (c.type === 'picked' && c.mode === 'attack')) ? c.region : null;
+  const chosen = c?.type === 'picked' && c.mode !== 'attack' ? c.region : null;
   for (const r of mapData.regions) {
     const el = document.getElementById('r-' + r.id);
     const owner = player(state.owner[r.id]);
@@ -305,6 +313,7 @@ function renderMap() {
     el.classList.toggle('free', !owner);
     el.classList.toggle('can', canPick.has(r.id));
     el.classList.toggle('target', target === r.id);
+    el.classList.toggle('chosen', chosen === r.id);
     const badge = document.querySelector(`#l-${r.id} .badge`);
     const v = state.value[r.id], isCap = state.players.some((p) => p.capital === r.id && p.alive);
     const key = owner && !isCap ? `${v}|${owner.color}` : '';
@@ -316,6 +325,7 @@ function renderMap() {
   }
   // замъци на столиците (3 кули)
   const g = $('#castles');
+  for (const el of [...g.children]) if (!state.players.some((p) => 'c-' + p.id === el.id)) { el.remove(); delete castleKeys[el.id.slice(2)]; }
   for (const p of state.players) {
     const k = p.capital && p.alive ? `${p.capital}|${p.color}|${p.towers}|${JSON.stringify(flagOf(p.id))}` : '';
     if (castleKeys[p.id]?.k === k) continue;
@@ -344,6 +354,10 @@ function flag(region, color) {
   fxAdd(`<g class="flag"><path d="M${x + 12} ${y - 4}v-26" stroke="#2b1a0c" stroke-width="2"/><path d="M${x + 12} ${y - 30}l16 5-16 5z" fill="${color}" stroke="#fff" stroke-width="1"/></g>`, 1800);
 }
 function shake() { const f = $('.map-frame'); f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake'); }
+function resetMap() {
+  castleKeys = {}; clearArrow();
+  for (const id of ['#castles', '#fxl']) { const g = $(id); if (g) g.innerHTML = ''; }
+}
 function clearArrow() { attackArrow?.el.remove(); attackArrow = null; }
 function arrow(from, to) {
   clearArrow(); if (!from) return;
@@ -410,11 +424,22 @@ function renderGame() {
   if (c?.type === 'pick') {
     const mine = c.picker === me;
     banner.className = 'map-banner' + (mine ? ' me' : '');
+    banner.dataset.k = '';
     banner.innerHTML = mine ? `👉 ${esc(c.title)}!` : `${pname(c.picker)} ${{ capital: 'избира столица', attack: 'избира къде да нападне' }[c.mode] || 'избира област'}…`;
     const k = 'pick' + c.picker + c.options.join();
     if (bar.dataset.k !== k) { bar.dataset.k = k; startBar(bar.firstElementChild, c.timeLeft); }
     bar.classList.remove('hidden');
-  } else { banner.className = 'map-banner hidden'; bar.classList.add('hidden'); bar.dataset.k = ''; }
+  } else if (c?.type === 'picked') {
+    const rn = esc(mapData.regions.find((r) => r.id === c.region)?.name || '');
+    const k = 'picked' + c.picker + c.region;
+    if (banner.dataset.k !== k) {
+      banner.dataset.k = k;
+      banner.className = 'map-banner picked' + (c.picker === me ? ' me' : '');
+      banner.innerHTML = c.mode === 'attack' ? `⚔️ ${pname(c.picker)} напада ${rn}!` : c.mode === 'capital' ? `🏰 ${pname(c.picker)} избра столица ${rn}` : `🚩 ${pname(c.picker)} завзе ${rn}`;
+    }
+    bar.classList.add('hidden'); bar.dataset.k = '';
+  } else { banner.className = 'map-banner hidden'; banner.dataset.k = ''; bar.classList.add('hidden'); bar.dataset.k = ''; }
+  renderPrep(c);
   renderCard(c);
   renderModal();
 }
@@ -435,6 +460,38 @@ function renderCard(c) {
   card.dataset.k = k;
   card.className = `map-card ${c.icon}`;
   card.innerHTML = `<span class="ic">${ICONS[c.icon] || '📣'}</span><b>${esc(c.title)}</b><span>${esc(c.text || '')}</span>`;
+}
+
+// Преди всеки въпрос: карта „Въпрос“ слиза върху картата и отброява 3, 2, 1
+let prepTimer = null;
+function renderPrep(c) {
+  let card = $('#prepCard');
+  if (!card) { card = document.createElement('div'); card.id = 'prepCard'; card.className = 'prep-card hidden'; $('.map-frame').appendChild(card); }
+  if (c?.type !== 'prep') { if (!card.classList.contains('hidden')) { card.classList.add('hidden'); card.dataset.k = ''; clearInterval(prepTimer); } return; }
+  const k = JSON.stringify([c.title, c.subject, c.participants, c.region]);
+  if (card.dataset.k === k) return;
+  card.dataset.k = k;
+  const [subjName, subjIcon] = SUBJECTS[c.subject] || ['Въпрос', '❓'];
+  const mine = c.participants.includes(me);
+  const who = c.attacker ? `<div class="duel">${shield(c.attacker)}<b>${pname(c.attacker)}</b><span class="vs">⚔️</span><b>${pname(c.defender)}</b>${shield(c.defender)}</div>` : '';
+  card.className = 'prep-card' + (mine ? ' mine' : '');
+  card.innerHTML = `<div class="prep-title">${esc(c.title || 'Въпрос')}</div>${who}
+    <div class="prep-subj"><span class="ic">${subjIcon}</span>${esc(subjName)}${c.kind === 'num' ? ' · 🔢 напиши число' : ''}</div>
+    <div class="prep-count"><span></span></div><div class="prep-note">${mine ? 'Приготви се!' : 'Гледай кой ще познае…'}</div>`;
+  const end = performance.now() + (c.timeLeft ?? 3000);
+  let last = null;
+  clearInterval(prepTimer);
+  const tick = () => {
+    const el = card.querySelector('.prep-count span'); if (!el) return clearInterval(prepTimer);
+    const s = Math.ceil(Math.max(0, end - performance.now()) / 1000);
+    if (s === last) return;
+    last = s;
+    el.textContent = s > 0 ? s : '!';
+    el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+    Sound.play(s > 0 ? 'drum' : 'go');
+    if (s <= 0) clearInterval(prepTimer);
+  };
+  tick(); prepTimer = setInterval(tick, 100);
 }
 
 let clockTimer = null;
