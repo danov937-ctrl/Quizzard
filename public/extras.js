@@ -37,17 +37,34 @@
   function close() { q('.qx-back')?.remove(); }
   // Отворена клавиатура на телефон (особено хоризонтално): прозорецът се побира във видимата част
   // над клавиатурата, а полето, в което се пише, се превърта така, че да се вижда.
+  // Полето се центрира само при фокус и докато клавиатурата се отваря, не при по-късно превъртане:
+  // иначе прозорецът „скача“ обратно и не можеш да стигнеш до другите полета и бутона.
+  let focusedAt = 0;
   function fitViewport() {
     const back = q('.qx-back'), vv = window.visualViewport;
     if (!back) return;
     if (vv) { back.style.top = vv.offsetTop + 'px'; back.style.left = vv.offsetLeft + 'px'; back.style.height = vv.height + 'px'; back.style.width = vv.width + 'px'; back.style.bottom = back.style.right = 'auto'; }
     back.classList.toggle('qx-short', (vv ? vv.height : innerHeight) < 460);
     const a = document.activeElement;
-    if (a && back.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) a.scrollIntoView({ block: 'center' });
+    if (Date.now() - focusedAt < 800 && a && back.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) a.scrollIntoView({ block: 'center' });
   }
   if (window.visualViewport) { visualViewport.addEventListener('resize', fitViewport); visualViewport.addEventListener('scroll', fitViewport); }
-  document.addEventListener('focusin', (e) => { if (e.target.closest?.('.qx-back')) { fitViewport(); setTimeout(fitViewport, 350); } });
+  document.addEventListener('focusin', (e) => { if (e.target.closest?.('.qx-back')) { focusedAt = Date.now(); fitViewport(); setTimeout(fitViewport, 350); } });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  // Enter / „Напред“ на клавиатурата на телефона: към следващото поле, а на последното изпраща формата
+  const fields = (form) => [...form.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select, textarea')].filter((el) => !el.disabled && el.offsetParent);
+  document.addEventListener('focusin', (e) => {
+    const el = e.target, form = el.form;
+    if (!form || !el.closest?.('.qx-back, .qx-gate') || el.tagName === 'TEXTAREA') return;
+    const list = fields(form);
+    el.setAttribute('enterkeyhint', list.indexOf(el) < list.length - 1 ? 'next' : 'go');
+  });
+  document.addEventListener('keydown', (e) => {
+    const el = e.target;
+    if (e.key !== 'Enter' || e.isComposing || !el.form || el.tagName === 'TEXTAREA' || !el.closest?.('.qx-back, .qx-gate')) return;
+    const list = fields(el.form), i = list.indexOf(el);
+    if (i >= 0 && i < list.length - 1) { e.preventDefault(); list[i + 1].focus(); }
+  });
   function flash(msg) {
     const t = document.createElement('div'); t.className = 'qx-toast'; t.textContent = msg;
     document.body.append(t); setTimeout(() => t.remove(), 3200);
