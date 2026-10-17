@@ -1,4 +1,4 @@
-// Знаменосци · режим за възрастни (18+): превключвател деца/възрастни, парички, магазин,
+// Знаменосци · режим за възрастни: превключвател деца/възрастни, парички, магазин,
 // реклами с награда и редактор на знамето. Зарежда се след client.js и extras.js.
 (() => {
   'use strict';
@@ -24,7 +24,7 @@
   const nameInput = q('#name'), kidPlaceholder = nameInput?.placeholder || '';
 
   // Превключвател „Деца / Възрастни“ (крие се, когато си влязъл: режимът идва от профила)
-  const switchHtml = () => `<div class="zn-mode" role="tablist" aria-label="Режим"><button type="button" data-mode="kids">👧 Деца · 1–4 клас</button><button type="button" data-mode="adult">🧑 Възрастни · 18+</button></div>`;
+  const switchHtml = () => `<div class="zn-mode" role="tablist" aria-label="Режим"><button type="button" data-mode="kids">👧 Деца · 1–4 клас</button><button type="button" data-mode="adult">🧑 Възрастни</button></div>`;
   const setup = q('.panel.setup', home);
   setup?.insertAdjacentHTML('afterbegin', switchHtml());
   const gateBox = q('.qx-gate-box');
@@ -56,7 +56,7 @@
     const gradeRow = q('#homeGrade')?.closest('.setup-row'); if (gradeRow) gradeRow.classList.toggle('hidden', adult);
     for (const a of document.querySelectorAll('a[href="/privacy.html"]')) { a.dataset.kid ||= a.textContent; a.href = adult ? '/privacy-adult.html' : '/privacy.html'; a.textContent = adult ? '🔒 Поверителност' : a.dataset.kid; }
     for (const a of document.querySelectorAll('a[href="/privacy-adult.html"]')) if (!adult) { a.href = '/privacy.html'; if (a.dataset.kid) a.textContent = a.dataset.kid; }
-    const note = q('.qx-gate-note'); if (note) { note.dataset.kid ||= note.textContent; note.textContent = adult ? 'Като гост играеш с ботове и с приятели без залог. За онлайн игри със залог и парички трябва профил 18+.' : note.dataset.kid; }
+    const note = q('.qx-gate-note'); if (note) { note.dataset.kid ||= note.textContent; note.textContent = adult ? 'Като гост играеш с ботове и с приятели без залог. За онлайн игри със залог и парички трябва профил за възрастни.' : note.dataset.kid; }
     // Предизвикателството на деня се брои отделно за всеки режим (client.js)
     try { DAILY_KEY = adult ? 'zn-daily-adult' : 'quizzard-daily'; renderDailyTile(); } catch {}
     const meta = q('meta[name="theme-color"]'); if (meta && document.documentElement.dataset.season !== 'xmas') meta.content = adult ? '#10151f' : '#0e2a4a';

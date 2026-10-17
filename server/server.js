@@ -20,7 +20,7 @@ const S = () => admin.settings();
 const PUBLIC_PLAYERS = () => S().onlinePlayers; // онлайн игра: трима играчи, както в Тривиадор
 const QUICK_WAIT_MS = () => Number(process.env.QUICK_WAIT_MS) || S().onlineWait * 1000; // онлайн игра: колко чакаме хора, преди да добавим ботове
 const ALL_SUBJECTS = Object.keys(SUBJECTS);
-// Класове 1–4 и ADULT (9) = режимът за възрастни 18+
+// Класове 1–4 и ADULT (9) = режимът за възрастни
 const GRADES = [1, 2, 3, 4, ADULT];
 const gradeOf = (g, d = 2) => (GRADES.includes(g) ? g : d);
 // Кои предмети имат въпроси за всеки клас (класа и класа под него), за избора на категории в стаята.
@@ -172,7 +172,7 @@ wss.on('connection', (ws, req) => {
   const closed = () => S().maintenance.on && (err(S().maintenance.message), true);
   // Детски профил не влиза в режима за възрастни
   const audienceOk = (grade) => {
-    if (grade === ADULT && account && !account.banned && !account.adult) { err('Режимът за възрастни е от 18 години.'); return false; }
+    if (grade === ADULT && account && !account.banned && !account.adult) { err('Детските профили играят в детския режим.'); return false; }
     return true;
   };
   const attach = (r, m) => {
@@ -202,7 +202,7 @@ wss.on('connection', (ws, req) => {
         // Онлайн игрите на децата са само за деца; онлайн игрите на възрастните са със залог
         if (grade !== ADULT && account?.adult) return err('Онлайн игрите за 1–4 клас са само за деца. Играй в режима за възрастни или с приятели.');
         if (grade === ADULT) {
-          if (!account?.adult) return err('Онлайн игрите за възрастни са със залог от парички. Влез с профил 18+ или играй с ботове.');
+          if (!account?.adult) return err('Онлайн игрите за възрастни са със залог от парички. Влез с профил за възрастни или играй с ботове.');
           if (!admin.accounts.wallet.canStake(account)) return err(`Нямаш достатъчно парички за залог (${STAKE}). Вземи още от 🪙 Магазин.`);
         }
         let r = [...rooms.values()].find((x) => x.isPublic && !x.game && x.grade === grade && x.members.length < PUBLIC_PLAYERS());
