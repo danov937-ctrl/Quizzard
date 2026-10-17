@@ -8,14 +8,14 @@ const SUBJECTS = {
   izk: ['Изобразително изкуство', '🎨'], tech: ['Технологии и предприемачество', '🛠️'],
   comp: ['Компютърно моделиране', '💻'], eng: ['Английски език', '🇬🇧'], sport: ['Физическо възпитание и спорт', '⚽'],
   arts: ['Изкуства', '🎭'],
-  // режим за възрастни (18+)
+  // режим за възрастни
   hist: ['История', '📜'], geo: ['География', '🌍'], sci: ['Природни науки', '🧪'], film: ['Кино и телевизия', '🎬'], music: ['Музика', '🎸'],
   spt: ['Спорт', '🏅'], lit: ['Литература', '📚'], art: ['Изкуство и архитектура', '🖼️'], tec: ['Наука и технологии', '🚀'], gen: ['Обща култура', '💡'],
 };
 const ADULT = 9, ADULT_SUBJ = ['hist', 'geo', 'sci', 'film', 'music', 'spt', 'lit', 'art', 'tec', 'gen'];
 // Режимът за възрастни се включва от adult.js (клас mode-adult на body)
 const isAdultMode = () => document.body.classList.contains('mode-adult');
-const gradeLabel = (g) => (g === ADULT ? 'Възрастни 18+' : `${g} клас`);
+const gradeLabel = (g) => (g === ADULT ? 'Възрастни' : `${g} клас`);
 const SUBJ_COLOR = { hist: '#8a5a2b', geo: '#1f7a8c', sci: '#2b8a3e', film: '#6a3fc0', music: '#b8337a', spt: '#b5302a', lit: '#9a3412', art: '#c7591a', tec: '#2f6fd0', gen: '#7a6a12', mat: '#2f6fd0', bel: '#b8323f', okol: '#2f8f4e', prir: '#2b8a3e', obsht: '#9a5b17', muz: '#b8337a', izk: '#c7591a', tech: '#0e7a8f', comp: '#6a3fc0', eng: '#3c46b8', sport: '#b5302a', arts: '#a33a8a' };
 const LABEL_FIX = { SFO: [35, -40], SOF: [0, 4] };
 const SAVE_KEY = 'quizzard-session';
@@ -227,7 +227,7 @@ function renderLobby() {
       <p class="sub">${lobby.adult ? 'Ако не дойдат още играчи, ще влязат ботове.' : 'Ако не дойдат още деца, ще влязат ботове.'}</p>${stakeNote()}`;
     tick(); lobbyTimer = setInterval(tick, 250);
   } else {
-    $('#lobbyHead').innerHTML = `<div class="eyebrow">Код на стаята${lobby.adult ? ' · Възрастни 18+' : ''}</div><div class="room-code">${esc(lobby.code)}</div><p class="sub">Кажи кода на приятелите си, за да влязат.</p>${stakeNote()}`;
+    $('#lobbyHead').innerHTML = `<div class="eyebrow">Код на стаята${lobby.adult ? ' · Възрастни' : ''}</div><div class="room-code">${esc(lobby.code)}</div><p class="sub">Кажи кода на приятелите си, за да влязат.</p>${stakeNote()}`;
   }
   $('#members').innerHTML = lobby.members.map((m) => `<li>${shield(m.id)}${esc(m.name)}
     <span class="tags">${m.coins != null ? `<span class="tag coin">🪙 ${m.coins}</span>` : ''}${m.id === me ? '<span class="tag">ти</span>' : ''}${m.id === lobby.hostId && !lobby.isPublic ? '<span class="tag">👑 домакин</span>' : ''}${!m.connected ? '<span class="tag">няма връзка</span>' : ''}
@@ -836,3 +836,20 @@ if (coarse && canLock) {
   // при влизане в игра на телефон: цял екран и заключено хоризонтално (където браузърът позволява)
   for (const b of $$('.mode, #btnJoin')) b.addEventListener('click', goLandscape);
 }
+
+// Вградени браузъри (Messenger, Facebook, Instagram, Viber, TikTok...) често държат екрана вертикален
+// и не се въртят: показваме подсказка „Отвори в браузъра“ и позволяваме игра и във вертикален режим.
+const ua = navigator.userAgent;
+const inAppBrowser = /FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|Line\/|Viber|musical_ly|TikTok|Snapchat|Twitter|LinkedInApp/i.test(ua);
+if (inAppBrowser && !inApp) {
+  $('#rotateIab').classList.remove('hidden');
+  if (/android/i.test(ua)) {
+    const a = $('#btnOpenBrowser');
+    a.href = 'intent://' + location.host + location.pathname + location.search +
+      '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+    a.classList.remove('hidden');
+  }
+}
+function allowPortrait() { document.body.classList.add('allow-portrait'); try { sessionStorage.setItem('allowPortrait', '1'); } catch {} }
+$('#btnPortrait').onclick = allowPortrait;
+try { if (sessionStorage.getItem('allowPortrait')) allowPortrait(); } catch {}

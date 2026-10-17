@@ -14,12 +14,12 @@ const ago = (iso) => {
 const dur = (sec) => sec < 60 ? `${sec} сек` : sec < 3600 ? `${Math.floor(sec / 60)} мин ${sec % 60} сек` : `${Math.floor(sec / 3600)} ч ${Math.floor((sec % 3600) / 60)} мин`;
 const debounce = (fn, ms = 250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 const SUBJ = { bel: 'Български език', mat: 'Математика', okol: 'Околен свят', prir: 'Човекът и природата', obsht: 'Човекът и обществото', eng: 'Английски език', muz: 'Музика', izk: 'Изобразително изкуство', tech: 'Технологии', sport: 'Физическо възпитание', comp: 'Компютърно моделиране',
-  hist: 'История (18+)', geo: 'География (18+)', sci: 'Природни науки (18+)', film: 'Кино (18+)', music: 'Музика (18+)', spt: 'Спорт (18+)', lit: 'Литература (18+)', art: 'Изкуство (18+)', tec: 'Наука и технологии (18+)', gen: 'Обща култура (18+)' };
+  hist: 'История (възр.)', geo: 'География (възр.)', sci: 'Природни науки (възр.)', film: 'Кино (възр.)', music: 'Музика (възр.)', spt: 'Спорт (възр.)', lit: 'Литература (възр.)', art: 'Изкуство (възр.)', tec: 'Наука и технологии (възр.)', gen: 'Обща култура (възр.)' };
 const SUBJ_ICON = { bel: '📖', mat: '➗', okol: '🌳', prir: '🔬', obsht: '🏛️', eng: '🇬🇧', muz: '🎵', izk: '🎨', tech: '🛠️', sport: '⚽', comp: '💻',
   hist: '📜', geo: '🌍', sci: '🧪', film: '🎬', music: '🎸', spt: '🏅', lit: '📚', art: '🖼️', tec: '🚀', gen: '💡' };
 // 9 = режимът за възрастни
 const Q_GRADES = [1, 2, 3, 4, 9];
-const gradeName = (g) => (Number(g) === 9 ? '18+' : `${g} клас`);
+const gradeName = (g) => (Number(g) === 9 ? 'Възрастни' : `${g} клас`);
 const ADULT_SUBJ = new Set(['hist', 'geo', 'sci', 'film', 'music', 'spt', 'lit', 'art', 'tec', 'gen']);
 const MODE = { online: 'Онлайн', friends: 'С приятели', bots: 'С ботове' };
 const MODE_COLOR = { online: '#1e88e5', friends: '#43a047', bots: '#fb8c00' };
@@ -366,7 +366,7 @@ async function editQuestion(key, idx) {
     body: `<div class="editor"><form id="qf" autocomplete="off">
       ${isNew ? `<div class="field"><span>Вид</span><div class="seg" id="fKind"><button type="button" data-k="mc" class="on">С 4 отговора</button><button type="button" data-k="num">Числов (за равенства)</button></div></div>` : ''}
       <div class="row" style="gap:12px;align-items:flex-start">
-        <div class="field"><span>Клас</span><div class="seg" id="fGrade">${Q_GRADES.map((g) => `<button type="button" data-g="${g}" class="${q.grade === g ? 'on' : ''}">${g === 9 ? '18+' : g}</button>`).join('')}</div></div>
+        <div class="field"><span>Клас</span><div class="seg" id="fGrade">${Q_GRADES.map((g) => `<button type="button" data-g="${g}" class="${q.grade === g ? 'on' : ''}">${g === 9 ? 'Възр.' : g}</button>`).join('')}</div></div>
         <label class="field grow"><span>Предмет</span><select id="fSubject">${subjOptions(q.subject)}</select></label>
       </div>
       <label class="field"><span>Картинка <span class="hint">(по желание: емоджи, напр. 🐘, за по-малките)</span></span><input id="fPic" maxlength="16" value="${h(q.pic || '')}" placeholder="без картинка" style="width:160px"></label>

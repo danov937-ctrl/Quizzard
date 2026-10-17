@@ -382,9 +382,11 @@ details.an summary { cursor: pointer; font-weight: 900; color: var(--wood2); pad
 .rot-device { width: 74px; height: 124px; border: 6px solid var(--gold1); border-radius: 16px; position: relative; margin-bottom: 18px; animation: rotDev 2.4s ease-in-out infinite; box-shadow: 0 10px 24px rgba(0,0,0,.45); }
 .rot-device i { position: absolute; left: 50%; bottom: 6px; width: 16px; height: 4px; margin-left: -8px; border-radius: 2px; background: var(--gold1); }
 @keyframes rotDev { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+.rotate .rot-hint { font-size: .9rem; font-weight: 700; opacity: .85; }
+.rotate a.btn { text-decoration: none; display: inline-block; }
 @media (orientation: portrait) and (pointer: coarse) {
-  .rotate { display: flex; }
-  body.has-rotate > :not(.rotate):not(.bg) { visibility: hidden; }
+  body:not(.allow-portrait) .rotate { display: flex; }
+  body.has-rotate:not(.allow-portrait) > :not(.rotate):not(.bg) { visibility: hidden; }
 }
 
 @media (orientation: landscape) and (max-height: 560px) {

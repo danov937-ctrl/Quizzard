@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Знаменосци — завладей България със знания</title>
   <meta name="description" content="Знаменосци: куиз игра с карта на България. За деца от 1–4 клас и за възрастни: история, география, кино, наука и още. Играй онлайн, с приятели или с ботове.">
   <meta property="og:type" content="website">
@@ -14,7 +14,11 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:locale" content="bg_BG">
+  <link rel="canonical" href="__ORIGIN__/">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Знаменосци — завладей България със знания">
+  <meta name="twitter:description" content="Безплатна онлайн игра с въпроси и карта на България. Играй с приятели или с ботове.">
+  <meta name="twitter:image" content="__ORIGIN__/share.png">
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -30,6 +34,7 @@
   <link rel="stylesheet" href="adult.css">
 </head>
 <body>
+  <noscript><p style="padding:24px;text-align:center;color:#f5e6c4;font-family:sans-serif">„Знаменосци“ е куиз игра с карта на България за деца от 1–4 клас и за възрастни. За да играеш, включи JavaScript в браузъра.</p></noscript>
   <div class="bg" aria-hidden="true"></div>
 
   <!-- Начален екран -->
@@ -180,6 +185,9 @@
     <b>Завърти устройството</b>
     <span>„Знаменосци“ се играе хоризонтално, за да се вижда цялата карта.</span>
     <button id="btnRotate" class="btn gold big hidden">↻ Завърти на цял екран</button>
+    <span id="rotateIab" class="rot-hint hidden">Отвори сайта в браузъра (менюто ⋯ → „Отвори в браузър“), за да се върти екранът.</span>
+    <a id="btnOpenBrowser" class="btn wood hidden" href="#" rel="noopener">🌐 Отвори в браузъра</a>
+    <button id="btnPortrait" class="btn wood">Играй и така (вертикално)</button>
   </div>
   <div id="toast" class="toast hidden"></div>
   <div id="confetti" class="confetti" aria-hidden="true"></div>

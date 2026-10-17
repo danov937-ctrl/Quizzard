@@ -141,7 +141,7 @@ class Accounts {
   }
   ranksOf(u) { const out = {}; for (const k of ['week', 'xp', 'wins', 'accuracy', ...(u.adult ? ['coins'] : [])]) { const i = this.board(k, u.adult).findIndex((x) => x.u === u); out[k] = i >= 0 ? i + 1 : null; } return out; }
 
-  // Регистрация на дете (с имейл и съгласие на родител) или на възрастен 18+ (adult: true, рождена дата).
+  // Регистрация на дете (с имейл и съгласие на родител) или на възрастен (adult: true, рождена дата).
   // От рождената дата пазим само годината.
   register({ name, email, password, grade, consent, adult, birthDate }) {
     if (adult) return this.registerAdult({ name, email, password, consent, birthDate });
@@ -170,7 +170,7 @@ class Accounts {
     if (this.byEmail(e.email).some((u) => u.adult)) return { error: 'С този имейл вече има профил за възрастен. Влез с него.' };
     const age = ageOf(birthDate);
     if (age === null) return { error: 'Въведи рождената си дата.' };
-    if (age < 18) return { error: 'Режимът за възрастни е от 18 години. Можеш да играеш в детския режим с профил, направен от родител.' };
+    if (age < 18) return { error: 'Профил за възрастни може да има само пълнолетен. Можеш да играеш в детския режим с профил, направен от родител.' };
     if (age > 120) return { error: 'Провери рождената дата.' };
     if (String(password || '').length < 8) return { error: 'Паролата трябва да е поне 8 знака.' };
     if (String(password).length > 64) return { error: 'Паролата е твърде дълга.' };
