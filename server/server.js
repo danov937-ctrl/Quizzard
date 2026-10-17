@@ -43,11 +43,12 @@ const server = http.createServer((req, res) => {
   }
   if (url === '/ads-config.js') return adsConfig(res);
   if (url === '/ads.txt') return adsTxt(res);
+  if (url === '/robots.txt' || url === '/sitemap.xml') return seoFile(req, res, url);
   if (url === '/admin/reports') { res.writeHead(302, { Location: '/admin/#reports' }); return res.end(); }
   // Без наклонена черта накрая admin.css и admin.js се търсят в корена и панелът излиза без стилове
   if (url === '/admin') { res.writeHead(301, { Location: '/admin/' }); return res.end(); }
   if (url === '/admin/') url = '/admin/index.html';
-  if (url === '/') url = '/index.html';
+  if (url === '/' || url === '/index.html') return sendIndex(req, res);
   const file = path.normalize(path.join(PUBLIC, url));
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
   sendFile(res, file);
@@ -77,6 +78,32 @@ function assetLinks(res) {
   const body = pkg && fps.length ? [{ relation: ['delegate_permission/common.handle_all_urls'], target: { namespace: 'android_app', package_name: pkg, sha256_cert_fingerprints: fps } }] : [];
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
   res.end(JSON.stringify(body));
+}
+// Пълният адрес на сайта: за снимката при споделяне във Viber/Facebook и за sitemap.xml.
+// PUBLIC_URL в Render го фиксира (например след вързан домейн), иначе се взима от заявката.
+function origin(req) {
+  if (env('PUBLIC_URL')) return env('PUBLIC_URL').replace(/\/+$/, '');
+  const host = String(req.headers.host || 'localhost').replace(/[^a-zA-Z0-9.:-]/g, '');
+  const proto = String(req.headers['x-forwarded-proto'] || (host.startsWith('localhost') ? 'http' : 'https')).split(',')[0].trim();
+  return (proto === 'http' ? 'http' : 'https') + '://' + host;
+}
+function sendIndex(req, res) {
+  fs.readFile(path.join(PUBLIC, 'index.html'), 'utf8', (err, html) => {
+    if (err) { res.writeHead(404); return res.end('Not found'); }
+    res.writeHead(200, { 'Content-Type': TYPES['.html'], 'Cache-Control': 'no-cache' });
+    res.end(html.replace(/__ORIGIN__/g, origin(req)));
+  });
+}
+// robots.txt и sitemap.xml за Google: админ панелът и API-то не се индексират
+function seoFile(req, res, url) {
+  const o = origin(req);
+  if (url === '/robots.txt') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end(`User-agent: *\nDisallow: /admin/\nDisallow: /api/\nSitemap: ${o}/sitemap.xml\n`);
+  }
+  const pages = ['/', '/privacy.html', '/terms.html'];
+  res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+  res.end('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + pages.map((p) => `  <url><loc>${o}${p}</loc></url>\n`).join('') + '</urlset>\n');
 }
 function sendFile(res, file) {
   fs.readFile(file, (err, data) => {
