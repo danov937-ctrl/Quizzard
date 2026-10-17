@@ -40,6 +40,7 @@
         </div>
       </div>
 
+      <div class="home-modes">
       <div class="modes">
         <button class="mode" id="btnQuick">
           <span class="mode-icon">⚔️</span><span class="mode-title">Онлайн игра</span>
@@ -64,6 +65,7 @@
           <span class="mode-icon">📚</span><span class="mode-title">Упражнение</span>
           <span class="mode-sub">Въпроси по предмет, без противници и без бързане.</span>
         </button>
+      </div>
       </div>
 
       <div class="panel join">
@@ -160,6 +162,13 @@
     <div class="mbody"><p class="sub center-text">Бот ще довърши играта вместо теб.</p>
       <div class="row two"><button id="leaveNo" class="btn wood">Остани</button><button id="leaveYes" class="btn gold">Излез</button></div></div>
   </div></div>
+  <!-- Завърти устройството (телефон или таблет в портрет) -->
+  <div id="rotate" class="rotate" role="alert">
+    <div class="rot-device" aria-hidden="true"><i></i></div>
+    <b>Завърти устройството</b>
+    <span>Quizzard се играе хоризонтално, за да се вижда цялата карта.</span>
+    <button id="btnRotate" class="btn gold big hidden">↻ Завърти на цял екран</button>
+  </div>
   <div id="toast" class="toast hidden"></div>
   <div id="confetti" class="confetti" aria-hidden="true"></div>
 
