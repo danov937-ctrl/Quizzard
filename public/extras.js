@@ -6,6 +6,14 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
   const SUBJ = { hist: 'История', geo: 'География', sci: 'Природни науки', film: 'Кино и телевизия', music: 'Музика', spt: 'Спорт', lit: 'Литература', art: 'Изкуство и архитектура', tec: 'Наука и технологии', gen: 'Обща култура', bel: 'Български език', mat: 'Математика', okol: 'Околен свят', prir: 'Човекът и природата', obsht: 'Човекът и обществото', eng: 'Английски език', muz: 'Музика', izk: 'Изобразително изкуство', tech: 'Технологии', sport: 'Физическо възпитание', comp: 'Компютърно моделиране' };
+  // Грешките в браузъра отиват в админ панела (Състояние → Грешки). Най-много 5 на зареждане.
+  let sentErrors = 0;
+  const reportError = (message, where) => {
+    if (sentErrors++ >= 5 || !message) return;
+    try { fetch('/api/client-error', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', 'X-Quizzard': '1' }, body: JSON.stringify({ message: String(message).slice(0, 400), where: String(where || '').slice(0, 200), page: location.pathname }) }).catch(() => {}); } catch {}
+  };
+  window.addEventListener('error', (e) => { if (e.message) reportError(e.message, e.filename ? `${e.filename.replace(location.origin, '')}:${e.lineno}:${e.colno}` : ''); });
+  window.addEventListener('unhandledrejection', (e) => { const r = e.reason; reportError(r?.message || String(r), (r?.stack || '').split('\n')[1]?.trim()); });
   const home = q('#home');
   if (!home) return;
   let me = null;

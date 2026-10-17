@@ -94,6 +94,7 @@ $('#btnLogout').onclick = async () => { await fetch('/api/admin/logout', { metho
 const PAGES = [
   { group: 'Преглед' },
   { id: 'dashboard', icon: '🏠', title: 'Табло' },
+  { id: 'health', icon: '🩺', title: 'Състояние', count: 'errors', soft: true },
   { id: 'rooms', icon: '🟢', title: 'На живо' },
   { id: 'stats', icon: '📊', title: 'Статистика' },
   { group: 'Съдържание' },
@@ -139,7 +140,7 @@ $('#btnMenu').onclick = () => $('#side').classList.toggle('open');
 async function refreshCounts() {
   try {
     const o = await GET('overview');
-    counts = { reports: o.reports.open, ideas: o.ideas.open, problems: o.problems, photos: o.photos };
+    counts = { reports: o.reports.open, ideas: o.ideas.open, problems: o.problems, photos: o.photos, errors: o.errors };
     renderNav(); storageBadge(o.storage);
     return o;
   } catch { return null; }
@@ -762,6 +763,7 @@ VIEWS.settings = async (view) => {
     <div class="card"><h3>🔒 Родители и лични данни</h3><p class="muted" style="margin-top:-4px">Показва се на <a href="/privacy.html" target="_blank">страницата за поверителност</a>.</p>
       <label class="field"><span>Кой отговаря за данните</span><input id="sController" value="${h(s.controller)}" maxlength="160" placeholder="напр. Иван Иванов или „Квизард“ ЕООД, гр. София"></label>
       <label class="field"><span>Връзка за родители</span><input id="sContact" value="${h(s.contact)}" maxlength="120" placeholder="напр. roditeli@znamenostsi.bg"></label>
+      <label class="field"><span>Имейл за аларма при проблем</span><input id="sAlert" type="email" value="${h(s.alertEmail || '')}" maxlength="120" placeholder="твоят имейл (празно = връзката за родители)"></label>
       ${num('sRetention', 'Профил без вход се изтрива след', s.retentionMonths, 6, 60, 'месеца', 'непотвърдените от родител се изтриват след 30 дни')}
       <div class="field"><span>Имейли до родителите</span>${mailInfo.on ? `<div class="banner ok" style="margin:0">✅ Включени. Линковете в писмата водят към <b>${h(mailInfo.base)}</b></div>` : '<div class="banner warn" style="margin:0">⚠️ Изключени: задай RESEND_API_KEY и MAIL_FROM в Render. Дотогава профилите работят без потвърждение по имейл и няма „Забравена парола“.</div>'}</div>
       <div class="row"><button class="btn" id="sWeekly" ${mailInfo.on ? '' : 'disabled'}>📧 Изпрати седмичния отчет сега</button><button class="btn" id="sSweep">🧹 Изтрий старите профили сега</button></div></div>
@@ -771,7 +773,7 @@ VIEWS.settings = async (view) => {
     times: { mc: +$('#tMc').value, num: +$('#tNum').value, pick: +$('#tPick').value },
     onlinePlayers: +$('#oPlayers').value, onlineWait: +$('#oWait').value, onlineBattleRounds: +$('#oRounds').value, defaultBattleRounds: +$('#dRounds').value,
     botNames: $$('.botName').map((i) => i.value), disabledSubjects: $$('.subjOn').filter((c) => !c.checked).map((c) => c.value),
-    controller: $('#sController').value, contact: $('#sContact').value, retentionMonths: +$('#sRetention').value });
+    controller: $('#sController').value, contact: $('#sContact').value, alertEmail: $('#sAlert').value, retentionMonths: +$('#sRetention').value });
   $('#sWeekly').onclick = async () => { if (await confirmBox('Да изпратя ли сега седмичния отчет до всички потвърдени родители? Отчетът е за миналата седмица.', { ok: 'Изпрати' })) { const r = await run(() => api('POST', 'mail/weekly')); if (r) toast(`Изпратени писма: ${r.sent || 0}`); } };
   $('#sSweep').onclick = async () => { if (await confirmBox(`Да изтрия ли сега непотвърдените профили над 30 дни и профилите без вход над ${s.retentionMonths} месеца?`, { ok: 'Изтрий', danger: true })) { const r = await run(() => api('POST', 'mail/cleanup')); if (r) toast(`Изтрити: ${r.unconfirmed} непотвърдени, ${r.inactive} неактивни`); } };
   $('#sSave').onclick = async () => { if (await run(() => api('PUT', 'settings', collect()), 'Настройките са запазени. Важат за следващите игри.')) route(); };
@@ -791,6 +793,29 @@ VIEWS.log = async (view) => {
 };
 
 // ----- архив и данни -----
+// ----- състояние -----
+VIEWS.health = async (view) => {
+  const d = await GET('health');
+  const st = d.storage;
+  const tile = (ok, title, text) => `<div class="card"><h3>${ok === true ? '✅' : ok === false ? '⚠️' : 'ℹ️'} ${title}</h3><p class="muted" style="margin:0">${text}</p></div>`;
+  const day = 86400000, recent = d.errors.filter((e) => Date.now() - Date.parse(e.last) < day);
+  view.innerHTML = `<div class="grid g2">
+    ${tile(true, 'Сървърът работи', `Без прекъсване от ${dur(d.uptime)}. Версия <b>${h(d.version || 'локална')}</b>, ${fmt(d.memoryMb)} MB памет. В момента: <b>${d.live.players}</b> свързани, <b>${d.live.rooms}</b> стаи.`)}
+    ${tile(st.remote && !st.lastError, 'Запазване на данните', st.remote ? (st.lastError ? `Грешка: ${h(st.lastError)}` : `В GitHub (${h(st.repo)}). Последен запис: ${st.lastSave ? ago(st.lastSave) : 'още няма'}.`) : 'Не е включено: при рестарт всичко се губи. Виж „Архив и данни“.')}
+    ${tile(d.mail.on, 'Имейли', d.mail.on ? `Включени. Линковете водят към ${h(d.mail.base)}.` : 'Изключени: задай RESEND_API_KEY и MAIL_FROM в Render.')}
+    ${tile(d.mail.on && d.mail.alertTo ? true : null, 'Аларма при проблем', d.mail.alertTo ? (d.mail.on ? `Писмо до <b>${h(d.mail.alertTo)}</b>, ако записът спре или има много грешки (най-много 1 на час).` : `Ще ходи до ${h(d.mail.alertTo)}, щом включиш имейлите.`) : 'Задай имейл в Настройки → „Имейл за аларма“.')}
+  </div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🐞 Грешки ${recent.length ? `<span class="badge bad">${recent.length} за 24 ч</span>` : ''}</h3>
+    <div class="row"><input id="tmTo" type="email" placeholder="имейл за пробно писмо" style="width:220px"><button class="btn sm" id="tmSend">📧 Пробно писмо</button><button class="btn sm" id="hRefresh">↻ Обнови</button>${d.errors.length ? '<button class="btn sm" id="hClear">🧹 Изчисти</button>' : ''}</div></div>
+    <p class="hint">Грешките от сървъра и от телефоните на играчите. Еднаквите са събрани в един ред с брояч.</p>
+    ${d.errors.length ? `<div class="table-wrap"><table><thead><tr><th>Къде</th><th>Грешка</th><th class="num">Пъти</th><th>Последно</th></tr></thead><tbody>${d.errors.map((e) => `<tr><td style="white-space:nowrap">${e.source === 'browser' ? '📱 браузър' : '🖥️ сървър'}</td>
+      <td><b>${h(e.message)}</b>${e.where ? `<div class="hint" style="word-break:break-all">${h(e.where)}</div>` : ''}${e.ua ? `<div class="hint">${h(e.page || '')} · ${h(e.ua)}</div>` : ''}</td><td class="num">${fmt(e.count)}</td><td class="hint" style="white-space:nowrap">${ago(e.last)}<br>от ${ago(e.first)}</td></tr>`).join('')}</tbody></table></div>`
+      : '<div class="empty"><div class="big">🎉</div>Няма грешки.</div>'}</div>`;
+  $('#hRefresh').onclick = () => route();
+  if ($('#hClear')) $('#hClear').onclick = async () => { if (await confirmBox('Да изчистя ли дневника с грешките?', { ok: 'Изчисти' })) { if (await run(() => api('POST', 'health/clear'), 'Изчистено.')) { route(); refreshCounts(); } } };
+  $('#tmSend').onclick = () => run(() => api('POST', 'health/test-mail', { to: $('#tmTo').value }), 'Писмото е изпратено. Провери пощата (и „Спам“).');
+};
+
 VIEWS.backup = async (view) => {
   const o = await GET('overview');
   const s = o.storage;
