@@ -3,9 +3,19 @@ services:
     name: quizzard
     runtime: node
     plan: free
+    region: frankfurt # данните на децата остават в ЕС (важи при създаване на услугата)
     buildCommand: cd server && npm install
     startCommand: cd server && npm start
     healthCheckPath: /
     envVars:
       - key: ADMIN_KEY
         generateValue: true
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: DATA_REPO
+        sync: false
+      # Имейли до родителите (Resend): без тях профилите работят без потвърждение по имейл
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false

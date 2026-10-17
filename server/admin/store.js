@@ -1,0 +1,108 @@
+// Запазване на данните от админ панела.
+// Винаги пише локално (ADMIN_DATA_DIR), а ако има GITHUB_TOKEN и DATA_REPO – и в отделно ЧАСТНО
+// хранилище в GitHub (напр. danov937-ctrl/quizzard-data). Render не следи това хранилище, така че
+// записът не пуска нов deploy, а при всеки старт сървърът зарежда последното състояние оттам.
+// Така промените оцеляват рестартите на безплатния план, който няма постоянен диск.
+// Публично хранилище се отказва, защото там са акаунтите и сигналите на децата.
+const fs = require('fs');
+const path = require('path');
+
+const DIR = process.env.ADMIN_DATA_DIR || path.join(__dirname, '..', '..', 'data', 'admin-local');
+const TOKEN = process.env.GITHUB_TOKEN || '';
+const REPO = process.env.DATA_REPO || '';
+let BRANCH = process.env.DATA_BRANCH || '';
+const API = 'https://api.github.com';
+
+class Store {
+  constructor(files) {
+    this.files = files; // { name: { delay: ms, init: () => обект } }
+    this.data = {}; this.sha = {}; this.queue = Promise.resolve(); this.timers = {}; this.dirty = new Set();
+    this.status = { remote: !!(TOKEN && REPO), repo: REPO, branch: BRANCH, loadedFrom: null, lastSave: null, lastError: null };
+    for (const [name, f] of Object.entries(files)) this.data[name] = f.init();
+  }
+
+  async init() {
+    try { fs.mkdirSync(DIR, { recursive: true }); } catch {}
+    for (const name of Object.keys(this.files)) {
+      const local = this.readLocal(name);
+      if (local) { this.data[name] = { ...this.files[name].init(), ...local }; this.status.loadedFrom = 'local'; }
+    }
+    if (!TOKEN || !REPO) return;
+    try {
+      await this.checkRepo();
+      for (const name of Object.keys(this.files)) {
+        const remote = await this.readRemote(name);
+        if (remote) this.data[name] = { ...this.files[name].init(), ...remote };
+      }
+      this.status.loadedFrom = 'github';
+    } catch (e) { this.status.remote = false; this.fail('зареждане от GitHub', e); }
+  }
+
+  get(name) { return this.data[name]; }
+  // Отбелязва промяна; записът става след малко, за да се събират няколко промени в един
+  touch(name) {
+    this.dirty.add(name);
+    clearTimeout(this.timers[name]);
+    this.timers[name] = setTimeout(() => this.save(name), this.files[name].delay ?? 3000);
+    this.timers[name].unref?.();
+  }
+  async flush() { await Promise.all([...this.dirty].map((n) => this.save(n))); }
+
+  async save(name) {
+    clearTimeout(this.timers[name]);
+    if (!this.dirty.has(name)) return;
+    this.dirty.delete(name);
+    const body = JSON.stringify(this.data[name]);
+    try { fs.writeFileSync(path.join(DIR, name + '.json'), body); } catch (e) { this.fail('локален запис', e); }
+    if (this.status.remote) {
+      // Записите в GitHub вървят един след друг, иначе два едновременни commit-а си пречат
+      const job = this.queue.then(() => this.writeRemote(name, body)).catch((e) => { this.fail('запис в GitHub', e); this.dirty.add(name); });
+      this.queue = job; await job;
+    }
+    this.status.lastSave = new Date().toISOString();
+  }
+
+  fail(what, e) { this.status.lastError = `${what}: ${e.message}`; console.error('admin store', what, e.message); }
+  readLocal(name) { try { return JSON.parse(fs.readFileSync(path.join(DIR, name + '.json'), 'utf8')); } catch { return null; } }
+
+  // ---------- GitHub ----------
+  async gh(method, url, body, raw) {
+    const res = await fetch(API + url, { method, headers: { Authorization: `Bearer ${TOKEN}`, Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json', 'User-Agent': 'quizzard-admin', ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
+    if (raw && res.ok) return res.text();
+    const json = res.status === 204 ? null : await res.json().catch(() => null);
+    if (!res.ok) { const e = new Error(`${res.status} ${json?.message || ''}`.trim()); e.status = res.status; throw e; }
+    return json;
+  }
+  async checkRepo() {
+    const repo = await this.gh('GET', `/repos/${REPO}`);
+    if (!repo.private) throw new Error(`хранилището ${REPO} е публично – данните се пазят само в частно хранилище`);
+    BRANCH ||= repo.default_branch || 'main';
+    this.status.branch = BRANCH;
+    // Празно хранилище (без нито един файл): първият запис създава клона
+    try { await this.gh('GET', `/repos/${REPO}/branches/${encodeURIComponent(BRANCH)}`); } catch (e) { if (e.status === 404 || e.status === 409) this.noBranch = true; else throw e; }
+  }
+  async readRemote(name) {
+    try {
+      const f = await this.gh('GET', `/repos/${REPO}/contents/admin/${name}.json?ref=${encodeURIComponent(BRANCH)}`);
+      this.sha[name] = f.sha;
+      // Файлове над 1 MB идват без съдържание: тогава ги теглим „сурови“
+      if (f.encoding === 'none' || !f.content) return JSON.parse(await this.gh('GET', `/repos/${REPO}/contents/admin/${name}.json?ref=${encodeURIComponent(BRANCH)}`, null, true));
+      return JSON.parse(Buffer.from(f.content, 'base64').toString('utf8'));
+    } catch (e) { if (e.status === 404 || e.status === 409) return null; throw e; }
+  }
+  async writeRemote(name, body, retry = true) {
+    try {
+      const r = await this.gh('PUT', `/repos/${REPO}/contents/admin/${name}.json`, { message: `Админ панел: ${name}`, content: Buffer.from(body).toString('base64'), branch: this.noBranch ? undefined : BRANCH, sha: this.sha[name] });
+      this.sha[name] = r.content.sha; this.noBranch = false; this.status.lastError = null;
+    } catch (e) {
+      // Някой друг е променил файла (или няма sha) – взимаме новия sha и пишем отново
+      if (retry && (e.status === 409 || e.status === 422)) {
+        try { const f = await this.gh('GET', `/repos/${REPO}/contents/admin/${name}.json?ref=${encodeURIComponent(BRANCH)}`); this.sha[name] = f.sha; } catch (x) { if (x.status !== 404) throw x; this.sha[name] = undefined; }
+        return this.writeRemote(name, body, false);
+      }
+      throw e;
+    }
+  }
+}
+
+module.exports = { Store, DIR };

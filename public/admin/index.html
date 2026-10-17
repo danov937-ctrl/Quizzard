@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Quizzard · Админ панел</title>
+  <link rel="icon" href="../logo.svg" type="image/svg+xml">
+  <link href="/fonts/fonts.css" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <!-- Вход -->
+  <section id="login" class="login hidden">
+    <form id="loginForm" class="login-card">
+      <img src="../logo.svg" alt="" class="login-logo">
+      <h1>Quizzard</h1>
+      <p class="muted">Админ панел</p>
+      <label class="field"><span>Парола</span><input id="password" type="password" autocomplete="current-password" required autofocus></label>
+      <button class="btn primary wide" type="submit">Вход</button>
+      <p id="loginErr" class="err"></p>
+      <p class="muted small">Паролата е стойността на <b>ADMIN_KEY</b> в Render → Environment.</p>
+    </form>
+  </section>
+
+  <!-- Панел -->
+  <div id="app" class="app hidden">
+    <aside class="side" id="side">
+      <a class="brand" href="#dashboard"><img src="../logo.svg" alt=""><span>Quizzard</span></a>
+      <nav id="nav"></nav>
+      <div class="side-foot">
+        <a href="/" target="_blank" class="side-link">🎮 Отвори играта</a>
+        <button id="btnLogout" class="side-link">🚪 Изход</button>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="top">
+        <button id="btnMenu" class="icon-btn menu-btn" aria-label="Меню">☰</button>
+        <h2 id="pageTitle"></h2>
+        <div class="top-right">
+          <span id="storageBadge" class="badge"></span>
+          <button id="btnTheme" class="icon-btn" title="Светла/тъмна тема">🌓</button>
+          <button id="btnHelp" class="icon-btn" title="Клавишни комбинации (?)">?</button>
+        </div>
+      </header>
+      <main id="view" class="view"></main>
+    </div>
+  </div>
+
+  <div id="modalRoot"></div>
+  <div id="toasts" class="toasts"></div>
+  <script src="admin.js"></script>
+</body>
+</html>
