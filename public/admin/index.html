@@ -5,18 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>Знаменосци · Админ панел</title>
-  <link rel="icon" href="../logo.svg" type="image/svg+xml">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link href="/fonts/fonts.css" rel="stylesheet">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="/admin/admin.css">
 </head>
 <body>
   <!-- Вход -->
   <section id="login" class="login hidden">
     <form id="loginForm" class="login-card">
-      <img src="../logo.svg" alt="" class="login-logo">
+      <img src="/logo.svg" alt="" class="login-logo">
       <h1>Знаменосци</h1>
       <p class="muted">Админ панел</p>
-      <label class="field"><span>Парола</span><input id="password" type="password" autocomplete="current-password" required autofocus></label>
+      <label class="field"><span>Парола</span><input id="password" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" required autofocus></label>
+      <label class="switch" style="margin-top:6px"><input type="checkbox" id="showPass"> Покажи паролата</label>
       <button class="btn primary wide" type="submit">Вход</button>
       <p id="loginErr" class="err"></p>
       <p class="muted small">Паролата е стойността на <b>ADMIN_KEY</b> в Render → Environment.</p>
@@ -26,7 +27,7 @@
   <!-- Панел -->
   <div id="app" class="app hidden">
     <aside class="side" id="side">
-      <a class="brand" href="#dashboard"><img src="../logo.svg" alt=""><span>Знаменосци</span></a>
+      <a class="brand" href="#dashboard"><img src="/logo.svg" alt=""><span>Знаменосци</span></a>
       <nav id="nav"></nav>
       <div class="side-foot">
         <a href="/" target="_blank" class="side-link">🎮 Отвори играта</a>
@@ -49,6 +50,6 @@
 
   <div id="modalRoot"></div>
   <div id="toasts" class="toasts"></div>
-  <script src="admin.js"></script>
+  <script src="/admin/admin.js"></script>
 </body>
 </html>

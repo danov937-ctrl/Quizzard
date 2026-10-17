@@ -12,7 +12,7 @@
 .qx-av { display: inline-grid; place-items: center; border-radius: 50%; flex: none; object-fit: cover; box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); line-height: 1; }
 
 .qx-back { position: fixed; inset: 0; z-index: 100; background: rgba(5, 15, 30, .6); display: grid; place-items: center; padding: 12px; animation: qxFade .15s; }
-.qx-modal { width: min(560px, 100%); max-height: calc(100dvh - 24px); display: flex; flex-direction: column; background: linear-gradient(180deg, var(--parch), var(--parch2)); color: var(--ink); border: 3px solid var(--gold3); border-radius: var(--r); box-shadow: var(--shadow); animation: qxPop .18s; }
+.qx-modal { width: min(560px, 100%); max-height: 100%; display: flex; flex-direction: column; background: linear-gradient(180deg, var(--parch), var(--parch2)); color: var(--ink); border: 3px solid var(--gold3); border-radius: var(--r); box-shadow: var(--shadow); animation: qxPop .18s; }
 .qx-modal.narrow { width: min(400px, 100%); }
 .qx-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: linear-gradient(180deg, var(--wood1), var(--wood2)); color: var(--gold1); border-radius: calc(var(--r) - 3px) calc(var(--r) - 3px) 0 0; }
 .qx-head h2 { margin: 0; flex: 1; font-size: 1.3rem; }
@@ -145,3 +145,16 @@ body.qx-gated .qx-account, body.qx-gated .qx-notice { display: none; }
   .qx-gate .brand-logo { width: 54px; height: 54px; }
   .qx-gate .brand-name { font-size: 2.7rem; }
 }
+
+/* Малка височина (хоризонтален телефон или отворена клавиатура): по-компактен прозорец, който се превърта */
+.qx-back.qx-short { place-items: start center; padding: 4px; overflow: hidden; }
+.qx-short .qx-modal { border-width: 2px; }
+.qx-short .qx-head { padding: 4px 12px; }
+.qx-short .qx-head h2 { font-size: 1.05rem; }
+.qx-short .qx-body { padding: 8px 12px 12px; }
+.qx-short .qx-tabs { margin-bottom: 6px; }
+.qx-short .qx-tabs button { padding: 4px 10px; }
+.qx-short .qx-form { gap: 6px; }
+.qx-short .qx-form input, .qx-short .qx-form select { padding: 6px 10px; }
+/* iOS не увеличава страницата при докосване на поле с поне 16px шрифт */
+.qx-form input, .qx-form select, .qx-form textarea { font-size: 16px; }

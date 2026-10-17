@@ -36,17 +36,48 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const server = http.createServer((req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/map.json') return sendFile(res, MAP_FILE);
+  if (url === '/.well-known/assetlinks.json') return assetLinks(res);
   if (url.startsWith('/api/')) {
     admin.handle(req, res).then((done) => { if (done === false) { res.writeHead(404); res.end('Not found'); } });
     return;
   }
+  if (url === '/ads-config.js') return adsConfig(res);
+  if (url === '/ads.txt') return adsTxt(res);
   if (url === '/admin/reports') { res.writeHead(302, { Location: '/admin/#reports' }); return res.end(); }
-  if (url === '/admin' || url === '/admin/') url = '/admin/index.html';
+  // Без наклонена черта накрая admin.css и admin.js се търсят в корена и панелът излиза без стилове
+  if (url === '/admin') { res.writeHead(301, { Location: '/admin/' }); return res.end(); }
+  if (url === '/admin/') url = '/admin/index.html';
   if (url === '/') url = '/index.html';
   const file = path.normalize(path.join(PUBLIC, url));
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
   sendFile(res, file);
 });
+// Реклами: всичко се настройва с променливи в Render; без тях не се показва нищо (виж public/ads.js)
+const env = (k) => (process.env[k] || '').trim();
+function adsConfig(res) {
+  const cfg = {};
+  if (env('SPONSOR_IMG')) cfg.sponsor = { img: env('SPONSOR_IMG'), url: env('SPONSOR_URL'), alt: env('SPONSOR_ALT') };
+  else if (/^ca-pub-\d+$/.test(env('ADSENSE_CLIENT'))) cfg.client = env('ADSENSE_CLIENT'), cfg.slots = { home: env('ADSENSE_SLOT_HOME'), lobby: env('ADSENSE_SLOT_LOBBY') };
+  res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
+  res.end('window.QZ_ADS=' + JSON.stringify(cfg).replace(/</g, '\\u003c') + ';');
+}
+// ads.txt казва на рекламодателите, че този сайт наистина е твой в AdSense
+function adsTxt(res) {
+  const m = env('ADSENSE_CLIENT').match(/^ca-(pub-\d+)$/);
+  if (!m) { res.writeHead(404); return res.end('Not found'); }
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end(`google.com, ${m[1]}, DIRECT, f08c47fec0942fa0\n`);
+}
+// Връзка между сайта и Android приложението (Trusted Web Activity): без нея приложението показва адресна лента.
+// ANDROID_PACKAGE е името на пакета в Google Play, ANDROID_SHA256 е отпечатъкът на ключа за подписване
+// (от Play Console → Защита на приложението); няколко отпечатъка се разделят със запетая.
+function assetLinks(res) {
+  const pkg = process.env.ANDROID_PACKAGE || '';
+  const fps = (process.env.ANDROID_SHA256 || '').split(',').map((f) => f.trim().toUpperCase()).filter(Boolean);
+  const body = pkg && fps.length ? [{ relation: ['delegate_permission/common.handle_all_urls'], target: { namespace: 'android_app', package_name: pkg, sha256_cert_fingerprints: fps } }] : [];
+  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
+  res.end(JSON.stringify(body));
+}
 function sendFile(res, file) {
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
