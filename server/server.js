@@ -68,6 +68,7 @@ function adsConfig(res) {
   const cfg = {};
   if (env('SPONSOR_IMG')) cfg.sponsor = { img: env('SPONSOR_IMG'), url: env('SPONSOR_URL'), alt: env('SPONSOR_ALT') };
   else if (/^ca-pub-\d+$/.test(env('ADSENSE_CLIENT'))) cfg.client = env('ADSENSE_CLIENT'), cfg.slots = { home: env('ADSENSE_SLOT_HOME'), lobby: env('ADSENSE_SLOT_LOBBY') };
+  if (/^\d{8,20}$/.test(env('META_PIXEL_ID'))) cfg.pixel = env('META_PIXEL_ID');   // Facebook пиксел: виж public/track.js
   res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
   res.end('window.QZ_ADS=' + JSON.stringify(cfg).replace(/</g, '\\u003c') + ';');
 }

@@ -254,3 +254,12 @@ body.qx-gated .qx-account, body.qx-gated .qx-notice { display: none; }
 .seo-links a { color: rgba(255, 244, 214, .8); text-decoration: underline; text-underline-offset: 2px; }
 .seo-links a:hover { color: #ffe7a6; }
 @media (orientation: landscape) and (max-height: 400px) { .seo-links { margin: 6px 0 2px; font-size: .72rem; } }
+
+/* Съгласие за Facebook пиксел: само за посетители от наша реклама (виж track.js) */
+.qz-consent { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 120; width: min(560px, calc(100% - 20px)); padding: 12px 14px; border-radius: 16px; background: #fffaf0; color: #3a2236; border: 2px solid rgba(107, 74, 54, .4); box-shadow: 0 8px 26px rgba(0, 0, 0, .4); font-size: .85rem; font-weight: 700; }
+.qz-consent p { margin: 0 0 8px; line-height: 1.35; }
+.qz-consent a { color: #1d6a52; }
+.qz-consent-btns { display: flex; gap: 8px; }
+.qz-consent-btns .qx-btn { flex: 1; padding: 8px 10px; font-size: .95rem; }
+.qz-consent-btns .qx-btn:not(.gold) { background: rgba(122, 74, 34, .14); color: #3a2236; }
+@media (orientation: landscape) and (max-height: 500px) { .qz-consent { font-size: .72rem; padding: 6px 10px; bottom: 4px; } .qz-consent p { margin-bottom: 5px; line-height: 1.25; } .qz-consent-btns .qx-btn { padding: 5px 8px; font-size: .85rem; } }
