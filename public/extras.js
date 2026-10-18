@@ -113,6 +113,7 @@
   const gate = document.createElement('div');
   gate.className = 'qx-gate qx-wait';
   const brand = q('.brand', home)?.cloneNode(true);
+  brand?.querySelectorAll('h1').forEach((h) => { const d = document.createElement('div'); d.className = h.className; d.innerHTML = h.innerHTML; h.replaceWith(d); });   // само един h1 на страницата (за Google)
   gate.innerHTML = `<div class="qx-gate-box"><div class="qx-gate-brand"></div><p class="tagline">${esc(q('.tagline', home)?.textContent || '')}</p>
     <div class="qx-gate-btns"><button class="qx-btn gold qx-big-btn" data-g="login">🔑 Вход</button><button class="qx-btn gold qx-big-btn" data-g="register">✨ Регистрация</button>
     <button class="qx-btn qx-guest-btn" data-g="guest">🎮 Играй като гост</button></div>

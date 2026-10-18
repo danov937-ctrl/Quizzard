@@ -3,6 +3,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const { WebSocketServer } = require('ws');
 const { Game } = require('./game');
 const { MC, SUBJECTS, ADULT, ADULT_SUBJECTS, practiceSet } = require('./questions');
@@ -36,8 +37,8 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 const server = http.createServer((req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
-  if (url === '/map.json') return sendFile(res, MAP_FILE);
-  if (url === '/neighbors.json') return sendFile(res, NEIGHBORS_FILE);
+  if (url === '/map.json') return sendFile(req, res, MAP_FILE);
+  if (url === '/neighbors.json') return sendFile(req, res, NEIGHBORS_FILE);
   if (url === '/.well-known/assetlinks.json') return assetLinks(res);
   if (url.startsWith('/api/')) {
     admin.handle(req, res).then((done) => { if (done === false) { res.writeHead(404); res.end('Not found'); } });
@@ -53,7 +54,7 @@ const server = http.createServer((req, res) => {
   if (url === '/' || url === '/index.html') return sendIndex(req, res);
   const file = path.normalize(path.join(PUBLIC, url));
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
-  sendFile(res, file);
+  sendFile(req, res, file);
 });
 // Реклами: всичко се настройва с променливи в Render; без тях не се показва нищо (виж public/ads.js)
 const env = (k) => (process.env[k] || '').trim();
@@ -92,8 +93,7 @@ function origin(req) {
 function sendIndex(req, res) {
   fs.readFile(path.join(PUBLIC, 'index.html'), 'utf8', (err, html) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': TYPES['.html'], 'Cache-Control': 'no-cache' });
-    res.end(html.replace(/__ORIGIN__/g, origin(req)));
+    sendBody(req, res, Buffer.from(html.replace(/__ORIGIN__/g, origin(req))), TYPES['.html'], 'no-cache');
   });
 }
 // robots.txt и sitemap.xml за Google: админ панелът и API-то не се индексират
@@ -107,11 +107,46 @@ function seoFile(req, res, url) {
   res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
   res.end('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + pages.map((p) => `  <url><loc>${o}${p}</loc></url>\n`).join('') + '</urlset>\n');
 }
-function sendFile(res, file) {
-  fs.readFile(file, (err, data) => {
-    if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-    res.end(data);
+// Текстовите файлове се пращат компресирани (gzip или brotli): началният екран е няколко пъти по-лек, а това
+// помага на скоростта при бавен интернет и на мястото в Google. Компресираният вариант се пази в паметта.
+const COMPRESSIBLE = /^(text\/|application\/(json|javascript|manifest\+json|xml)|image\/svg\+xml)/;
+const zcache = new Map();
+function compressed(data, enc, key) {
+  const k = enc + '|' + key;
+  let z = zcache.get(k);
+  if (!z) {
+    z = enc === 'br' ? zlib.brotliCompressSync(data, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 6 } }) : zlib.gzipSync(data, { level: 9 });
+    if (zcache.size > 300) zcache.clear();
+    zcache.set(k, z);
+  }
+  return z;
+}
+// Кешът: шрифтовете не се менят (1 година), картинките са за 1 ден, а кодът и страниците се проверяват с ETag (304 е почти безплатно).
+function cacheFor(file) {
+  if (!file) return 'no-cache';
+  const ext = path.extname(file);
+  if (ext === '.woff2') return 'public, max-age=31536000, immutable';
+  if (['.png', '.svg', '.jpg', '.webp', '.ico'].includes(ext)) return 'public, max-age=86400';
+  return 'no-cache';
+}
+function sendBody(req, res, data, type, cache, tag) {
+  const etag = '"' + (tag || crypto.createHash('md5').update(data).digest('hex').slice(0, 16)) + '"';
+  const headers = { 'Content-Type': type, 'Cache-Control': cache, ETag: etag, Vary: 'Accept-Encoding' };
+  if (req.headers['if-none-match'] === etag || req.headers['if-none-match'] === 'W/' + etag) { res.writeHead(304, headers); return res.end(); }
+  const ae = String(req.headers['accept-encoding'] || '');
+  const enc = data.length > 1024 && COMPRESSIBLE.test(type) ? (/\bbr\b/.test(ae) ? 'br' : /\bgzip\b/.test(ae) ? 'gzip' : '') : '';
+  if (enc) { data = compressed(data, enc, etag); headers['Content-Encoding'] = enc; }
+  headers['Content-Length'] = data.length;
+  res.writeHead(200, headers);
+  res.end(req.method === 'HEAD' ? undefined : data);
+}
+function sendFile(req, res, file) {
+  fs.stat(file, (e1, st) => {
+    if (e1 || !st.isFile()) { res.writeHead(404); return res.end('Not found'); }
+    fs.readFile(file, (err, data) => {
+      if (err) { res.writeHead(404); return res.end('Not found'); }
+      sendBody(req, res, data, TYPES[path.extname(file)] || 'application/octet-stream', cacheFor(file), st.size.toString(36) + '-' + Math.round(st.mtimeMs).toString(36));
+    });
   });
 }
 
