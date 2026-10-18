@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { MC, SUBJECTS, ADULT_SUBJECTS } = require('./questions');
+const { SLUG, FACTS } = require('./seo_data');
 
 const MAP = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'map.json'), 'utf8'));
 const SITE = 'Знаменосци';
@@ -137,7 +138,7 @@ ${MAP.regions.map((r) => `<path d="${r.path}" fill="${color[r.id]}" stroke="#fff
 ${MAP.regions.map((r) => `<g><circle cx="${r.cx}" cy="${r.cy}" r="21" fill="#fffaf0" stroke="#6b4a36" stroke-width="2.5"/><text x="${r.cx}" y="${r.cy + 9}" text-anchor="middle">${num[r.id]}</text></g>`).join('\n')}
 </svg>`;
   const blocks = REGIONS.map(([name, c, ids]) => {
-    const rows = ids.slice().sort((a, b) => num[a] - num[b]).map((id) => `<tr><td class="n">${num[id]}</td><th scope="row">${esc(byId[id].name)}</th><td>${esc(CENTER[id] || byId[id].name)}</td></tr>`).join('');
+    const rows = ids.slice().sort((a, b) => num[a] - num[b]).map((id) => `<tr><td class="n">${num[id]}</td><th scope="row"><a href="/oblasti-na-balgaria/${SLUG[id]}">${esc(byId[id].name)}</a></th><td>${esc(CENTER[id] || byId[id].name)}</td></tr>`).join('');
     return `<h3><span class="seo-dot" style="background:${c}"></span>${name}</h3>
       <table class="qx-table seo-table"><thead><tr><th class="n">№</th><th>Област</th><th>Областен център</th></tr></thead><tbody>${rows}</tbody></table>`;
   }).join('\n');
@@ -146,6 +147,7 @@ ${MAP.regions.map((r) => `<g><circle cx="${r.cx}" cy="${r.cy}" r="21" fill="#fff
       <p class="seo-hint">Цветовете показват шестте региона, а номерата сочат къде е всяка област в списъка по-долу.</p>
 
       <h2>Всички области и техните центрове</h2>
+      <p>Натисни името на област, за да видиш нейната карта, съседите ѝ и известните места в нея.</p>
 ${blocks}
       <p>Внимание: <b>София</b> (столицата) и <b>София област</b> са две различни области.</p>
 
@@ -173,14 +175,162 @@ ${blocks}
   });
 }
 
+// ---------- страница на една област: /oblasti-na-balgaria/<област> ----------
+// Всичко освен списъка „Известни места“ се взима от самата карта (map.json): съседи, посока, регион.
+const BYID = Object.fromEntries(MAP.regions.map((r) => [r.id, r]));
+const ID_OF = Object.fromEntries(Object.entries(SLUG).map(([id, s]) => [s, id]));
+const REGION_OF = {}; for (const [name, , ids] of REGIONS) for (const id of ids) REGION_OF[id] = name;
+const ALPHA = MAP.regions.map((r) => r.id).sort((a, b) => BYID[a].name.localeCompare(BYID[b].name, 'bg'));
+const LABEL = { SOF: 'Област София (столицата)', SFO: 'София област' };
+const label = (id) => LABEL[id] || 'Област ' + BYID[id].name;
+const inl = (id) => label(id).replace(/^Област /, 'област ');   // в средата на изречение
+const short = (id) => (id === 'SOF' ? 'София (столицата)' : BYID[id].name);
+const areaHref = (id) => '/oblasti-na-balgaria/' + SLUG[id];
+const areaLink = (id) => `<a href="${areaHref(id)}">${esc(short(id))}</a>`;
+const BB = (() => {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const r of MAP.regions) for (const m of r.path.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)) { x0 = Math.min(x0, +m[1]); x1 = Math.max(x1, +m[1]); y0 = Math.min(y0, +m[2]); y1 = Math.max(y1, +m[2]); }
+  return [x0, y0, x1, y1];
+})();
+// В коя част на страната е областта (мрежа 3×3 върху картата)
+const PARTS = { сз: 'северозападната', сц: 'северната', си: 'североизточната', цз: 'западната', цц: 'централната', ци: 'източната', юз: 'югозападната', юц: 'южната', юи: 'югоизточната' };
+function part(r) {
+  const fx = (r.cx - BB[0]) / (BB[2] - BB[0]), fy = (r.cy - BB[1]) / (BB[3] - BB[1]);
+  return PARTS[(fy < 0.36 ? 'с' : fy > 0.55 ? 'ю' : 'ц') + (fx < 0.34 ? 'з' : fx > 0.66 ? 'и' : 'ц')];
+}
+// Къде е b спрямо a: на север, на югоизток и т.н. (центровете на двете области на картата)
+const WIND = ['изток', 'североизток', 'север', 'северозапад', 'запад', 'югозапад', 'юг', 'югоизток'];
+const wind = (a, b) => 'на ' + WIND[(Math.round(Math.atan2(a.cy - b.cy, b.cx - a.cx) / (Math.PI / 4)) + 8) % 8];
+// Столицата е вътре в София област: там посока няма смисъл
+function whereIs(id, nb) {
+  if (id === 'SOF' && nb === 'SFO') return 'обкръжава столицата';
+  if (id === 'SFO' && nb === 'SOF') return 'вътре в областта';
+  return wind(BYID[id], BYID[nb]);
+}
+const LABEL_AT = { SOF: [128, 300], SFO: [262, 296] };   // къде е името на картата, когато центърът е зает от съсед
+const MAP_NAME = { SOF: 'София' };
+
+// Рамка на една област върху картата
+const boxCache = {};
+function boxOf(r) {
+  if (boxCache[r.id]) return boxCache[r.id];
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const m of r.path.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)) { x0 = Math.min(x0, +m[1]); x1 = Math.max(x1, +m[1]); y0 = Math.min(y0, +m[2]); y1 = Math.max(y1, +m[2]); }
+  return (boxCache[r.id] = [x0, y0, x1, y1]);
+}
+// Увеличена карта: областта и съседите ѝ, с малко поле (съотношение около 3:2)
+function viewOf(id) {
+  const ids = [id, ...BYID[id].neighbors].map((x) => boxOf(BYID[x]));
+  let [x0, y0, x1, y1] = [Math.min(...ids.map((b) => b[0])), Math.min(...ids.map((b) => b[1])), Math.max(...ids.map((b) => b[2])), Math.max(...ids.map((b) => b[3]))];
+  const pad = 28; x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
+  let w = Math.max(x1 - x0, 380), h = y1 - y0;
+  if (w / h < 1.3) w = h * 1.3; else if (w / h > 1.8) h = w / 1.8;
+  let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  w = Math.min(w, MAP.width); h = Math.min(h, MAP.height);
+  x0 = Math.min(Math.max(cx - w / 2, 0), MAP.width - w); y0 = Math.min(Math.max(cy - h / 2, 0), MAP.height - h);
+  return [x0, y0, w, h];
+}
+const f1 = (n) => Math.round(n * 10) / 10;
+
+function areaMap(id) {
+  const r = BYID[id], nb = r.neighbors, num = Object.fromEntries(nb.map((x, i) => [x, i + 1]));
+  const fill = (x) => (x === id ? '#f2a93b' : num[x] ? '#a9d0ee' : '#efe6d6');
+  const [vx, vy, vw, vh] = viewOf(id), k = vw / 1000;   // k: всичко се мащабира, за да е еднакво голямо на екрана
+  const [lx, baseY] = LABEL_AT[id] || [r.cx, r.cy];
+  // Името е върху областта, но се мести нагоре или надолу, ако закрива номер на съсед
+  const text = MAP_NAME[id] || short(id), fs = 44 * k, tw = text.length * 0.58 * fs, rad = 27 * k;
+  const hits = (y) => nb.some((x) => { const c = BYID[x], dx = Math.max(Math.abs(c.cx - lx) - tw / 2, 0), dy = Math.max(Math.abs(c.cy - y) - fs / 2, 0); return dx * dx + dy * dy < rad * rad; });
+  const ly = [0, -1, 1, -2, 2].map((m) => baseY + m * (fs + rad)).find((y) => !hits(y)) ?? baseY;
+  return `<svg class="seo-map" viewBox="${f1(vx)} ${f1(vy)} ${f1(vw)} ${f1(vh)}" role="img" aria-label="Карта на България: ${esc(label(id))} е в златисто, съседните области са в синьо и са номерирани">
+${MAP.regions.map((x) => `<path d="${x.path}" fill="${fill(x.id)}" stroke="#fffaf0" stroke-width="${f1((x.id === id ? 3.4 : 2.4) * k)}" stroke-linejoin="round"/>`).join('\n')}
+${nb.map((x) => `<g><circle cx="${BYID[x].cx}" cy="${BYID[x].cy}" r="${f1(27 * k)}" fill="#fffaf0" stroke="#6b4a36" stroke-width="${f1(3 * k)}"/><text x="${BYID[x].cx}" y="${f1(BYID[x].cy + 11 * k)}" text-anchor="middle" style="font-size:${f1(32 * k)}px">${num[x]}</text></g>`).join('\n')}
+<text class="seo-self" x="${lx}" y="${f1(ly + 14 * k)}" text-anchor="middle" style="font-size:${f1(fs)}px;stroke-width:${f1(10 * k)}px">${esc(text)}</text>
+</svg>`;
+}
+
+// Въпроси от банката на играта, които са за този град (до 3, от 1–4 клас)
+function bankFor(id) {
+  if (id === 'SOF' || id === 'SFO') return [];
+  const n = BYID[id].name, re = new RegExp('(^|[^А-Яа-я])' + n + '([^А-Яа-я]|$)');
+  const seen = new Set();
+  return MC.filter((q) => q.grade <= 4 && nice(q) && q.subject !== 'bel' && (q.correct === n || re.test(q.text)))
+    .sort((a, b) => a.grade - b.grade || String(a.id).localeCompare(String(b.id)))
+    .filter((q) => !seen.has(q.text) && seen.add(q.text)).slice(0, 3)
+    .map((q) => ({ ...q, options: shuffled(q.options, hash(q.id)) }));
+}
+// Три въпроса, направени от данните на картата
+function areaQuiz(id) {
+  const nb = BYID[id].neighbors, n = nb.length, seed = hash('ob|' + id), nm = short(id);
+  const far = MAP.regions.map((x) => x.id).filter((x) => x !== id && !nb.includes(x));
+  const right = nb[seed % n];
+  const counts = [n - 2, n - 1, n + 1, n + 2, n + 3].filter((x) => x >= 1);
+  const regions = REGIONS.map(([name]) => name), mine = REGION_OF[id];
+  const mates = REGIONS.find(([name]) => name === mine)[2].filter((x) => x !== id);
+  return [
+    { text: `Коя от тези области граничи с „${nm}“?`, options: shuffled([right, ...shuffled(far, seed + 1).slice(0, 3)].map(short), seed + 2), correct: short(right), note: `„${nm}“ граничи с: ${nb.map(short).join(', ')}.` },
+    { text: `С колко области граничи „${nm}“?`, options: [n, ...shuffled(counts, seed + 3).slice(0, 3)].sort((a, b) => a - b).map(String), correct: String(n), note: `Съседите са: ${nb.map(short).join(', ')}.` },
+    { text: `В кой регион е „${nm}“?`, options: shuffled([mine, ...shuffled(regions.filter((x) => x !== mine), seed + 4).slice(0, 3)], seed + 5), correct: mine, note: mates.length ? `В същия регион са още: ${mates.map(short).join(', ')}.` : '' },
+  ].map((q) => ({ ...q, options: q.options.map(String) }));
+}
+
+function areaPage(o, id) {
+  const r = BYID[id], nb = r.neighbors, n = nb.length, nm = label(id), region = REGION_OF[id], pos = part(r);
+  const idx = ALPHA.indexOf(id), prev = ALPHA[(idx + ALPHA.length - 1) % ALPHA.length], next = ALPHA[(idx + 1) % ALPHA.length];
+  const word = n === 1 ? 'област' : 'области';
+  const rows = nb.map((x, i) => `<tr><td class="n">${i + 1}</td><th scope="row">${areaLink(x)}</th><td>${esc(whereIs(id, x))}</td></tr>`).join('');
+  const facts = FACTS[id].map(([p, t]) => `        <li><b>${esc(p)}</b> — ${esc(t)}.</li>`).join('\n');
+  const bank = bankFor(id);
+  const quiz = areaQuiz(id);
+  const mates = REGIONS.find(([name]) => name === region)[2].filter((x) => x !== id);
+  const body = `      <p class="qx-lead">${esc(nm)} е в ${pos} част на България, в ${esc(region)}. Областният център е ${esc(id === 'SOF' ? 'София, столицата на България' : CENTER[id] || r.name)}. Граничи с ${n} ${word}: ${nb.map(areaLink).join(', ')}.</p>
+
+      <h2>На картата</h2>
+      <div class="seo-mapbox seo-zoom">${areaMap(id)}</div>
+      <p class="seo-hint"><span class="seo-dot" style="background:#f2a93b"></span>${esc(short(id))} <span class="seo-dot" style="background:#a9d0ee"></span>съседи (с номера) <span class="seo-dot" style="background:#efe6d6"></span>други области</p>
+
+      <h2>Съседни области</h2>
+      <table class="qx-table seo-table"><thead><tr><th class="n">№</th><th>Област</th><th>Къде е спрямо ${esc(short(id))}</th></tr></thead><tbody>${rows}</tbody></table>
+
+      <h2>Известни места</h2>
+      <ul>
+${facts}
+      </ul>
+${bank.length ? `
+      <h2>Въпроси от играта за ${esc(r.name)}</h2>
+      <p>Опитай се да отговориш, преди да натиснеш „Покажи отговора“.</p>
+${bank.map((q, i) => qCard(q, i + 1)).join('\n')}
+` : ''}
+      <h2>Провери се</h2>
+${quiz.map((q, i) => qCard(q, i + 1, 'География')).join('\n')}
+
+      <h2>Често задавани въпроси</h2>
+      <h3>Кой е областният център на ${esc(inl(id))}?</h3>
+      <p>${esc(CENTER[id] || r.name)}.</p>
+      <h3>С кои области граничи ${esc(inl(id))}?</h3>
+      <p>${nb.map((x) => esc(short(x))).join(', ')}.</p>
+      <h3>В кой регион е ${esc(inl(id))}?</h3>
+      <p>${esc(region)}.${mates.length ? ` В него са още: ${mates.map(areaLink).join(', ')}.` : ''}</p>
+
+      <h2>Завладей я в играта</h2>
+      <p>В „${SITE}“ завладяваш областите на картата, като отговаряш на въпроси. Така ${esc(short(id))} и съседите ѝ се запомнят по-лесно, отколкото със зубрене.</p>
+
+      <nav class="seo-daynav" aria-label="Други области"><a href="${areaHref(prev)}">← ${esc(short(prev))}</a><a href="/oblasti-na-balgaria">Всички области</a><a href="${areaHref(next)}">${esc(short(next))} →</a></nav>`;
+  return layout(o, {
+    title: `${nm} — карта, съседи и интересни места`,
+    desc: `${nm}: в ${pos} част на България, в ${region}, граничи с ${n} ${word}. Карта, известни места и въпроси за проверка.`,
+    path: areaHref(id), h1: nm, body,
+    crumbs: [['Областите на България', '/oblasti-na-balgaria']],
+  });
+}
+
 // ---------- „Куиз за N клас“ ----------
 const gradeNames = { 1: 'първи', 2: 'втори', 3: 'трети', 4: 'четвърти' };
-function qCard(q, i) {
+function qCard(q, i, chip = SUBJECTS[q.subject] || '') {
   return `      <div class="seo-q">
-        <div class="seo-qmeta">${i != null ? `<span class="seo-qn">${i}</span>` : ''}<span class="chip">${esc(SUBJECTS[q.subject] || '')}</span></div>
+        <div class="seo-qmeta">${i != null ? `<span class="seo-qn">${i}</span>` : ''}<span class="chip">${esc(chip)}</span></div>
         <p class="seo-qtext">${esc(q.text)}</p>
         <ul class="seo-opts">${q.options.map((op, k) => `<li><span class="seo-l">${LETTERS[k]}</span>${esc(op)}</li>`).join('')}</ul>
-        <details><summary>Покажи отговора</summary><p>Верният отговор: <b>${esc(q.correct)}</b></p></details>
+        <details><summary>Покажи отговора</summary><p>Верният отговор: <b>${esc(q.correct)}</b>${q.note ? ' ' + esc(q.note) : ''}</p></details>
       </div>`;
 }
 function gradePage(o, g) {
@@ -294,6 +444,7 @@ function render(url, o) {
   let res = null;
   let m;
   if (clean === '/oblasti-na-balgaria') res = { html: oblastiPage(o) };
+  else if ((m = clean.match(/^\/oblasti-na-balgaria\/([a-z-]+)$/)) && ID_OF[m[1]]) res = { html: areaPage(o, ID_OF[m[1]]) };
   else if ((m = clean.match(/^\/kviz-za-([1-4])-klas$/))) res = { html: gradePage(o, +m[1]) };
   else if (clean === '/vapros-na-denya') res = { html: dailyPage(o, today(), true) };
   else if ((m = clean.match(DATE))) {
@@ -308,7 +459,7 @@ function render(url, o) {
 function sitemapPaths() {
   const t = today(), days = [];
   for (let d = addDays(t, -1); d >= START && days.length < 30; d = addDays(d, -1)) days.push('/vapros-na-denya/' + d);
-  return ['/oblasti-na-balgaria', ...GRADES.map((g) => `/kviz-za-${g}-klas`), '/vapros-na-denya', '/za-uchiteli', ...days];
+  return ['/oblasti-na-balgaria', ...ALPHA.map((id) => areaHref(id)), ...GRADES.map((g) => `/kviz-za-${g}-klas`), '/vapros-na-denya', '/za-uchiteli', ...days];
 }
 
-module.exports = { render, sitemapPaths, today, dailyQuestion, gradeSamples, gradeInfo, NAV, START };
+module.exports = { render, sitemapPaths, today, dailyQuestion, gradeSamples, gradeInfo, areaQuiz, NAV, START };
