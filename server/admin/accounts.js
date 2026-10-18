@@ -23,6 +23,7 @@ function checkName(name) {
   return { name: n };
 }
 const EMAIL_RE = /^[^\s@<>()",;:]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/;
+const EMAIL_TAKEN = 'С този имейл вече има регистрация. Влез в профила си. Ако не помниш паролата, натисни „Забравена парола?“.';
 const normEmail = (e) => String(e || '').trim().toLowerCase();
 function checkEmail(e) {
   e = normEmail(e);
@@ -60,7 +61,7 @@ class Accounts {
   get users() { return this.store.get('players').users; }
   get secret() { return this.store.get('players').secret; }
   byName(name) { const n = normName(name); return Object.values(this.users).find((u) => normName(u.name) === n) || null; }
-  // Един имейл на родител може да има няколко деца (братя и сестри)
+  // Един имейл = една регистрация (детски или за възрастен). Старите профили с общ имейл още могат да влизат.
   byEmail(email) { const e = normEmail(email); return e ? Object.values(this.users).filter((u) => u.email === e) : []; }
   // Чака родителят да потвърди по имейл (само ако изпращането на имейли е включено)
   needsConsent(u) { return mail.enabled() && !!u.email && !u.consentAt; }
@@ -150,7 +151,7 @@ class Accounts {
     if (this.byName(c.name)) return { error: 'Това потребителско име вече е заето. Опитай с друго.' };
     const e = checkEmail(email);
     if (e.error) return e;
-    if (this.byEmail(e.email).length >= 6) return { error: 'С този имейл вече има 6 профила.' };
+    if (this.byEmail(e.email).length) return { error: EMAIL_TAKEN };
     if (String(password || '').length < 4) return { error: 'Паролата трябва да е поне 4 знака.' };
     if (String(password).length > 64) return { error: 'Паролата е твърде дълга.' };
     if (!consent) return { error: 'Нужно е съгласие от родител. Помоли мама или татко да прочетат и да отметнат квадратчето.' };
@@ -167,7 +168,7 @@ class Accounts {
     if (this.byName(c.name)) return { error: 'Това потребителско име вече е заето. Опитай с друго.' };
     const e = checkEmail(email);
     if (e.error) return e;
-    if (this.byEmail(e.email).some((u) => u.adult)) return { error: 'С този имейл вече има профил за възрастен. Влез с него.' };
+    if (this.byEmail(e.email).length) return { error: EMAIL_TAKEN };
     const age = ageOf(birthDate);
     if (age === null) return { error: 'Въведи рождената си дата.' };
     if (age < 18) return { error: 'Профил за възрастни може да има само пълнолетен. Можеш да играеш в детския режим с профил, направен от родител.' };
@@ -184,7 +185,7 @@ class Accounts {
     return { user: u };
   }
   // Вход с потребителско име или с имейл на родителя + парола.
-  // С един имейл може да има няколко деца: влиза профилът, чиято парола съвпада.
+  // Нови регистрации са по една на имейл; при стари профили с общ имейл влиза този, чиято парола съвпада.
   login({ login, name, password }) {
     const id = String(login ?? name ?? '').trim();
     let u = null;
@@ -204,6 +205,7 @@ class Accounts {
   setEmail(u, email) {
     const e = checkEmail(email);
     if (e.error) return e;
+    if (this.byEmail(e.email).some((x) => x.id !== u.id)) return { error: EMAIL_TAKEN };
     if (e.email === u.email) return { ok: true, same: true };
     if (u.adult) { u.email = e.email; this.store.touch('players'); return { ok: true, same: true }; } // без писмо до родител
     u.email = e.email; u.consentAt = null; u.consentAskedAt = new Date().toISOString(); delete u.consentToken;
