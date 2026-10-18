@@ -60,6 +60,9 @@
       <button type="button" data-d="hero" aria-label="Моят герой"><i>🧙</i><span>Герой</span></button>
       <button type="button" data-d="team" aria-label="Отбор и турнир"><i>🏫</i><span>Отбор</span><b class="dot live hidden"></b></button>`;
     home.prepend(top); top.append(dock, bar);
+    // парички и знаме (adult.js) са в същата лента, за да не се застъпват с бутоните и профила
+    const takeWallet = () => { const w = q('.zn-wallet', home); if (w && w.parentNode !== top) top.prepend(w); };
+    takeWallet(); new MutationObserver(takeWallet).observe(home, { childList: true });
     dock.addEventListener('click', (e) => {
       const d = e.target.closest('[data-d]')?.dataset.d;
       if (!d) return;
