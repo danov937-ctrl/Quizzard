@@ -92,7 +92,9 @@
     if (a === 'board') showBoard(); if (a === 'ideas') showIdeas(); if (a === 'login') showAuth('login'); if (a === 'register') showAuth('register'); if (a === 'profile') showProfile();
   });
 
+  let meKnown = false;   // true, след като сме питали сървъра дали има влязъл профил (track.js не пуска пиксела преди това)
   function renderBar() {
+    window.qzMe = me; window.qzMeKnown = meKnown; if (meKnown) window.dispatchEvent(new CustomEvent('qz:me'));   // track.js: за профил на дете пикселът не се пуска
     window.dispatchEvent(new CustomEvent('zn:me', { detail: me })); // adult.js: режим, парички, знаме
     const name = q('#name');
     if (me) {
@@ -105,7 +107,7 @@
   }
   // След вход/изход връзката с играта се отваря наново, за да я свърже с профила
   function reconnect() { try { if (typeof ws !== 'undefined' && ws) ws.close(); } catch {} }
-  async function loadMe() { try { me = (await call('/api/account/me')).user; } catch { me = null; } renderBar(); gateUpdate(); celebrate(); }
+  async function loadMe() { try { me = (await call('/api/account/me')).user; } catch { me = null; } meKnown = true; renderBar(); gateUpdate(); celebrate(); }
 
   // ---------- начален екран: вход, регистрация или „Играй като гост“ ----------
   // Без профил се играе само след „Играй като гост“ (помни се до затваряне на браузъра).
@@ -123,7 +125,7 @@
   document.body.append(gate);
   gate.addEventListener('click', (e) => {
     const g = e.target.closest('[data-g]')?.dataset.g;
-    if (g === 'guest') { ss.set('quizzard-guest', '1'); gateUpdate(); }
+    if (g === 'guest') { ss.set('quizzard-guest', '1'); gateUpdate(); window.qzTrack?.('PlayClick'); }
     else if (g) showAuth(g);
   });
   function gateUpdate() {
@@ -199,6 +201,7 @@
       if (f.password !== f.password2) { err.textContent = 'Паролите не съвпадат.'; return; }
       try {
         const r = await call('/api/account/register', { adult: true, name: f.name, email: f.email, birthDate: f.birthDate, password: f.password, consent: !!f.consent });
+        window.qzTrack?.('CompleteRegistration');   // само за възрастни: за профил на дете събитие не се праща
         me = r.user; renderBar(); close(); reconnect(); gateUpdate();
         if (me.needsConsent) open('📧 Почти готово!', `<p>Изпратихме писмо на <b>${esc(me.email)}</b>. Отвори го и натисни <b>„Потвърди имейла“</b>.</p><p class="qx-note">Дотогава можеш да играеш, но не се показваш в класациите, а профили на деца ще можеш да добавяш след потвърждението. Не намираш писмото? Виж и папката „Спам“.</p><div class="qx-row"><button class="qx-btn gold" data-ok>Разбрах</button></div>`, 'narrow').querySelector('[data-ok]').onclick = close;
         else flash(`Добре дошъл, ${me.name}! 🪙 1000 парички за начало.`);

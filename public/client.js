@@ -167,7 +167,7 @@ function handle(m) {
     store.del(SAVE_KEY); me = null; state = null; lastFxId = null; closeOverlay(); show('home');
     if (afterLeave) { const f = afterLeave; afterLeave = null; f(); }
   }
-  else if (m.t === 'practiceSet') startPracticeSet(m);
+  else if (m.t === 'practiceSet') { window.qzTrack?.('GameStart'); startPracticeSet(m); }
   else if (m.t === 'reportOk') { closeReport(); toast('Благодарим! Сигналът е изпратен.'); }
   else if (m.t === 'error') { for (const s of ['#homeErr', '#lobbyErr', '#reportErr']) $(s).textContent = m.msg; }
   else if (m.t === 'lobby') { lobby = m.lobby; state = null; lastFxId = null; closeOverlay(); renderLobby(); show('lobby'); }
@@ -175,6 +175,8 @@ function handle(m) {
     // нова игра (друга стая, други играчи или „Играй пак“): картата се чисти от замъците и анимациите на старата
     const ids = (st) => st.players.map((p) => p.id).join();
     if (!state || ids(state) !== ids(m.state) || (state.phase === 'ended' && m.state.phase !== 'ended')) resetMap();
+    if (!state) window.qzTrack?.('GameStart');
+    if (m.state.phase === 'ended' && state?.phase !== 'ended') window.qzTrack?.('GameFinished');
     lobby = m.lobby; state = m.state; show('game'); renderGame();
   }
 }
