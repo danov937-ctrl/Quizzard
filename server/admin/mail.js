@@ -3,22 +3,41 @@
 // MAIL_OUTBOX=<папка> записва писмата като файлове вместо да ги праща (за тестове).
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const KEY = process.env.RESEND_API_KEY || '';
 const FROM = process.env.MAIL_FROM || '';
 const OUTBOX = process.env.MAIL_OUTBOX || '';
 const enabled = () => !!((KEY && FROM) || OUTBOX);
+const RETRY_MS = Number(process.env.MAIL_RETRY_MS) || 500;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function send({ to, subject, html, text }) {
+async function send({ to, subject, html, text, idempotencyKey }) {
   if (OUTBOX) {
     fs.mkdirSync(OUTBOX, { recursive: true });
     fs.writeFileSync(path.join(OUTBOX, `${Date.now()}-${Math.random().toString(36).slice(2, 7)}.json`), JSON.stringify({ to, subject, html, text }));
     return { ok: true };
   }
   if (!KEY || !FROM) return { skipped: true };
-  const res = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: FROM, to: [to], subject, html, text }) });
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  return { ok: true };
+  // Един и същ Idempotency-Key за всички опити: ако първият е стигнал до Resend, повторният не праща второ писмо.
+  // Повтаряме до 2 пъти само при мрежова грешка, 429 и 5xx; другите грешки (напр. 422 – лош адрес) се връщат веднага.
+  const body = JSON.stringify({ from: FROM, to: [to], subject, html, text });
+  const idem = idempotencyKey || crypto.randomUUID();
+  for (let attempt = 0; ; attempt++) {
+    let res;
+    try {
+      res = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': idem }, body });
+    } catch (e) {
+      if (attempt >= 2) throw e;
+      await sleep(RETRY_MS * 2 ** attempt); continue;
+    }
+    if (res.ok) return { ok: true };
+    if ((res.status === 429 || res.status >= 500) && attempt < 2) {
+      const ra = Number(res.headers?.get?.('retry-after')) * 1000;
+      await sleep(Math.min(ra > 0 ? ra : RETRY_MS * 2 ** attempt, 5000)); continue;
+    }
+    throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  }
 }
 
 // Обща рамка на писмата
