@@ -39,6 +39,15 @@ class Parents {
     if (!mail.enabled() || !u.email || u.consentAt) return { skipped: true };
     u.consentToken ||= tok(); u.consentAskedAt = new Date().toISOString(); this.store.touch('players');
     const B = this.base(), e = mail.esc;
+    if (u.adult) {
+      const link = `${B}/consent.html#${u.consentToken}`;
+      return this.send(u.email, 'Потвърдете имейла си в „Знаменосци“', 'Потвърдете имейла си',
+        `<p>Здравейте! С този имейл е направен профил за възрастен <b>„${e(u.name)}“</b> в „Знаменосци“.</p>
+         <p>Натиснете бутона, за да потвърдите, че имейлът е ваш. Това е <b>едно потвърждение</b>: важи и за всички детски профили, които добавите към профила си.</p>
+         ${mail.button(link, 'Потвърди имейла')}
+         <p>Ако не сте се регистрирали вие, отворете линка и изберете „Изтрий профила“. Без потвърждение профилът се изтрива сам след ${CONSENT_DAYS} дни.</p>`,
+        `Потвърдете имейла си в „Знаменосци“: ${link}`);
+    }
     return this.send(u.email, `Потвърдете профила на ${u.name} в „Знаменосци“`, 'Потвърдете профила на детето',
       `<p>Здравейте! В „Знаменосци“, образователна игра с въпроси за 1.–4. клас, е направен профил <b>„${e(u.name)}“</b> с вашия имейл.</p>
        <p>Децата под 14 години могат да имат профил само със съгласие от родител. С профила детето пази нивата, значките и резултатите си. Пазим само потребителското име, паролата (криптирана), имейла ви и резултатите от играта.</p>
@@ -50,7 +59,14 @@ class Parents {
   // ---------- добре дошъл (след потвърждение от родител) ----------
   async welcome(u) {
     if (!mail.enabled() || !u.email || !u.consentAt) return { skipped: true };
-    const B = this.base(), e = mail.esc, link = `${B}/parent.html#${this.acc.league.parentLink(u)}`;
+    const B = this.base(), e = mail.esc;
+    if (u.adult) {
+      return this.send(u.email, 'Имейлът е потвърден', 'Имейлът е потвърден ✅',
+        `<p>Благодарим! Профилът <b>„${e(u.name)}“</b> в „Знаменосци“ е потвърден и вече се показва в класациите.</p>
+         <p>Ако имате деца, влезте в профила си → ⚙️ → „Детски профили“ и добавете профил на детето. <b>Не е нужно ново потвърждение</b>: този имейл важи за всички. Седмичните отчети за децата идват тук.</p>`,
+        `Имейлът е потвърден. Детски профили: влезте в профила си → ⚙️ → „Детски профили“.`);
+    }
+    const link = `${B}/parent.html#${this.acc.league.parentLink(u)}`;
     return this.send(u.email, `Профилът на ${u.name} е потвърден`, 'Профилът е потвърден ✅',
       `<p>Благодарим! Профилът <b>„${e(u.name)}“</b> в „Знаменосци“ е потвърден и детето вече може да пази нивата, значките и резултатите си.</p>
        <p><b>Какво да знаете:</b></p>
@@ -164,13 +180,13 @@ class Parents {
       if (acc.limited('consent:' + ip, 40, 600000)) return json(res, 429, { error: 'Твърде много опити. Изчакайте малко.' });
       const u = this.byConsent(cons[1]);
       if (!u) return json(res, 404, { error: 'Линкът не е валиден. Може профилът вече да е изтрит.' });
-      if (!post) return json(res, 200, { name: u.name, grade: u.grade, createdAt: u.createdAt, email: S.maskEmail(u.email), confirmed: !!u.consentAt, report: u.consentAt ? acc.league.parentLink(u) : null });
+      if (!post) return json(res, 200, { name: u.name, grade: u.grade, createdAt: u.createdAt, email: S.maskEmail(u.email), adult: !!u.adult, confirmed: !!u.consentAt, report: u.consentAt && !u.adult ? acc.league.parentLink(u) : null });
       if (body.action === 'refuse') { acc.deleteUser(u.id); await this.store.flush(); return json(res, 200, { deleted: true }); }
       if (body.action !== 'confirm') return json(res, 400, { error: 'Непознато действие.' });
       const first = !u.consentAt;
       u.consentAt ||= new Date().toISOString(); this.store.touch('players'); await this.store.flush().catch(() => {});
       if (first) this.welcome(u).catch(() => {});
-      return json(res, 200, { confirmed: true, report: acc.league.parentLink(u) });
+      return json(res, 200, { confirmed: true, adult: !!u.adult, report: u.adult ? null : acc.league.parentLink(u) });
     }
     if (p === '/api/account/consent-resend' && post) {
       if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });

@@ -132,16 +132,19 @@ async function playBotGame(jar) {
     assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'Звездичка7', password: 'грешна' }, false)).status, 400);
     assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'MAMA@primer.bg', password: 'тайна1' }, false)).status, 200, 'вход с имейл');
     assert.strictEqual((await client().req('POST', '/api/account/login', { name: 'Звездичка7', password: 'тайна1' }, false)).status, 200, 'вход с потребителско име');
-    // брат със същия имейл: входът с имейл намира профила по паролата
+    // един имейл = една регистрация (и с други главни/малки букви); брат с друг имейл се записва нормално
     const bro = client();
-    assert.strictEqual((await bro.req('POST', '/api/account/register', { name: 'Батко', email: 'mama@primer.bg', password: 'друга9', consent: true }, false)).status, 200);
-    assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'mama@primer.bg', password: 'друга9' }, false)).data.user.name, 'Батко');
+    const dupe = await bro.req('POST', '/api/account/register', { name: 'Батко', email: 'MAMA@primer.bg', password: 'друга9', consent: true }, false);
+    assert.strictEqual(dupe.status, 400, 'втори профил със същия имейл не се допуска'); assert.match(dupe.data.error, /вече има регистрация/);
+    assert.strictEqual((await client().req('POST', '/api/account/login', { name: 'Батко', password: 'друга9' }, false)).status, 400, 'профилът не е създаден');
+    assert.strictEqual((await bro.req('POST', '/api/account/register', { name: 'Батко', email: 'tatko@primer.bg', password: 'друга9', consent: true }, false)).status, 200);
+    assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'tatko@primer.bg', password: 'друга9' }, false)).data.user.name, 'Батко');
     // съгласие от родителя по имейл
     const png0 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
     assert.strictEqual((await kid.req('POST', '/api/account/photo', { data: png0 }, false)).status, 400, 'без съгласие няма снимка');
     const cm = lastMail('mama@primer.bg', '/consent.html');
     assert.ok(cm && cm.html.includes('https://quizzard.test/consent.html#'), 'писмо за съгласие с линк към сайта');
-    const cBro = lastMail('mama@primer.bg', '/consent.html').token;
+    const cBro = lastMail('tatko@primer.bg', '/consent.html').token;
     assert.strictEqual((await client().req('GET', '/api/consent/' + cBro)).data.name, 'Батко');
     assert.ok((await client().req('POST', '/api/consent/' + cBro, { action: 'refuse' }, false)).data.deleted, 'родителят отказва: профилът се трие');
     assert.strictEqual((await client().req('POST', '/api/account/login', { login: 'Батко', password: 'друга9' }, false)).status, 400);

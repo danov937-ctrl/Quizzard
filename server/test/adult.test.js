@@ -25,6 +25,17 @@ function client() {
   };
   return { req, jar };
 }
+// Възрастният потвърждава имейла си като родителя: с линка от писмото
+async function confirmByMail(email) {
+  const dir = path.join(DIR, 'outbox');
+  for (let i = 0; i < 80; i++) {
+    const files = fs.existsSync(dir) ? fs.readdirSync(dir).sort() : [];
+    const m = files.map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))).filter((x) => x.to === email && x.html.includes('/consent.html#')).pop();
+    if (m) { const t = /consent\.html#([A-Za-z0-9_-]+)/.exec(m.html)[1]; const r = await client().req('POST', '/api/consent/' + t, { action: 'confirm' }); assert.strictEqual(r.status, 200); return; }
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error('няма писмо за потвърждение до ' + email);
+}
 const yearsAgo = (n) => { const d = new Date(); d.setFullYear(d.getFullYear() - n); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
 // Свързва играч; връща { ws, next(pred) } за чакане на съобщение
@@ -60,10 +71,13 @@ function autoplay(c) {
     assert.strictEqual(r.status, 400, 'под 18 не става'); assert.match(r.data.error, /пълнолет/);
     r = await a.req('POST', '/api/account/register', { adult: true, name: 'Знаменосец', email: 'a@primer.bg', password: 'dulga-parola', birthDate: yearsAgo(30), consent: true });
     assert.strictEqual(r.status, 200, JSON.stringify(r.data));
-    assert.ok(r.data.user.adult && r.data.user.coins === 1000 && !r.data.user.needsConsent, 'възрастен: 1000 парички, без родител');
+    assert.ok(r.data.user.adult && r.data.user.coins === 1000 && r.data.user.needsConsent, 'възрастен: 1000 парички и чака потвърждение на имейла');
+    await confirmByMail('a@primer.bg');
+    assert.ok(!(await a.req('GET', '/api/account/me')).data.user.needsConsent, 'имейлът е потвърден');
     assert.ok(!r.data.user.badges.some((x) => x.id === 'master_mat') && r.data.user.badges.some((x) => x.id === 'master_hist'), 'значки за възрастни');
     assert.strictEqual((await b.req('POST', '/api/account/register', { adult: true, name: 'Рицаря', email: 'a@primer.bg', password: 'dulga-parola', birthDate: yearsAgo(40), consent: true })).status, 400, 'един възрастен на имейл');
     assert.strictEqual((await b.req('POST', '/api/account/register', { adult: true, name: 'Рицаря', email: 'b@primer.bg', password: 'dulga-parola', birthDate: yearsAgo(40), consent: true })).status, 200);
+    await confirmByMail('b@primer.bg');
     assert.strictEqual((await kid.req('POST', '/api/account/register', { name: 'Звездичка7', email: 'roditel@primer.bg', password: 'tajna', grade: 3, consent: true })).status, 200);
 
     // ----- знаме -----

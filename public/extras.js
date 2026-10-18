@@ -199,7 +199,8 @@
       try {
         const r = await call('/api/account/register', { adult: true, name: f.name, email: f.email, birthDate: f.birthDate, password: f.password, consent: !!f.consent });
         me = r.user; renderBar(); close(); reconnect(); gateUpdate();
-        flash(`Добре дошъл, ${me.name}! 🪙 1000 парички за начало.`);
+        if (me.needsConsent) open('📧 Почти готово!', `<p>Изпратихме писмо на <b>${esc(me.email)}</b>. Отвори го и натисни <b>„Потвърди имейла“</b>.</p><p class="qx-note">Дотогава можеш да играеш, но не се показваш в класациите, а профили на деца ще можеш да добавяш след потвърждението. Не намираш писмото? Виж и папката „Спам“.</p><div class="qx-row"><button class="qx-btn gold" data-ok>Разбрах</button></div>`, 'narrow').querySelector('[data-ok]').onclick = close;
+        else flash(`Добре дошъл, ${me.name}! 🪙 1000 парички за начало.`);
       } catch (x) { err.textContent = x.message; }
     };
   }
@@ -238,7 +239,7 @@
         ${me.photoStatus === 'pending' ? '<p class="qx-note"><b>⏳ Снимката ти чака одобрение.</b></p>' : ''}${me.photoStatus === 'rejected' ? '<p class="qx-note"><b>Снимката не беше одобрена. Опитай с друга.</b></p>' : ''}
         <div class="qx-row"><label class="qx-btn">📁 Качи снимка<input type="file" accept="image/*" hidden data-photo></label>${me.photoStatus === 'off' || me.photoStatus === 'approved' ? `<button class="qx-btn" data-use-photo ${me.avatar.photo ? 'disabled' : ''}>${me.avatar.photo ? '✓ Ползваш снимката' : '🖼️ Ползвай одобрената снимка'}</button>` : ''}</div></div>
       <div class="qx-pane qx-hide" data-p="more">
-        ${me.needsConsent ? `<div class="qx-tip">📧 Родителят още не е потвърдил профила (писмо до ${esc(me.email)}). Дотогава не се показваш в класацията. <button class="qx-linkbtn" data-resend>Изпрати писмото пак</button></div>` : ''}
+        ${me.needsConsent ? `<div class="qx-tip">📧 ${me.adult ? 'Още не си потвърдил имейла си' : 'Родителят още не е потвърдил профила'} (писмо до ${esc(me.email)}). Дотогава не се показваш в класацията. <button class="qx-linkbtn" data-resend>Изпрати писмото пак</button></div>` : ''}
         ${me.adult ? '' : `<h3>🏫 Моят клас</h3>
         ${me.team ? `<p><b>${esc(me.team.name)}</b> · ${esc(me.team.school)}${me.team.town ? ', ' + esc(me.team.town) : ''}</p><button class="qx-btn" data-leave>Напусни класа</button>`
           : `<form class="qx-form qx-inline" data-team><input name="code" maxlength="8" placeholder="Код от учителя" required style="text-transform:uppercase"><button class="qx-btn gold">Влез в класа</button></form><p class="qx-note">С кода точките ти отиват и за класа в турнирите между училища.</p>`}`}
@@ -249,6 +250,9 @@
         ${me.email && me.mail ? `<label class="qx-check"><input type="checkbox" data-weekly ${me.weeklyMail ? 'checked' : ''}><span>Седмичен отчет на имейла всеки понеделник</span></label>` : ''}
         <details class="qx-more"><summary>Смени имейла на родителя</summary><form class="qx-form" data-email><label>Нов имейл<input name="email" type="email" maxlength="120" required></label><label>Твоята парола<input name="password" type="password" autocomplete="current-password" required></label><p class="qx-err"></p><button class="qx-btn gold">Запази</button></form></details>`}
         <form class="qx-form" data-pw><h3>Смени паролата</h3><label>Стара парола<input name="old" type="password" autocomplete="current-password" required></label><label>Нова парола<input name="password" type="password" autocomplete="new-password" required></label><p class="qx-err"></p><button class="qx-btn gold">Запази</button></form>
+        ${me.adult ? `<h3>👨‍👧 Детски профили</h3>
+        ${(me.children || []).length ? `<ul class="qx-kids">${me.children.map((c) => `<li><b>${esc(c.name)}</b>${c.grade ? ` · ${c.grade} клас` : ''} · ${c.games} игри <button class="qx-linkbtn" data-kid-del="${esc(c.id)}">Изтрий</button></li>`).join('')}</ul>` : '<p class="qx-note">Още няма добавени деца.</p>'}
+        ${me.needsConsent ? '<p class="qx-note">Първо потвърди имейла си от писмото, за да добавяш деца.</p>' : `<details class="qx-more"><summary>➕ Добави детски профил</summary><form class="qx-form" data-kid><label>Потребителско име на детето<input name="name" maxlength="16" required placeholder="напр. Звездичка7"></label><label>Парола на детето<input name="password" type="password" maxlength="64" autocomplete="new-password" required></label><label>Клас<select name="grade"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label><p class="qx-note">Не е нужно ново потвърждение: твоят имейл вече е потвърден и важи и за децата. Детето влиза със своето име и парола, а седмичният отчет идва на твоя имейл. Без истинско име на детето!</p><p class="qx-err"></p><button class="qx-btn gold" type="submit">Добави</button></form></details>`}` : ''}
         <h3>🔒 Моите данни</h3>
         <div class="qx-row"><a class="qx-btn" href="/api/account/export" download>⬇️ Изтегли данните</a><a class="qx-btn" href="${me.adult ? '/privacy-adult.html' : '/privacy.html'}" target="_blank">Поверителност</a></div>
         <details class="qx-more"><summary>Изтрий профила завинаги</summary><form class="qx-form" data-del><p class="qx-note">Нивата, значките и резултатите ще изчезнат завинаги. Можеш да продължиш да играеш като гост.</p><label>Паролата ти<input name="password" type="password" autocomplete="current-password" required></label><p class="qx-err"></p><button class="qx-btn" style="color:var(--bad)">🗑 Изтрий профила</button></form></details>
@@ -275,6 +279,12 @@
         } catch (x) { flash(x.message); }
         return;
       }
+      const kd = e.target.closest('[data-kid-del]');
+      if (kd) {
+        const pw = prompt('Въведи твоята парола, за да изтриеш профила на детето (не може да се върне):'); if (!pw) return;
+        try { me = (await call('/api/account/child/delete', { id: kd.dataset.kidDel, password: pw })).user; flash('Детският профил е изтрит.'); showProfile('more'); } catch (x) { flash(x.message); }
+        return;
+      }
       if (e.target.closest('[data-logout]')) { await call('/api/account/logout', {}).catch(() => {}); me = null; ss.set('quizzard-guest', null); renderBar(); close(); reconnect(); gateUpdate(); }
     });
     q('[data-photo]', m).onchange = async (e) => {
@@ -286,6 +296,10 @@
       try { const r = await call('/api/account/team', { code: e.target.code.value }); me = r.user; flash(`Добре дошъл в ${r.team.name}! 🏫`); showProfile('more'); } catch (x) { flash(x.message); }
     });
     q('[data-weekly]', m)?.addEventListener('change', async (e) => { try { me = (await call('/api/account/weekly', { on: e.target.checked })).user; flash(e.target.checked ? 'Седмичният отчет е включен.' : 'Седмичният отчет е спрян.'); } catch (x) { flash(x.message); } });
+    q('[data-kid]', m)?.addEventListener('submit', async (e) => {
+      e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const err = q('[data-kid] .qx-err', m);
+      try { const r = await call('/api/account/child', { name: f.name, password: f.password, grade: Number(f.grade) || null }); me = r.user; flash(`Профилът „${r.child.name}“ е добавен. 🎉`); showProfile('more'); } catch (x) { err.textContent = x.message; }
+    });
     q('[data-email]', m).onsubmit = async (e) => {
       e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const err = q('[data-email] .qx-err', m);
       try { me = (await call('/api/account/email', f)).user; flash(me.needsConsent ? 'Имейлът е сменен. Изпратихме писмо за потвърждение.' : 'Имейлът е сменен.'); showProfile('more'); } catch (x) { err.textContent = x.message; }
