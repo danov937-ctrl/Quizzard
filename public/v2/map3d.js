@@ -1,6 +1,5 @@
 // Нов вид: карта.
-// По подразбиране картата е плоска и спокойна, като рисувана географска карта: върху нея са сенките на
-// истинските планини (Стара планина, Рила, Пирин, Родопите…). Бутонът „🧊 3D“ я наклонява към играча
+// По подразбиране картата е плоска и спокойна, като рисувана географска карта. Бутонът „🧊 3D“ я наклонява към играча
 // (ортографска проекция само със SVG матрица): областите стават издигнати блокове, завзетите са по-високи,
 // избираемите подскачат. Надписите и замъците стоят „прави“ върху наклонената плоскост.
 // В 3D изглед хоризонтално плъзгане върти картата, вертикално я накланя.
@@ -17,18 +16,6 @@
   // приказни обитатели на съседните земи: [x, y, емоджи, клас, закъснение] (координати на картата)
   var DECOR = [[-55, 95, '🌲', '', 0], [-95, 280, '🌳', '', 1.2], [-32, 455, '🦄', ' big', .6], [110, 702, '🌳', '', 2], [470, 698, '🏛️', ' big', .3], [880, 640, '🐉', ' dragon big', 0],
     [110, -20, '🌲', '', .8], [250, -40, '🏰', ' big', 0], [760, -45, '🌳', '', 1.6], [960, 690, '🌲', '', 2.4]];
-  // истинските планини, като линии върху картата (проекцията е същата като на data/map.json) и дебелина на хребета
-  var RANGES = [
-    ['M79,114L111,193L189,232L268,264L377,296L471,319L581,315L675,298L785,306L887,328', 36],   // Стара планина
-    ['M221,375L315,357L424,357L534,347', 22],                                                   // Средна гора
-    ['M127,439L189,449L221,460', 44],                                                           // Рила
-    ['M145,357L166,364', 22],                                                                   // Витоша
-    ['M189,486L177,541L170,588', 28],                                                           // Пирин
-    ['M260,492L330,541L424,575L526,609', 60],                                                   // Родопите
-    ['M32,428L72,456', 22],                                                                     // Осогово
-    ['M722,460L816,471L887,492', 28],                                                           // Странджа
-    ['M127,605L174,609', 18]                                                                    // Беласица
-  ];
   var FAIRIES = [[-110, 30, '🧚', ''], [1050, 240, '🧚', ' b']];
 
   var r3 = function (n) { return Math.round(n * 1000) / 1000; };
@@ -93,37 +80,8 @@
     }).join('');
     return '<g id="stage"><path class="grid" d="' + grid.join('') + '"/>' + pieces.below +
       '<g class="shadow"><g transform="translate(14 20)">' + ordered.map(function (r) { return '<path d="' + r.path + '"/>'; }).join('') + '</g></g>' +
-      '<g class="land">' + regions + '</g>' + relief(ordered) + pieces.above + decor(upright) +
+      '<g class="land">' + regions + '</g>' + pieces.above + decor(upright) +
       '<g class="labels">' + labels + '</g><g id="castles"></g><g id="fxl"></g></g>';
-  }
-
-  // планини, нарисувани като върхове по хребетите (като на печатна географска карта); режат се по границата
-  function relief(ordered) {
-    var clip = ordered.map(function (r) { return '<path d="' + r.path + '"/>'; }).join('');
-    var body = RANGES.map(function (r) { return '<path d="' + r[0] + '" style="stroke-width:' + r[1] + 'px"/>'; }).join('');
-    var seed = 7, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-    var peaks = [];
-    RANGES.forEach(function (r) {
-      var n = r[0].match(/-?\d+(\.\d+)?/g).map(Number), P = [], w = r[1], step = Math.max(11, w * .4), need = 0;
-      for (var i = 0; i < n.length; i += 2) P.push([n[i], n[i + 1]]);
-      for (var s = 0; s < P.length - 1; s++) {
-        var ax = P[s][0], ay = P[s][1], bx = P[s + 1][0], by = P[s + 1][1], L = Math.hypot(bx - ax, by - ay), nx = -(by - ay) / L, ny = (bx - ax) / L, d = need;
-        for (; d < L; d += step * (.8 + rnd() * .5)) {
-          var o = (rnd() - .5) * w * .6;
-          peaks.push([ax + (bx - ax) * d / L + nx * o, ay + (by - ay) * d / L + ny * o, 6.5 + rnd() * 3.5 + w * .04]);
-        }
-        need = d - L;
-      }
-    });
-    peaks.sort(function (p, q) { return p[1] - q[1]; });
-    var tri = peaks.map(function (p) {
-      var x = p[0], y = p[1], s = p[2], h = s * 1.55, f = function (n) { return Math.round(n * 10) / 10; };
-      var cap = s > 8.5 ? '<path class="pcap" d="M' + f(x) + ' ' + f(y - h) + 'L' + f(x + s * .36) + ' ' + f(y - h * .62) + 'L' + f(x + s * .1) + ' ' + f(y - h * .7) + 'L' + f(x - s * .12) + ' ' + f(y - h * .6) + 'L' + f(x - s * .36) + ' ' + f(y - h * .64) + 'Z"/>' : '';
-      return '<path class="pl" d="M' + f(x - s) + ' ' + f(y) + 'L' + f(x) + ' ' + f(y - h) + 'L' + f(x + s * .15) + ' ' + f(y) + 'Z"/><path class="pr" d="M' + f(x) + ' ' + f(y - h) + 'L' + f(x + s) + ' ' + f(y) + 'L' + f(x + s * .15) + ' ' + f(y) + 'Z"/>' + cap;
-    }).join('');
-    return '<defs><clipPath id="bgclip">' + clip + '</clipPath>' +
-      '<filter id="rb1" filterUnits="userSpaceOnUse" x="-100" y="-100" width="1200" height="900"><feGaussianBlur stdDeviation="12"/></filter></defs>' +
-      '<g class="relief" clip-path="url(#bgclip)"><g class="rcore" filter="url(#rb1)">' + body + '</g><g class="peaks">' + tri + '</g></g>';
   }
 
   function decor(up) {

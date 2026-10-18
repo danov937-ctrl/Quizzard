@@ -31,14 +31,6 @@ html[data-design="v2"] #map .fairy.b { animation-delay: -8s; font-size: 20px; }
 @keyframes v2-fairy { 0% { transform: translate(0, 0); } 20% { transform: translate(70px, 120px) rotate(8deg); } 40% { transform: translate(-10px, 250px) rotate(-6deg); } 60% { transform: translate(90px, 360px) rotate(8deg); } 80% { transform: translate(20px, 190px) rotate(-6deg); } 100% { transform: translate(0, 0); } }
 
 
-/* планини: върхове по хребетите и мек тревист пояс под тях, като на печатна географска карта */
-html[data-design="v2"] #map .relief { pointer-events: none; transition: opacity .4s; }
-html[data-design="v2"] #map .relief .rcore path { fill: none; stroke: rgba(150, 128, 72, .2); stroke-linecap: round; stroke-linejoin: round; }
-html[data-design="v2"] #map .relief .pl { fill: #c4a870; }
-html[data-design="v2"] #map .relief .pr { fill: #8f6f48; }
-html[data-design="v2"] #map .relief .pcap { fill: #fffdf4; }
-html[data-design="v2"] #map[data-tilt="1"] .relief { opacity: 0; }   /* в 3D изглед върховете не съвпадат с издигнатите области */
-
 /* областите: стена (3 пласта) и горна страна; височината идва от --h */
 html[data-design="v2"] #map .reg { transition: --h .5s cubic-bezier(.3, 1.7, .5, 1); }
 html[data-design="v2"] #map .reg path { --z: calc((var(--H0) + var(--h)) * var(--k, 1)); transform: translate(calc(var(--ux, 0px) * var(--z)), calc(var(--uy, 0px) * var(--z))); stroke-linejoin: round; fill-rule: evenodd; }

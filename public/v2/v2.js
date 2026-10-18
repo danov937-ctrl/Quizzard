@@ -19,10 +19,6 @@
   const meta = q('meta[name="theme-color"]');
   if (meta && root.dataset.season !== 'xmas') meta.content = '#5b3d86';
 
-  // Връзка за връщане към стария вид (докато новият е в преглед)
-  const links = q('.home-links');
-  if (links && !q('.v2-back', links)) links.insertAdjacentHTML('beforeend', '<a class="link v2-back" href="/?design=old">🎨 Върни стария вид</a>');
-
   // Допир: леко „тупване“ на телефон (не при намалено движение)
   document.addEventListener('pointerdown', (e) => {
     if (reduce || !navigator.vibrate || !e.target.closest('.mode, .btn, .opts button, .seg button, .numpad button')) return;

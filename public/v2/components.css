@@ -168,3 +168,14 @@ html[data-design="v2"] .rotate { background: radial-gradient(ellipse at 50% 90%,
 html[data-design="v2"] .rotate b { color: #fff; text-shadow: 0 2px 0 rgba(60, 20, 60, .4); }
 html[data-design="v2"] .rot-device { border-color: var(--gold1); }
 html[data-design="v2"] .rot-device i { background: var(--gold1); }
+
+/* връзки в прозорците: в цвета на акцента, а не стандартно синьо */
+html[data-design="v2"] .qx-body a:not(.qx-btn),
+html[data-design="v2"] .mbody a:not(.btn),
+html[data-design="v2"] .qx-paper a:not(.qx-btn) { color: var(--wood2); font-weight: 800; text-decoration-color: rgba(var(--acc-rgb), .5); }
+/* предметите в чакалнята: дългите думи не излизат от бутоните */
+html[data-design="v2"] .lobby-card .subj-grid button { min-width: 0; overflow-wrap: anywhere; hyphens: auto; font-size: .7rem; padding: 4px 5px; gap: 4px; }
+html[data-design="v2"] .lobby-card .subj-grid button > * { min-width: 0; }
+
+/* връзката прекъсна: мека сливова лента със златна рамка */
+html[data-design="v2"] .net-banner { background: #5b3d86; color: #fff7e6; border: 2px solid var(--rim); font-family: var(--font-head); font-weight: 400; box-shadow: 0 8px 22px rgba(36, 14, 58, .5); }

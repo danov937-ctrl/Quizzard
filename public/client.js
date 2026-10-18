@@ -142,11 +142,22 @@ function speak(text, btn) {
 if (canSpeak) window.speechSynthesis.getVoices();
 
 // ---------- връзка ----------
+// Съобщение „Връзката прекъсна“: показва се само ако прекъсването продължи повече от секунда и половина
+let netTimer = 0;
+function netBanner(lost) {
+  clearTimeout(netTimer);
+  let b = document.getElementById('netBanner');
+  if (!lost) { if (b) b.classList.add('hidden'); return; }
+  netTimer = setTimeout(() => {
+    if (!b) { b = document.createElement('div'); b.id = 'netBanner'; b.className = 'net-banner'; b.setAttribute('role', 'status'); b.textContent = '📡 Връзката прекъсна. Свързвам се отново…'; document.body.appendChild(b); }
+    b.classList.remove('hidden');
+  }, 1500);
+}
 function connect() {
   ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
-  ws.onopen = () => { const s = store.get(SAVE_KEY); if (s) send({ t: 'resume', ...s }); };
+  ws.onopen = () => { netBanner(false); const s = store.get(SAVE_KEY); if (s) send({ t: 'resume', ...s }); };
   ws.onmessage = (e) => handle(JSON.parse(e.data));
-  ws.onclose = () => setTimeout(connect, 1500);
+  ws.onclose = () => { netBanner(true); setTimeout(connect, 1500); };
 }
 const send = (m) => ws && ws.readyState === 1 && ws.send(JSON.stringify(m));
 

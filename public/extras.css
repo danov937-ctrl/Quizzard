@@ -177,3 +177,8 @@ body.qx-gated .qx-account, body.qx-gated .qx-notice { display: none; }
 .react-tray button:active { transform: scale(.88); }
 .react-bub { position: absolute; left: calc(100% - 18px); top: 50%; margin-top: -1.3rem; z-index: 7; font-size: 2.2rem; line-height: 1; pointer-events: none; animation: reactPop 2.2s ease-out forwards; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .5)); }
 @keyframes reactPop { 0% { transform: translate(-10px, 8px) scale(.3); opacity: 0; } 14% { transform: translate(8px, -6px) scale(1.45) rotate(-10deg); opacity: 1; } 28% { transform: translate(10px, -2px) scale(1) rotate(7deg); } 78% { opacity: 1; } 100% { transform: translate(34px, -30px) scale(1.1); opacity: 0; } }
+
+/* връзката с играта прекъсна */
+.net-banner { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 60; width: max-content; max-width: 92vw; text-align: center; padding: 8px 16px; border-radius: 999px; font-weight: 900; font-size: .9rem; background: #7a1f2b; color: #fff3d6; border: 2px solid #f4c46a; box-shadow: 0 6px 18px rgba(0, 0, 0, .4); animation: netPulse 1.6s ease-in-out infinite; }
+.net-banner.hidden { display: none; }
+@keyframes netPulse { 50% { opacity: .78; } }

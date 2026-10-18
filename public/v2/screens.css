@@ -53,7 +53,6 @@ html[data-design="v2"] .join .lbl { font-weight: 900; }
 html[data-design="v2"] .home-links { gap: 6px 8px; }
 html[data-design="v2"] .home-links a.link,
 html[data-design="v2"] .home-links button.link { padding: 8px 14px; }
-html[data-design="v2"] .home-links .v2-back { background: rgba(255, 226, 143, .3); border-color: rgba(255, 226, 143, .85); }
 
 html[data-design="v2"] .zn-coin-chip { background: linear-gradient(180deg, var(--gold1), var(--gold2)); border: 0; border-bottom: 4px solid var(--gold3); color: #5a3300; box-shadow: 0 4px 0 rgba(104, 56, 66, .28), 0 10px 18px rgba(36, 14, 58, .3); }
 html[data-design="v2"] .zn-coin-chip span { background: #5a3300; color: var(--gold1); }
