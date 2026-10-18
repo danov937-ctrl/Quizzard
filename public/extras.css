@@ -166,3 +166,14 @@ body.qx-gated .qx-account, body.qx-gated .qx-notice { display: none; }
 .qx-kids { list-style: none; margin: 6px 0 10px; padding: 0; display: grid; gap: 6px; }
 .qx-kids li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .55); }
 .qx-kids .qx-linkbtn { margin-left: auto; color: var(--bad, #b3261e); }
+
+/* ---------- реакции в играта (само емоджита) ---------- */
+.react-btn { position: absolute; left: 12px; bottom: 12px; z-index: 6; width: 46px; height: 46px; padding: 0; border-radius: 50%; font-size: 1.55rem; line-height: 1; background: rgba(0, 0, 0, .5); border: 2px solid rgba(255, 255, 255, .65); color: #fff; transition: transform .12s, opacity .2s; }
+.react-btn:active { transform: scale(.92); }
+.react-btn.cool { opacity: .45; }
+.react-tray { position: absolute; left: 12px; bottom: 66px; z-index: 6; display: flex; flex-wrap: wrap; gap: 4px; max-width: 200px; padding: 6px; border-radius: 18px; background: rgba(0, 0, 0, .72); border: 1px solid rgba(255, 255, 255, .3); animation: reactTray .18s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes reactTray { from { transform: scale(.7) translateY(10px); opacity: 0; } }
+.react-tray button { width: 42px; height: 42px; padding: 0; font-size: 1.5rem; line-height: 1; border-radius: 12px; background: rgba(255, 255, 255, .12); }
+.react-tray button:active { transform: scale(.88); }
+.react-bub { position: absolute; left: calc(100% - 18px); top: 50%; margin-top: -1.3rem; z-index: 7; font-size: 2.2rem; line-height: 1; pointer-events: none; animation: reactPop 2.2s ease-out forwards; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .5)); }
+@keyframes reactPop { 0% { transform: translate(-10px, 8px) scale(.3); opacity: 0; } 14% { transform: translate(8px, -6px) scale(1.45) rotate(-10deg); opacity: 1; } 28% { transform: translate(10px, -2px) scale(1) rotate(7deg); } 78% { opacity: 1; } 100% { transform: translate(34px, -30px) scale(1.1); opacity: 0; } }

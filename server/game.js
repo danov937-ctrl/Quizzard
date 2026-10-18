@@ -26,6 +26,10 @@ function bfsDistances(from) {
   return dist;
 }
 
+// Бързи реакции между играчите: само емоджита, без свободен текст (за децата)
+const REACTIONS = ['👍', '😂', '😮', '🔥', '😎', '👏', '😭', '🤔'];
+const CHEER = ['😎', '🔥', '👏', '😂'];
+
 class Game {
   /**
    * players: [{ id, name, isBot }]
@@ -60,7 +64,32 @@ class Game {
   regionsOf(pid) { return REGION_IDS.filter((r) => this.owner[r] === pid); }
   score(pid) { return this.regionsOf(pid).reduce((s, r) => s + this.value[r], 0) + this.player(pid).bonus; }
   // Събития за анимации в клиента (завземане, нападение, паднала кула…)
-  addFx(fx) { this.fx.push({ id: ++this.fxId, ...fx }); if (this.fx.length > 20) this.fx.shift(); }
+  addFx(fx) {
+    this.fx.push({ id: ++this.fxId, ...fx }); if (this.fx.length > 24) this.fx.shift();
+    // ботовете понякога се радват на успех
+    if (['conquer', 'fall', 'defend', 'tower'].includes(fx.type) && this.player(fx.pid)?.isBot && Math.random() < 0.3) this.botReact(fx.pid, 600);
+  }
+  // Реакция на играч (само от списъка, най-много една на 1,2 секунди). Ботовете понякога отговарят.
+  react(pid, emoji) {
+    const p = this.player(pid);
+    if (!p || this.aborted || !REACTIONS.includes(emoji)) return;
+    const now = Date.now();
+    if (p.lastReact && now - p.lastReact < 1200) return;
+    p.lastReact = now;
+    this.addFx({ type: 'react', pid, emoji });
+    this.emit();
+    if (!p.isBot && Math.random() < 0.5) {
+      const bots = this.players.filter((b) => b.isBot);
+      if (bots.length) this.botReact(bots[Math.floor(Math.random() * bots.length)].id, 700 + Math.random() * 900, emoji);
+    }
+  }
+  botReact(pid, delay, like) {
+    this.setTimer(() => {
+      if (this.aborted) return;
+      this.fx.push({ id: ++this.fxId, type: 'react', pid, emoji: like && Math.random() < 0.4 ? like : CHEER[Math.floor(Math.random() * CHEER.length)] });
+      this.emit();
+    }, delay);
+  }
   say(msg) { this.log.push(msg); if (this.log.length > 30) this.log.shift(); }
   emit() { if (!this.aborted) this.onChange(); }
 

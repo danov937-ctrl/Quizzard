@@ -33,7 +33,7 @@ def unproj(x, y): return (((x - 10) / s + minx) / k, maxy - (y - 10) / s)
 
 # ---------- the part of the world that is drawn around Bulgaria ----------
 VIEW = {'x': -130, 'y': -85, 'w': W + 260, 'h': H + 130}
-PAD = 280  # land goes well beyond the picture, so a frame of another shape never shows an edge
+PAD = 430  # land goes well beyond the picture, so a frame of another shape never shows an edge
 CLIP = (VIEW['x'] - PAD, VIEW['y'] - PAD, VIEW['x'] + VIEW['w'] + PAD, VIEW['y'] + VIEW['h'] + PAD)
 
 # ISO code (or name, where Natural Earth has none) -> label in Bulgarian and the place of the label

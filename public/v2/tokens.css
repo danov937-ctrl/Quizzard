@@ -1,52 +1,57 @@
-/* Знаменосци · нов вид „Adventure Map“ — променливи и теми.
+/* Знаменосци · нов вид „Неонова аркада“ — променливи и теми.
    Действа само когато html има data-design="v2" (включва се с ?design=new, виж design.js).
    Старите променливи (--wood1, --parch, --gold1 …) са запазени, за да се оцветят и екраните,
-   които още не са пренаписани: „дървото“ става синьо, „пергаментът“ бял, златото е кехлибар. */
+   които още не са пренаписани: „дървото“ става светещ акцент, „пергаментът“ тъмно стъкло. */
 
-/* ---------- ден (деца) ---------- */
+@property --h { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+/* ---------- деца: космическа нощ с циан ---------- */
 html[data-design="v2"] {
-  --sea1: #0f2e52; --sea2: #2a6fb0;
-  --parch: #ffffff; --parch2: #e6eef8; --free: #f6ead0;
-  --ink: #1b2a41; --muted: #5d6f87;
-  --wood1: #2f6fd0; --wood2: #1c4690;
-  --gold1: #ffd666; --gold2: #ffb020; --gold3: #bd7300;
-  --red: #e5483f; --ok: #22a45d; --bad: #e0453c;
-  --shadow: 0 12px 30px rgba(5, 20, 45, .35);
+  --acc: #27e1ff; --acc-rgb: 39, 225, 255;          /* светещият цвят на темата */
+  --sea1: #060320; --sea2: #1b0f5a;
+  --parch: #1a1257; --parch2: #120b3d; --free: #7077bd;
+  --ink: #eef3ff; --muted: #a9b8ee;
+  --wood1: var(--acc); --wood2: color-mix(in srgb, var(--acc) 50%, #000);
+  --gold1: #fff36a; --gold2: #ffc21a; --gold3: #c46a00;
+  --red: #ff3d6e; --ok: #2ee59d; --bad: #ff5470;
+  --shadow: 0 14px 34px rgba(0, 0, 10, .55);
   --r: 24px;
   font-family: "Nunito", "Segoe UI", system-ui, sans-serif;
 
-  /* нови променливи на дизайна */
   --font-head: "Rubik", "Nunito", system-ui, sans-serif;
-  --card: #ffffff; --card-alt: #f1f6fc; --line: #d3e0ee;
-  --lift: 0 6px 0 rgba(15, 46, 82, .2), 0 16px 28px rgba(5, 20, 45, .26);   /* „вдигната“ карта */
-  --press: 0 2px 0 rgba(15, 46, 82, .2);
-  --sea-top: #8fd3f0; --sea-mid: #4aa6d8; --sea-deep: #2f84bd;               /* вода на картата */
-  --land-neighbour: #d6dfcb; --land-neighbour-line: rgba(255, 255, 255, .9);
-  --mode-online: #f2603c; --mode-friends: #2f6fd0; --mode-bots: #22a45d; --mode-daily: #f5a30a; --mode-practice: #8b5cf6;
-  --tap: 48px;                                                              /* най-малка цел за докосване */
+  --card: #1c1360; --card-alt: rgba(255, 255, 255, .07); --line: rgba(var(--acc-rgb), .32);
+  --glass: linear-gradient(165deg, rgba(44, 30, 126, .9), rgba(15, 9, 52, .94));
+  --glow: 0 0 0 1px rgba(255, 255, 255, .05) inset, 0 0 26px rgba(var(--acc-rgb), .22), 0 18px 34px rgba(0, 0, 10, .5);
+  --lift: var(--glow);
+  --press: 0 2px 0 rgba(0, 0, 0, .4);
+  --pink: #ff3cac; --lime: #b6ff3b; --violet: #9b6bff;
+  --land-neighbour: #3a4799; --land-neighbour-line: rgba(var(--acc-rgb), .38);
+  --mode-online: #ff6a3d; --mode-friends: #3ba7ff; --mode-bots: #2ee59d; --mode-daily: #ffc21a; --mode-practice: #b07bff;
+  --tap: 48px;
 }
 
-/* ---------- нощ (възрастни): по-тъмно, със злато ---------- */
+/* ---------- възрастни: нощ със злато ---------- */
 html[data-design="v2"] body.mode-adult {
-  --sea1: #0a101c; --sea2: #1b2c4d;
-  --parch: #f8f6f0; --parch2: #e9e4d6; --free: #ece5d2;
-  --ink: #1d2330; --muted: #5a6273;
-  --wood1: #3a5896; --wood2: #1d2d52;
-  --card: #fbfaf6; --card-alt: #f1eee5; --line: #ddd6c4;
-  --sea-top: #5d86b8; --sea-mid: #34598d; --sea-deep: #243f6b;
-  --land-neighbour: #c5ccc0;
-  --mode-online: #d9792b; --mode-friends: #4a6fb5; --mode-bots: #3a9a78; --mode-daily: #e0a21e; --mode-practice: #7c6bc4;
+  --acc: #ffcf5c; --acc-rgb: 255, 207, 92;
+  --sea1: #04050c; --sea2: #131a36;
+  --parch: #171a33; --parch2: #0e1022; --free: #8a8ea8;
+  --ink: #f3f1e8; --muted: #b6b8c9;
+  --wood1: var(--acc); --wood2: color-mix(in srgb, var(--acc) 45%, #000);
+  --card: #171a33;
+  --glass: linear-gradient(165deg, rgba(34, 38, 74, .92), rgba(10, 12, 28, .95));
+  --land-neighbour: #262a46;
+  --mode-online: #e8873a; --mode-friends: #5b8def; --mode-bots: #3dc59b; --mode-daily: #f2b632; --mode-practice: #8f7be6;
 }
 
-/* ---------- Коледа: червено и зелено, снежна нощ ---------- */
+/* ---------- Коледа: червено и зелено в снежна нощ ---------- */
 html[data-design="v2"][data-season="xmas"] {
-  --sea1: #0b1d3a; --sea2: #234a80;
-  --wood1: #c0392b; --wood2: #7f1d1d;
-  --sea-top: #a9d6f2; --sea-mid: #6fb1dc; --sea-deep: #4b8fbf;
-  --land-neighbour: #e4ecf4;           /* заснежени съседи */
-  --mode-friends: #2e8b57; --mode-practice: #c0392b;
+  --acc: #ff5a6e; --acc-rgb: 255, 90, 110;
+  --sea1: #07142c; --sea2: #123a45;
+  --free: #7aa0cf;
+  --land-neighbour: #2b5276;
+  --mode-friends: #2ee59d; --mode-practice: #ff5a6e;
 }
-html[data-design="v2"][data-season="xmas"] body.mode-adult { --wood1: #8e2433; --wood2: #4a0f18; --sea2: #1d3557; }
+html[data-design="v2"][data-season="xmas"] body.mode-adult { --acc: #ff7a8a; --acc-rgb: 255, 122, 138; --sea2: #1d2a45; }
 
 /* ---------- по-малко движение ---------- */
 @media (prefers-reduced-motion: reduce) {

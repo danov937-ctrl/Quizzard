@@ -277,9 +277,13 @@ function worldBelow(w) {
   return `<g class="world" aria-hidden="true"><g class="countries">${w.countries.map((c) => `<path class="ctry${c.base ? ' base' : ''}" d="${c.path}"/>`).join('')}</g>
     <path class="shore" d="${w.coast}"/>${names}
     <text class="sea-name" x="${w.sea.x}" y="${w.sea.y}" text-anchor="middle">${w.sea.name}</text>
-    <text class="boat" x="${w.sea.x + 8}" y="${w.sea.y + 120}" text-anchor="middle">⛵</text><text class="dolphin" x="${w.sea.x + 30}" y="${w.sea.y - 150}" text-anchor="middle">🐬</text></g>`;
+    ${up(w.sea.x + 8, w.sea.y + 120, `<text class="boat" x="${w.sea.x + 8}" y="${w.sea.y + 120}" text-anchor="middle">⛵</text>`, -M3D_GROUND)}${up(w.sea.x + 30, w.sea.y - 150, `<text class="dolphin" x="${w.sea.x + 30}" y="${w.sea.y - 150}" text-anchor="middle">🐬</text>`, -M3D_GROUND)}</g>`;
 }
 const worldAbove = (w) => `<g class="frontier" aria-hidden="true"><path class="border" d="${w.border}"/><path class="danube" d="${w.danube}"/><path class="coastline" d="${w.coast}"/></g>`;
+// 3D картата (v2/map3d.js) е само за новия вид; старият вид и браузърите без нея рисуват плоска карта
+const M3D_GROUND = 12;
+const m3d = () => (window.Map3D && window.Map3D.on ? window.Map3D : null);
+const up = (x, y, html, h) => (m3d() ? m3d().upright(x, y, html, h) : html);
 async function loadMap() {
   mapData = await (await fetch('/map.json')).json();
   mapData.byId = Object.fromEntries(mapData.regions.map((r) => [r.id, r]));
@@ -289,11 +293,18 @@ async function loadMap() {
   const vb = world ? world.view : { x: -6, y: -6, w: mapData.width + 12, h: mapData.height + 12 };
   svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
   const ordered = mapData.regions.slice().sort((a, b) => (a.id === 'SOF') - (b.id === 'SOF')); // София-град отгоре
-  svg.innerHTML = `${world ? worldBelow(world) : ''}<g class="shadow" transform="translate(5 7)">${ordered.map((r) => `<path d="${r.path}"/>`).join('')}</g>
+  if (world && window.Map3D) {
+    window.Map3D.on = true;
+    svg.dataset.d3 = '1';
+    svg.innerHTML = window.Map3D.build(world, ordered, regionPos, { below: worldBelow(world), above: worldAbove(world) });
+    window.Map3D.attach(svg, mapData);
+  } else {
+    svg.innerHTML = `${world ? worldBelow(world) : ''}<g class="shadow" transform="translate(5 7)">${ordered.map((r) => `<path d="${r.path}"/>`).join('')}</g>
     <g class="land">${ordered.map((r) => `<path id="r-${r.id}" data-id="${r.id}" d="${r.path}"/>`).join('')}</g>
     ${world ? worldAbove(world) : ''}
     <g class="labels">${ordered.map((r) => { const [x, y] = regionPos(r.id); return `<g id="l-${r.id}"><text class="rname" x="${x}" y="${y}" text-anchor="middle">${r.name}</text><g class="badge"></g></g>`; }).join('')}</g>
     <g id="castles"></g><g id="fxl"></g>`;
+  }
   svg.addEventListener('click', (e) => {
     const id = e.target.dataset?.id, c = state?.current;
     if (id && c?.type === 'pick' && c.picker === me && c.options.includes(id)) send({ t: 'pick', region: id });
@@ -328,6 +339,7 @@ function renderMap() {
     el.classList.toggle('can', canPick.has(r.id));
     el.classList.toggle('target', target === r.id);
     el.classList.toggle('chosen', chosen === r.id);
+    m3d()?.paint(r.id, owner ? owner.color : '', target === r.id ? 'target' : chosen === r.id ? 'chosen' : canPick.has(r.id) ? 'can' : owner ? 'own' : '');
     const badge = document.querySelector(`#l-${r.id} .badge`);
     const v = state.value[r.id], isCap = state.players.some((p) => p.capital === r.id && p.alive);
     const key = owner && !isCap ? `${v}|${owner.color}` : '';
@@ -349,23 +361,25 @@ function renderMap() {
     if (!el) { el = document.createElementNS(NS, 'g'); el.id = 'c-' + p.id; g.appendChild(el); }
     if (!k) { el.innerHTML = ''; continue; }
     const [x, y] = regionPos(p.capital);
-    el.innerHTML = castleSvg(p, x, y, prev);
+    el.innerHTML = up(x, y, castleSvg(p, x, y, prev));
+    m3d()?.castle(el, p.capital);
   }
   // стрелката остава, докато трае нападението
   if (attackArrow && !(c && c.region === attackArrow.region && state.phase === 'battle' && c.type !== 'pick')) clearArrow();
 }
 
-function fxAdd(html, ms) {
-  const g = document.createElementNS(NS, 'g'); g.innerHTML = html; $('#fxl').appendChild(g);
+function fxAdd(html, ms, at) {
+  // at = [x, y, област]: в 3D картата рисунката стои права върху плоскостта, на височината на областта
+  const g = document.createElementNS(NS, 'g'); g.innerHTML = at && m3d() ? up(at[0], at[1], html, m3d().lift(at[2])) : html; $('#fxl').appendChild(g);
   if (ms) setTimeout(() => g.remove(), ms);
   return g;
 }
-function floatText(region, text) { const [x, y] = regionPos(region); fxAdd(`<text class="float" x="${x}" y="${y - 14}" text-anchor="middle">${text}</text>`, 1700); }
-function pop(region, emoji) { const [x, y] = regionPos(region); fxAdd(`<text class="pop" x="${x}" y="${y - 6}" text-anchor="middle">${emoji}</text>`, 1500); }
+function floatText(region, text) { const [x, y] = regionPos(region); fxAdd(`<text class="float" x="${x}" y="${y - 14}" text-anchor="middle">${text}</text>`, 1700, [x, y, region]); }
+function pop(region, emoji) { const [x, y] = regionPos(region); fxAdd(`<text class="pop" x="${x}" y="${y - 6}" text-anchor="middle">${emoji}</text>`, 1500, [x, y, region]); }
 function flash(region) { const el = document.getElementById('r-' + region); if (!el) return; el.classList.remove('flash'); void el.getBoundingClientRect(); el.classList.add('flash'); }
 function flag(region, color) {
   const [x, y] = regionPos(region);
-  fxAdd(`<g class="flag"><path d="M${x + 12} ${y - 4}v-26" stroke="#2b1a0c" stroke-width="2"/><path d="M${x + 12} ${y - 30}l16 5-16 5z" fill="${color}" stroke="#fff" stroke-width="1"/></g>`, 1800);
+  fxAdd(`<g class="flag"><path d="M${x + 12} ${y - 4}v-26" stroke="#2b1a0c" stroke-width="2"/><path d="M${x + 12} ${y - 30}l16 5-16 5z" fill="${color}" stroke="#fff" stroke-width="1"/></g>`, 1800, [x, y, region]);
 }
 function shake() { const f = $('.map-frame'); f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake'); }
 function resetMap() {
@@ -377,7 +391,8 @@ function arrow(from, to) {
   clearArrow(); if (!from) return;
   const [x1, y1] = regionPos(from), [x2, y2] = regionPos(to);
   const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - Math.hypot(x2 - x1, y2 - y1) * 0.35;
-  const el = fxAdd(`<path class="arrow" d="M${x1} ${y1} Q${mx} ${my} ${x2} ${y2 - 6}"/><text class="swords" x="${x2}" y="${y2 - 14}" text-anchor="middle">⚔️</text>`);
+  const line = `<path class="arrow" d="M${x1} ${y1} Q${mx} ${my} ${x2} ${y2 - 6}"/>`, swords = `<text class="swords" x="${x2}" y="${y2 - 14}" text-anchor="middle">⚔️</text>`;
+  const el = m3d() ? fxAdd(`<g class="plane">${line}</g>${up(x2, y2 - 14, swords, m3d().lift(to))}`) : fxAdd(line + swords);
   attackArrow = { region: to, el };
 }
 
@@ -388,8 +403,35 @@ function playFx(f) {
   else if (f.type === 'attack') { arrow(f.from, f.region); Sound.play('attack'); }
   else if (f.type === 'tower') { shake(); pop(f.region, '💥'); Sound.play('tower'); }
   else if (f.type === 'fall') { clearArrow(); shake(); pop(f.region, '🔥'); for (const r of f.regions || []) flash(r); Sound.play('fall'); }
+  else if (f.type === 'react') reactBubble(f.pid, f.emoji);
   else if (f.type === 'defend') { clearArrow(); pop(f.region, '🛡️'); if (f.points) floatText(f.region, '+' + f.points); Sound.play('defend'); }
 }
+
+// ---------- реакции (само емоджита, без текст) ----------
+const REACTIONS = ['👍', '😂', '😮', '🔥', '😎', '👏', '😭', '🤔'];
+function reactBubble(pid, emoji) {
+  const card = $('#pc-' + pid); if (!card) return;
+  const b = document.createElement('span'); b.className = 'react-bub'; b.textContent = emoji; card.appendChild(b);
+  setTimeout(() => b.remove(), 2300);
+}
+function initReactions() {
+  const frame = $('.map-frame');
+  if (!frame || $('#reactBtn')) return;
+  const btn = document.createElement('button'); btn.id = 'reactBtn'; btn.type = 'button'; btn.className = 'react-btn'; btn.textContent = '😀'; btn.setAttribute('aria-label', 'Реакции');
+  const tray = document.createElement('div'); tray.id = 'reactTray'; tray.className = 'react-tray hidden';
+  tray.innerHTML = REACTIONS.map((e) => `<button type="button" data-e="${e}" aria-label="${e}">${e}</button>`).join('');
+  frame.append(btn, tray);
+  let cool = 0;
+  btn.onclick = () => tray.classList.toggle('hidden');
+  tray.onclick = (e) => {
+    const emoji = e.target.closest('[data-e]')?.dataset.e;
+    if (!emoji || Date.now() < cool) return;
+    cool = Date.now() + 1200; send({ t: 'react', emoji });
+    tray.classList.add('hidden'); btn.classList.add('cool'); setTimeout(() => btn.classList.remove('cool'), 1200);
+    if (navigator.vibrate) try { navigator.vibrate(6); } catch { /* не всички устройства */ }
+  };
+}
+initReactions();
 
 // ---------- игра ----------
 const PHASES = { capitals: '🏰 Избор на столици', expansion: '🗺️ Рунд 1 · Завладяване', ended: '🏆 Край на играта' };
