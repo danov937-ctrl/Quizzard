@@ -6,9 +6,18 @@
   const q = (s, el = document) => el.querySelector(s);
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // Светулки в небето (само украса)
+  const sky = q('.bg');
+  if (sky && !reduce) for (let i = 0; i < 12; i++) {
+    const f = document.createElement('i');
+    f.className = 'fly';
+    f.style.cssText = `left:${(Math.random() * 96 + 2).toFixed(1)}%;top:${(38 + Math.random() * 58).toFixed(1)}%;--x:${(Math.random() * 90 - 20).toFixed(0)}px;--y:${(-30 - Math.random() * 90).toFixed(0)}px;--d:${(9 + Math.random() * 10).toFixed(1)}s;--w:-${(Math.random() * 10).toFixed(1)}s`;
+    sky.append(f);
+  }
+
   // Цвят на лентата на браузъра
   const meta = q('meta[name="theme-color"]');
-  if (meta && root.dataset.season !== 'xmas') meta.content = '#1f5a8f';
+  if (meta && root.dataset.season !== 'xmas') meta.content = '#5b3d86';
 
   // Връзка за връщане към стария вид (докато новият е в преглед)
   const links = q('.home-links');

@@ -1,57 +1,74 @@
-/* Знаменосци · нов вид „Неонова аркада“ — променливи и теми.
+/* Знаменосци · нов вид „Приказен залез“ — променливи и теми.
    Действа само когато html има data-design="v2" (включва се с ?design=new, виж design.js).
-   Старите променливи (--wood1, --parch, --gold1 …) са запазени, за да се оцветят и екраните,
-   които още не са пренаписани: „дървото“ става светещ акцент, „пергаментът“ тъмно стъкло. */
+   Идея: страници от приказна книга (топъл пергамент със златна рамка) под залязващо небе,
+   а картата е диорама от изрязана хартия. Старите променливи (--wood1, --parch, --gold1 …)
+   са запазени, за да се оцветят и екраните, които още не са пренаписани. */
 
 @property --h { syntax: "<number>"; inherits: true; initial-value: 0; }
 
-/* ---------- деца: космическа нощ с циан ---------- */
+/* ---------- деца: залез над приказна страна ---------- */
 html[data-design="v2"] {
-  --acc: #27e1ff; --acc-rgb: 39, 225, 255;          /* светещият цвят на темата */
-  --sea1: #060320; --sea2: #1b0f5a;
-  --parch: #1a1257; --parch2: #120b3d; --free: #7077bd;
-  --ink: #eef3ff; --muted: #a9b8ee;
-  --wood1: var(--acc); --wood2: color-mix(in srgb, var(--acc) 50%, #000);
-  --gold1: #fff36a; --gold2: #ffc21a; --gold3: #c46a00;
-  --red: #ff3d6e; --ok: #2ee59d; --bad: #ff5470;
-  --shadow: 0 14px 34px rgba(0, 0, 10, .55);
+  --sky1: #3b2a6e; --sky2: #7d4f93; --sky3: #d27a8c; --sky4: #f5aa7c; --sky5: #ffd9a0;   /* небе: от вечер към заник */
+  --hill1: #5a3a78; --hill2: #432b66; --castle: #2f1f55;
+  --sea1: #3b2a6e; --sea2: #7d4f93;
+  --parch: #fff7e6; --parch2: #f3e0ba; --free: #f6e7bd;
+  --ink: #4a2c43; --muted: #8a6577;
+  --acc: #2f9e7e; --acc-rgb: 47, 158, 126;                 /* смарагдът на гората: основният акцент */
+  --wood1: var(--acc); --wood2: #1b6e5c;
+  --gold1: #ffe28f; --gold2: #f4b13f; --gold3: #b9741a;
+  --rim: #e3b25d;                                           /* златната рамка на страниците */
+  --red: #e0525f; --ok: #2fa86f; --bad: #d84c58;
+  --shadow: 0 14px 34px rgba(40, 16, 60, .45);
   --r: 24px;
   font-family: "Nunito", "Segoe UI", system-ui, sans-serif;
 
-  --font-head: "Rubik", "Nunito", system-ui, sans-serif;
-  --card: #1c1360; --card-alt: rgba(255, 255, 255, .07); --line: rgba(var(--acc-rgb), .32);
-  --glass: linear-gradient(165deg, rgba(44, 30, 126, .9), rgba(15, 9, 52, .94));
-  --glow: 0 0 0 1px rgba(255, 255, 255, .05) inset, 0 0 26px rgba(var(--acc-rgb), .22), 0 18px 34px rgba(0, 0, 10, .5);
-  --lift: var(--glow);
-  --press: 0 2px 0 rgba(0, 0, 0, .4);
-  --pink: #ff3cac; --lime: #b6ff3b; --violet: #9b6bff;
-  --land-neighbour: #3a4799; --land-neighbour-line: rgba(var(--acc-rgb), .38);
-  --mode-online: #ff6a3d; --mode-friends: #3ba7ff; --mode-bots: #2ee59d; --mode-daily: #ffc21a; --mode-practice: #b07bff;
+  --font-head: "Kurale", "Nunito", Georgia, serif;           /* приказният шрифт: заглавия */
+  --font-num: "Rubik", "Nunito", system-ui, sans-serif;      /* числа и код на стаята */
+  --card: #fffaf0; --card-alt: #f8ecd3; --line: rgba(170, 118, 62, .38);
+  --glass: linear-gradient(180deg, #fffaf0, #f6e6c6);        /* лист хартия */
+  --page: inset 0 0 0 3px rgba(255, 255, 255, .8), inset 0 0 0 5px rgba(227, 178, 93, .5), 0 8px 0 rgba(104, 56, 66, .32), 0 22px 34px rgba(36, 14, 58, .42);
+  --glow: var(--page);
+  --lift: var(--page);
+  --press: 0 2px 0 rgba(104, 56, 66, .3);
+  --pink: #e8647e; --lime: #8bcf5a; --violet: #9a78d6;
+  --land-neighbour: #cfdcae; --land-neighbour-line: rgba(255, 255, 255, .75);
+  --sea-top: #a9e6dd; --sea-mid: #63c0c6; --sea-deep: #3a8db4;
+  --mode-online: #f07a5a; --mode-friends: #7b8ce8; --mode-bots: #3aa87f; --mode-daily: #f2b441; --mode-practice: #b873d9;
   --tap: 48px;
 }
 
-/* ---------- възрастни: нощ със злато ---------- */
+/* ---------- възрастни: късна вечер, вино и злато ---------- */
 html[data-design="v2"] body.mode-adult {
-  --acc: #ffcf5c; --acc-rgb: 255, 207, 92;
-  --sea1: #04050c; --sea2: #131a36;
-  --parch: #171a33; --parch2: #0e1022; --free: #8a8ea8;
-  --ink: #f3f1e8; --muted: #b6b8c9;
-  --wood1: var(--acc); --wood2: color-mix(in srgb, var(--acc) 45%, #000);
-  --card: #171a33;
-  --glass: linear-gradient(165deg, rgba(34, 38, 74, .92), rgba(10, 12, 28, .95));
-  --land-neighbour: #262a46;
-  --mode-online: #e8873a; --mode-friends: #5b8def; --mode-bots: #3dc59b; --mode-daily: #f2b632; --mode-practice: #8f7be6;
+  --sky1: #1d2145; --sky2: #3c3b72; --sky3: #8a5a82; --sky4: #d98f78; --sky5: #f2c08e;
+  --hill1: #3a3060; --hill2: #2a2350; --castle: #1c1738;
+  --sea1: #1d2145; --sea2: #3c3b72;
+  --parch: #f6eedb; --parch2: #e8dbbb; --free: #e9dcb8;
+  --ink: #3b2a38; --muted: #7d6672;
+  --acc: #a14a6b; --acc-rgb: 161, 74, 107;
+  --wood1: var(--acc); --wood2: #5f2640;
+  --card: #f9f2e2; --card-alt: #efe3c8; --line: rgba(150, 105, 60, .4);
+  --glass: linear-gradient(180deg, #f9f2e2, #eadcbc);
+  --land-neighbour: #c3cca6;
+  --mode-online: #d9783f; --mode-friends: #5e78c4; --mode-bots: #3c9a7c; --mode-daily: #dca02c; --mode-practice: #8a68b8;
 }
 
-/* ---------- Коледа: червено и зелено в снежна нощ ---------- */
+/* ---------- Коледа: зимна приказка, зора над снега ---------- */
 html[data-design="v2"][data-season="xmas"] {
-  --acc: #ff5a6e; --acc-rgb: 255, 90, 110;
-  --sea1: #07142c; --sea2: #123a45;
-  --free: #7aa0cf;
-  --land-neighbour: #2b5276;
-  --mode-friends: #2ee59d; --mode-practice: #ff5a6e;
+  --sky1: #25407a; --sky2: #5a78b8; --sky3: #c9a3cc; --sky4: #f6c9bd; --sky5: #fff0dc;
+  --hill1: #dce8f6; --hill2: #bcd0ea; --castle: #8ea6cf;
+  --sea1: #25407a; --sea2: #5a78b8;
+  --parch: #fbfdff; --parch2: #e4eef9; --free: #f4f8ff;
+  --ink: #34425f; --muted: #6d7b9b;
+  --acc: #c8404f; --acc-rgb: 200, 64, 79;
+  --wood2: #8c1f33;
+  --card: #fbfdff; --card-alt: #e9f1fb; --line: rgba(90, 120, 170, .35);
+  --glass: linear-gradient(180deg, #fbfdff, #e6eff9);
+  --rim: #d9b66a;
+  --land-neighbour: #dce8f2; --land-neighbour-line: rgba(255, 255, 255, .95);
+  --sea-top: #b6e2f2; --sea-mid: #78b8dc; --sea-deep: #4a89bb;
+  --mode-friends: #2f8f6b; --mode-practice: #c8404f;
 }
-html[data-design="v2"][data-season="xmas"] body.mode-adult { --acc: #ff7a8a; --acc-rgb: 255, 122, 138; --sea2: #1d2a45; }
+html[data-design="v2"][data-season="xmas"] body.mode-adult { --acc: #a8324a; --acc-rgb: 168, 50, 74; --wood2: #6a1b2e; --parch: #fbf7f2; --card: #fbf7f2; }
 
 /* ---------- по-малко движение ---------- */
 @media (prefers-reduced-motion: reduce) {

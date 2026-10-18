@@ -13,6 +13,10 @@
   var svg = null, stage = null, land = null, view = null, center = { x: 500, y: 327 };
   var regs = {}, hOf = {}, last = {};
   var api = { on: false, H0: H0 };
+  // приказни обитатели на съседните земи: [x, y, емоджи, клас, закъснение] (координати на картата)
+  var DECOR = [[-55, 95, '🌲', '', 0], [-95, 280, '🌳', '', 1.2], [-32, 455, '🦄', ' big', .6], [110, 702, '🌳', '', 2], [470, 698, '🏛️', ' big', .3], [880, 640, '🐉', ' dragon big', 0],
+    [110, -20, '🌲', '', .8], [250, -40, '🏰', ' big', 0], [760, -45, '🌳', '', 1.6], [960, 690, '🌲', '', 2.4]];
+  var FAIRIES = [[-110, 30, '🧚', ''], [1050, 240, '🧚', ' b']];
 
   var r3 = function (n) { return Math.round(n * 1000) / 1000; };
 
@@ -75,8 +79,14 @@
     }).join('');
     return '<g id="stage"><path class="grid" d="' + grid.join('') + '"/>' + pieces.below +
       '<g class="shadow"><g transform="translate(14 20)">' + ordered.map(function (r) { return '<path d="' + r.path + '"/>'; }).join('') + '</g></g>' +
-      '<g class="land">' + regions + '</g>' + pieces.above +
+      '<g class="land">' + regions + '</g>' + pieces.above + decor(upright) +
       '<g class="labels">' + labels + '</g><g id="castles"></g><g id="fxl"></g></g>';
+  }
+
+  function decor(up) {
+    var d = DECOR.map(function (o) { return up(o[0], o[1], '<text class="decor' + o[3] + '" x="' + o[0] + '" y="' + o[1] + '" text-anchor="middle" style="--dl:' + o[4] + 's">' + o[2] + '</text>', -H0); }).join('');
+    var f = FAIRIES.map(function (o) { return up(o[0], o[1], '<text class="fairy' + o[3] + '" x="' + o[0] + '" y="' + o[1] + '" text-anchor="middle">' + o[2] + '</text>', -H0 - 24); }).join('');
+    return d + f;
   }
 
   function attach(el, mapData) {
