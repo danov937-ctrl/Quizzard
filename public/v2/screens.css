@@ -6,7 +6,7 @@ html[data-design="v2"] .qx-gate { background:
     linear-gradient(180deg, var(--sky1), var(--sky2) 40%, var(--sky3) 72%, var(--sky4)); }
 html[data-design="v2"] .qx-gate-note { color: rgba(255, 255, 255, .95); text-shadow: 0 1px 4px rgba(60, 20, 60, .6); }
 html[data-design="v2"] .qx-big-btn { border-radius: 20px; }
-html[data-design="v2"] .qx-guest-btn { background: rgba(255, 250, 238, .96); color: var(--ink); }
+html[data-design="v2"] .qx-alt-btn { background: rgba(255, 250, 238, .96); color: var(--ink); }
 
 html[data-design="v2"] .brand-logo { filter: drop-shadow(0 6px 10px rgba(50, 18, 60, .55)); transform-origin: 50% 90%; }
 html[data-design="v2"] .brand-logo.wave { animation: v2-wave .8s ease-in-out; }

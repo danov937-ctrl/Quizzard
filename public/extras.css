@@ -133,17 +133,30 @@ a.link { color: #ffe7a6; text-decoration: underline; padding: 8px 10px; font-wei
 .qx-gate-box { width: min(420px, 100%); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .qx-gate-btns { display: flex; flex-direction: column; gap: 12px; width: 100%; margin-top: 8px; }
 .qx-big-btn { font-size: 1.35rem; padding: 16px; border-radius: 16px; width: 100%; }
-.qx-guest-btn { font-size: 1.05rem; padding: 12px; width: 100%; background: rgba(255, 250, 240, .9); }
+/* „Играй веднага“ е главният бутон (за посетителите от Google); вход и регистрация са по-тихи отдолу */
+.qx-play-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 1.5rem; padding: 18px 16px 14px; }
+.qx-play-btn small { font-size: .85rem; font-weight: 800; opacity: .75; }
+.qx-gate-row { display: flex; gap: 10px; width: 100%; }
+.qx-alt-btn { flex: 1; font-size: 1.05rem; padding: 12px 8px; background: rgba(255, 250, 240, .9); }
 .qx-gate-note { color: #f5e6c4; font-weight: 700; font-size: .9rem; margin: 4px 0; }
 .qx-gate.qx-wait .qx-gate-btns, .qx-gate.qx-wait .qx-gate-note { visibility: hidden; }
 body.qx-gated .qx-account, body.qx-gated .qx-notice { display: none; }
 @media (orientation: landscape) and (max-height: 500px) {
   .qx-gate-box { width: min(640px, 100%); }
-  .qx-gate-btns { flex-direction: row; flex-wrap: wrap; }
-  .qx-big-btn { flex: 1; font-size: 1.1rem; padding: 12px; }
+  .qx-gate-btns { flex-direction: row; align-items: stretch; gap: 10px; }
+  .qx-big-btn { flex: 1.2; font-size: 1.1rem; padding: 12px; }
+  .qx-play-btn { font-size: 1.2rem; padding: 8px 12px; }
+  .qx-gate-row { flex: 1.2; width: auto; }
+  .qx-alt-btn { font-size: .9rem; padding: 8px 4px; white-space: nowrap; }
   .qx-gate .tagline { display: none; }
   .qx-gate .brand-logo { width: 54px; height: 54px; }
   .qx-gate .brand-name { font-size: 2.7rem; }
+}
+@media (orientation: landscape) and (max-height: 340px) {
+  .qx-gate-box { gap: 6px; }
+  .qx-play-btn small { display: none; }
+  .qx-gate .brand-logo { width: 44px; height: 44px; }
+  .qx-gate .brand-name { font-size: 2.2rem; }
 }
 
 /* Малка височина (хоризонтален телефон или отворена клавиатура): по-компактен прозорец, който се превърта */

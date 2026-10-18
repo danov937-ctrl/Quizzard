@@ -115,9 +115,9 @@
   const brand = q('.brand', home)?.cloneNode(true);
   brand?.querySelectorAll('h1').forEach((h) => { const d = document.createElement('div'); d.className = h.className; d.innerHTML = h.innerHTML; h.replaceWith(d); });   // само един h1 на страницата (за Google)
   gate.innerHTML = `<div class="qx-gate-box"><div class="qx-gate-brand"></div><p class="tagline">${esc(q('.tagline', home)?.textContent || '')}</p>
-    <div class="qx-gate-btns"><button class="qx-btn gold qx-big-btn" data-g="login">🔑 Вход</button><button class="qx-btn gold qx-big-btn" data-g="register">✨ Регистрация</button>
-    <button class="qx-btn qx-guest-btn" data-g="guest">🎮 Играй като гост</button></div>
-    <p class="qx-gate-note">Като гост играеш веднага, но точките и победите ти не се пазят.</p>
+    <div class="qx-gate-btns"><button class="qx-btn gold qx-big-btn qx-play-btn" data-g="guest"><span>🎮 Играй веднага</span><small>без регистрация</small></button>
+    <div class="qx-gate-row"><button class="qx-btn qx-alt-btn" data-g="login">🔑 Вход</button><button class="qx-btn qx-alt-btn" data-g="register">✨ Регистрация</button></div></div>
+    <p class="qx-gate-note">Като гост играеш веднага, но точките и победите ти не се пазят. С профил се пазят.</p>
     <a class="link" href="/privacy.html">🔒 За родители</a></div>`;
   if (brand) q('.qx-gate-brand', gate).append(brand);
   document.body.append(gate);
