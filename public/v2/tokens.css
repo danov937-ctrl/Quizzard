@@ -1,0 +1,54 @@
+/* Знаменосци · нов вид „Adventure Map“ — променливи и теми.
+   Действа само когато html има data-design="v2" (включва се с ?design=new, виж design.js).
+   Старите променливи (--wood1, --parch, --gold1 …) са запазени, за да се оцветят и екраните,
+   които още не са пренаписани: „дървото“ става синьо, „пергаментът“ бял, златото е кехлибар. */
+
+/* ---------- ден (деца) ---------- */
+html[data-design="v2"] {
+  --sea1: #0f2e52; --sea2: #2a6fb0;
+  --parch: #ffffff; --parch2: #e6eef8; --free: #f6ead0;
+  --ink: #1b2a41; --muted: #5d6f87;
+  --wood1: #2f6fd0; --wood2: #1c4690;
+  --gold1: #ffd666; --gold2: #ffb020; --gold3: #bd7300;
+  --red: #e5483f; --ok: #22a45d; --bad: #e0453c;
+  --shadow: 0 12px 30px rgba(5, 20, 45, .35);
+  --r: 24px;
+  font-family: "Nunito", "Segoe UI", system-ui, sans-serif;
+
+  /* нови променливи на дизайна */
+  --font-head: "Rubik", "Nunito", system-ui, sans-serif;
+  --card: #ffffff; --card-alt: #f1f6fc; --line: #d3e0ee;
+  --lift: 0 6px 0 rgba(15, 46, 82, .2), 0 16px 28px rgba(5, 20, 45, .26);   /* „вдигната“ карта */
+  --press: 0 2px 0 rgba(15, 46, 82, .2);
+  --sea-top: #8fd3f0; --sea-mid: #4aa6d8; --sea-deep: #2f84bd;               /* вода на картата */
+  --land-neighbour: #d6dfcb; --land-neighbour-line: rgba(255, 255, 255, .9);
+  --mode-online: #f2603c; --mode-friends: #2f6fd0; --mode-bots: #22a45d; --mode-daily: #f5a30a; --mode-practice: #8b5cf6;
+  --tap: 48px;                                                              /* най-малка цел за докосване */
+}
+
+/* ---------- нощ (възрастни): по-тъмно, със злато ---------- */
+html[data-design="v2"] body.mode-adult {
+  --sea1: #0a101c; --sea2: #1b2c4d;
+  --parch: #f8f6f0; --parch2: #e9e4d6; --free: #ece5d2;
+  --ink: #1d2330; --muted: #5a6273;
+  --wood1: #3a5896; --wood2: #1d2d52;
+  --card: #fbfaf6; --card-alt: #f1eee5; --line: #ddd6c4;
+  --sea-top: #5d86b8; --sea-mid: #34598d; --sea-deep: #243f6b;
+  --land-neighbour: #c5ccc0;
+  --mode-online: #d9792b; --mode-friends: #4a6fb5; --mode-bots: #3a9a78; --mode-daily: #e0a21e; --mode-practice: #7c6bc4;
+}
+
+/* ---------- Коледа: червено и зелено, снежна нощ ---------- */
+html[data-design="v2"][data-season="xmas"] {
+  --sea1: #0b1d3a; --sea2: #234a80;
+  --wood1: #c0392b; --wood2: #7f1d1d;
+  --sea-top: #a9d6f2; --sea-mid: #6fb1dc; --sea-deep: #4b8fbf;
+  --land-neighbour: #e4ecf4;           /* заснежени съседи */
+  --mode-friends: #2e8b57; --mode-practice: #c0392b;
+}
+html[data-design="v2"][data-season="xmas"] body.mode-adult { --wood1: #8e2433; --wood2: #4a0f18; --sea2: #1d3557; }
+
+/* ---------- по-малко движение ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html[data-design="v2"] *, html[data-design="v2"] *::before, html[data-design="v2"] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

@@ -270,14 +270,28 @@ function stakeNote() {
 // ---------- карта ----------
 const NS = 'http://www.w3.org/2000/svg';
 const regionPos = (id) => { const r = mapData.byId[id]; const [dx, dy] = LABEL_FIX[id] || [0, 0]; return [r.cx + dx, r.cy + dy]; };
+// Новият вид (data-design="v2") показва и съседните държави, границите, Дунав и Черно море около България.
+// Данните са в data/neighbors.json (tools/build_neighbors.py) и не са част от играта: само рисунка.
+function worldBelow(w) {
+  const names = w.countries.filter((c) => c.lx != null).map((c) => `<text class="cname" x="${c.lx}" y="${c.ly}" text-anchor="middle">${c.name}</text>`).join('');
+  return `<g class="world" aria-hidden="true"><g class="countries">${w.countries.map((c) => `<path class="ctry${c.base ? ' base' : ''}" d="${c.path}"/>`).join('')}</g>
+    <path class="shore" d="${w.coast}"/>${names}
+    <text class="sea-name" x="${w.sea.x}" y="${w.sea.y}" text-anchor="middle">${w.sea.name}</text>
+    <text class="boat" x="${w.sea.x + 8}" y="${w.sea.y + 120}" text-anchor="middle">⛵</text><text class="dolphin" x="${w.sea.x + 30}" y="${w.sea.y - 150}" text-anchor="middle">🐬</text></g>`;
+}
+const worldAbove = (w) => `<g class="frontier" aria-hidden="true"><path class="border" d="${w.border}"/><path class="danube" d="${w.danube}"/><path class="coastline" d="${w.coast}"/></g>`;
 async function loadMap() {
   mapData = await (await fetch('/map.json')).json();
   mapData.byId = Object.fromEntries(mapData.regions.map((r) => [r.id, r]));
   const svg = $('#map');
-  svg.setAttribute('viewBox', `-6 -6 ${mapData.width + 12} ${mapData.height + 12}`);
+  let world = null;
+  if (document.documentElement.dataset.design === 'v2') { try { world = await (await fetch('/neighbors.json')).json(); } catch { /* без съседи картата пак работи */ } }
+  const vb = world ? world.view : { x: -6, y: -6, w: mapData.width + 12, h: mapData.height + 12 };
+  svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
   const ordered = mapData.regions.slice().sort((a, b) => (a.id === 'SOF') - (b.id === 'SOF')); // София-град отгоре
-  svg.innerHTML = `<g class="shadow" transform="translate(5 7)">${ordered.map((r) => `<path d="${r.path}"/>`).join('')}</g>
+  svg.innerHTML = `${world ? worldBelow(world) : ''}<g class="shadow" transform="translate(5 7)">${ordered.map((r) => `<path d="${r.path}"/>`).join('')}</g>
     <g class="land">${ordered.map((r) => `<path id="r-${r.id}" data-id="${r.id}" d="${r.path}"/>`).join('')}</g>
+    ${world ? worldAbove(world) : ''}
     <g class="labels">${ordered.map((r) => { const [x, y] = regionPos(r.id); return `<g id="l-${r.id}"><text class="rname" x="${x}" y="${y}" text-anchor="middle">${r.name}</text><g class="badge"></g></g>`; }).join('')}</g>
     <g id="castles"></g><g id="fxl"></g>`;
   svg.addEventListener('click', (e) => {

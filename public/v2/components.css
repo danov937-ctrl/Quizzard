@@ -1,0 +1,154 @@
+/* Знаменосци · нов вид: основни компоненти (бутони, полета, панели, прозорци, профил).
+   Само за новия вид: всичко е зад html[data-design="v2"] (виж design.js). */
+/* ---------- основа: фон, шрифтове ---------- */
+html[data-design="v2"] body { font-family: "Nunito", "Segoe UI", system-ui, sans-serif; background: var(--sea1); }
+html[data-design="v2"] h1,
+html[data-design="v2"] h2,
+html[data-design="v2"] h3,
+html[data-design="v2"] .phase,
+html[data-design="v2"] .mode-title,
+html[data-design="v2"] .brand-name,
+html[data-design="v2"] .map-banner,
+html[data-design="v2"] .mini-brand,
+html[data-design="v2"] .qx-name,
+html[data-design="v2"] .prep-title,
+html[data-design="v2"] .map-card b,
+html[data-design="v2"] .streak,
+html[data-design="v2"] .rotate b,
+html[data-design="v2"] .searching,
+html[data-design="v2"] .ribbon,
+html[data-design="v2"] .stat b,
+html[data-design="v2"] .announce h2,
+html[data-design="v2"] .room-code {
+  font-family: var(--font-head); font-weight: 800; }
+html[data-design="v2"] .bg { background:
+    radial-gradient(ellipse at 18% -5%, rgba(255, 255, 255, .28), transparent 52%),
+    radial-gradient(ellipse at 92% 105%, rgba(255, 214, 102, .16), transparent 48%),
+    linear-gradient(180deg, var(--sea2), var(--sea1)); overflow: hidden; }
+html[data-design="v2"] .bg::before { content: ""; position: absolute; inset: 0 -25%; pointer-events: none;
+  background:
+    radial-gradient(ellipse 230px 64px at 14% 16%, rgba(255, 255, 255, .17), transparent 72%),
+    radial-gradient(ellipse 320px 84px at 70% 26%, rgba(255, 255, 255, .13), transparent 72%),
+    radial-gradient(ellipse 200px 56px at 46% 72%, rgba(255, 255, 255, .09), transparent 72%);
+  animation: v2-clouds 80s ease-in-out infinite alternate; }
+html[data-design="v2"] .bg::after { background: repeating-linear-gradient(-8deg, transparent 0 38px, rgba(255, 255, 255, .05) 38px 40px); }
+@keyframes v2-clouds { to { transform: translateX(16%); } }
+html[data-design="v2"] .err { color: #ffd6d2; }
+html[data-design="v2"] .panel .err,
+html[data-design="v2"] .modal .err { color: var(--bad); }
+
+/* ---------- бутони ---------- */
+html[data-design="v2"] button { border-radius: 14px; -webkit-tap-highlight-color: transparent; }
+html[data-design="v2"] .btn { border: 0; border-radius: 18px; padding: 13px 22px; font-family: var(--font-head); font-weight: 800; letter-spacing: .01em; min-height: var(--tap);
+  transition: transform .12s cubic-bezier(.3, 1.6, .5, 1), box-shadow .12s, filter .15s; }
+html[data-design="v2"] .btn.big { font-size: 1.25rem; }
+html[data-design="v2"] .btn.gold { background: var(--gold2); background: linear-gradient(180deg, var(--gold1), var(--gold2)); color: #5a3200;
+  box-shadow: 0 5px 0 var(--gold3), 0 12px 20px rgba(5, 20, 45, .25), inset 0 1px 0 rgba(255, 255, 255, .7); }
+html[data-design="v2"] .btn.wood { background: var(--wood1); background: linear-gradient(180deg, color-mix(in srgb, var(--wood1) 80%, #fff), var(--wood1)); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, .25);
+  box-shadow: 0 5px 0 var(--wood2), 0 12px 20px rgba(5, 20, 45, .2), inset 0 1px 0 rgba(255, 255, 255, .4); }
+html[data-design="v2"] .btn:hover:not(:disabled) { transform: translateY(-2px); filter: none; }
+html[data-design="v2"] .btn.gold:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--gold3), inset 0 1px 0 rgba(255, 255, 255, .5); }
+html[data-design="v2"] .btn.wood:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--wood2), inset 0 1px 0 rgba(255, 255, 255, .3); }
+html[data-design="v2"] button.link,
+html[data-design="v2"] a.link { background: rgba(255, 255, 255, .15); color: #fff; text-decoration: none; border: 1px solid rgba(255, 255, 255, .32); border-radius: 999px;
+  padding: 8px 14px; font-weight: 800; font-size: .92rem; transition: background .15s, transform .12s; }
+html[data-design="v2"] button.link:hover,
+html[data-design="v2"] a.link:hover { background: rgba(255, 255, 255, .26); }
+html[data-design="v2"] button.link:active { transform: scale(.96); }
+html[data-design="v2"] .panel button.link { background: transparent; border: 0; color: var(--wood1); text-decoration: underline; padding: 8px 10px; }
+html[data-design="v2"] button.link.off,
+html[data-design="v2"] .icon-btn.off { opacity: .5; }
+html[data-design="v2"] .icon-btn { background: rgba(255, 255, 255, .2); border: 1px solid rgba(255, 255, 255, .45); border-radius: 12px; color: #fff; }
+
+/* ---------- полета ---------- */
+html[data-design="v2"] input,
+html[data-design="v2"] textarea,
+html[data-design="v2"] select { border: 2px solid var(--line); background: #f6f9fd; border-radius: 14px; color: var(--ink); }
+html[data-design="v2"] input:focus,
+html[data-design="v2"] textarea:focus,
+html[data-design="v2"] select:focus { border-color: var(--wood1); box-shadow: 0 0 0 4px color-mix(in srgb, var(--wood1) 25%, transparent); }
+html[data-design="v2"] .qx-form input,
+html[data-design="v2"] .qx-form select,
+html[data-design="v2"] .qx-form textarea { border-color: var(--line); background: #f6f9fd; }
+html[data-design="v2"] .code-input { font-family: var(--font-head); }
+
+/* ---------- панели и избор ---------- */
+html[data-design="v2"] .panel { background: linear-gradient(180deg, #fff, var(--card-alt)); border: 0; border-radius: 28px; padding: 20px; box-shadow: var(--lift); }
+html[data-design="v2"] .lbl { color: var(--ink); }
+html[data-design="v2"] .seg button { background: var(--card-alt); border: 2px solid var(--line); color: var(--ink); border-radius: 14px; box-shadow: 0 3px 0 var(--line); min-height: 44px; transition: transform .12s cubic-bezier(.3, 1.6, .5, 1); }
+html[data-design="v2"] .seg button.on { background: var(--wood1); background: linear-gradient(180deg, color-mix(in srgb, var(--wood1) 82%, #fff), var(--wood1)); color: #fff; border-color: var(--wood2); box-shadow: 0 3px 0 var(--wood2); transform: translateY(-1px); }
+html[data-design="v2"] .subj-grid button { background: var(--card-alt); border: 2px solid var(--line); border-radius: 14px; }
+html[data-design="v2"] .subj-grid button.on { background: #fff; border-color: var(--wood1); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--wood1) 35%, transparent); }
+html[data-design="v2"] .chip { background: rgba(0, 0, 0, .22); border-color: rgba(255, 255, 255, .4); }
+html[data-design="v2"] .chip.light { background: var(--card-alt); color: var(--wood2); border-color: var(--line); }
+
+/* ---------- прозорци ---------- */
+html[data-design="v2"] .overlay { background: rgba(8, 24, 48, .55); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+html[data-design="v2"] .modal { border: 0; border-radius: 28px; background: #fff; box-shadow: 0 30px 70px rgba(2, 10, 25, .55); }
+html[data-design="v2"] .mhead { border-bottom: 0; }
+html[data-design="v2"] .mhead:not(.red) { --sc: var(--wood1); } /* предметът (вграден стил --sc) пак има предимство */
+html[data-design="v2"] .mhead h3 { font-size: 1.15rem; }
+html[data-design="v2"] .opts button { border: 0; border-radius: 18px; box-shadow: 0 5px 0 rgba(0, 0, 0, .22), inset 0 2px 0 rgba(255, 255, 255, .35); transition: transform .12s cubic-bezier(.3, 1.6, .5, 1); }
+html[data-design="v2"] .opts button:hover:not(:disabled) { transform: translateY(-2px); }
+html[data-design="v2"] .opts button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0, 0, 0, .22); }
+html[data-design="v2"] .opts button .letter { background: rgba(255, 255, 255, .92); color: rgba(0, 0, 0, .65); font-family: var(--font-head); border-radius: 8px; text-shadow: none; }
+html[data-design="v2"] .clock { background: radial-gradient(#fff 58%, transparent 60%), conic-gradient(var(--gold2) calc(var(--p) * 360deg), #e3ebf5 0); border-color: var(--wood1); }
+html[data-design="v2"] .numbox { background: var(--card-alt); border: 3px solid var(--line); border-radius: 16px; }
+html[data-design="v2"] .numpad button { background: #fff; border: 2px solid var(--line); box-shadow: 0 4px 0 var(--line); border-radius: 14px; }
+html[data-design="v2"] .numpad button.ok { background: linear-gradient(180deg, var(--gold1), var(--gold2)); border-color: var(--gold3); box-shadow: 0 4px 0 var(--gold3); }
+html[data-design="v2"] .hint { background: #fff4d1; border-color: var(--gold2); color: #6b4300; }
+html[data-design="v2"] .results li,
+html[data-design="v2"] .stat { background: var(--card-alt); border-color: var(--line); }
+html[data-design="v2"] .podium li:first-child { background: #fff0c2; }
+html[data-design="v2"] .bar .track { background: #e3ebf5; }
+html[data-design="v2"] .mistakes li { background: var(--card-alt); }
+html[data-design="v2"] .speak { background: #fff; border-color: var(--wood1); }
+html[data-design="v2"] .announce h2 { color: var(--wood2); }
+html[data-design="v2"] .rules ol { color: var(--ink); }
+html[data-design="v2"] .reasons label { background: var(--card-alt); border-color: var(--line); }
+html[data-design="v2"] .feedback.ok { background: #dff5e8; color: #14693a; } html[data-design="v2"] .feedback.bad { background: #fde4e1; color: #a1281f; }
+html[data-design="v2"] .toast { background: #10264a; color: #fff; border-color: rgba(255, 255, 255, .25); border-radius: 14px; }
+html[data-design="v2"] .qx-toast { background: #10264a; color: #fff; border-radius: 14px; }
+
+/* ---------- профил, класация, идеи (extras.js) ---------- */
+html[data-design="v2"] .qx-back { background: rgba(8, 24, 48, .6); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+html[data-design="v2"] .qx-modal { background: #fff; border: 0; border-radius: 28px; box-shadow: 0 30px 70px rgba(2, 10, 25, .55); overflow: hidden; }
+html[data-design="v2"] .qx-head { background: linear-gradient(135deg, var(--wood1), var(--wood2)); color: #fff; border-radius: 0; padding: 14px 18px; }
+html[data-design="v2"] .qx-head h2 { font-family: var(--font-head); font-weight: 800; }
+html[data-design="v2"] .qx-x { color: #fff; background: rgba(255, 255, 255, .18); border-radius: 50%; width: 36px; height: 36px; padding: 0; }
+html[data-design="v2"] .qx-tabs button,
+html[data-design="v2"] .qx-cats button { background: var(--card-alt); border: 2px solid var(--line); color: var(--ink); }
+html[data-design="v2"] .qx-tabs button.on,
+html[data-design="v2"] .qx-cats button.on { background: var(--wood1); border-color: var(--wood2); color: #fff; }
+html[data-design="v2"] .qx-btn { background: var(--card-alt); border: 2px solid var(--line); border-radius: 14px; box-shadow: 0 3px 0 var(--line); min-height: 44px; }
+html[data-design="v2"] .qx-btn.gold { background: linear-gradient(180deg, var(--gold1), var(--gold2)); border-color: var(--gold3); color: #5a3200; box-shadow: 0 4px 0 var(--gold3); }
+html[data-design="v2"] .qx-btn:active { transform: translateY(3px); box-shadow: none; }
+html[data-design="v2"] .qx-stats div,
+html[data-design="v2"] .qx-badge,
+html[data-design="v2"] .qx-rank,
+html[data-design="v2"] .qx-idea,
+html[data-design="v2"] .qx-pick { background: var(--card-alt); border-color: var(--line); }
+html[data-design="v2"] .qx-badge { border-color: var(--gold2); }
+html[data-design="v2"] .qx-badge.locked { background: rgba(0, 0, 0, .05); border-color: transparent; }
+html[data-design="v2"] .qx-rank.me { background: #fff0c2; }
+html[data-design="v2"] .qx-pick.on { background: #fff0c2; border-color: var(--gold3); }
+html[data-design="v2"] .qx-chip { background: #fff; border: 0; border-bottom: 4px solid var(--wood1); box-shadow: 0 4px 0 rgba(15, 46, 82, .18), 0 10px 18px rgba(5, 20, 45, .25); }
+html[data-design="v2"] .qx-mini-bar,
+html[data-design="v2"] .qx-level,
+html[data-design="v2"] .qx-track { background: #e3ebf5; }
+html[data-design="v2"] .qx-title { color: var(--gold3); }
+html[data-design="v2"] .qx-name { font-size: 1.4rem; }
+html[data-design="v2"] .qx-paper { background: #fff; border: 0; border-radius: 26px; box-shadow: var(--lift); }
+html[data-design="v2"] .qx-paper h1 { font-family: var(--font-head); font-weight: 800; }
+html[data-design="v2"] .qx-tip { background: #fff4d1; border-left-color: var(--gold2); }
+html[data-design="v2"] .qx-linkbtn,
+html[data-design="v2"] .qx-check a,
+html[data-design="v2"] .qx-paper a { color: var(--wood1); }
+html[data-design="v2"] .qx-kids li { background: var(--card-alt); }
+html[data-design="v2"] .qx-notice { border-radius: 16px; }
+
+/* ---------- „Завърти устройството“ ---------- */
+html[data-design="v2"] .rotate { background: radial-gradient(ellipse at 50% 30%, var(--sea2), var(--sea1) 75%); color: #fff; }
+html[data-design="v2"] .rotate b { color: #fff; text-shadow: 0 3px 0 rgba(0, 0, 0, .25); }
+html[data-design="v2"] .rot-device { border-color: #fff; }
+html[data-design="v2"] .rot-device i { background: #fff; }

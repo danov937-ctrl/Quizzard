@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 const SPEED = Number(process.env.GAME_SPEED || 1); // 0.3 = по-бърза игра за демонстрация
 const PUBLIC = path.join(__dirname, '..', 'public');
 const MAP_FILE = path.join(__dirname, '..', 'data', 'map.json');
+const NEIGHBORS_FILE = path.join(__dirname, '..', 'data', 'neighbors.json'); // съседни държави, граници и Дунав (tools/build_neighbors.py)
 const MAX_PLAYERS = 4;
 const REPORTS_FILE = process.env.REPORTS_FILE || path.join(__dirname, '..', 'data', 'reports.jsonl'); // стар формат, внася се в панела веднъж
 // Настройките идват от админ панела (/admin): играчи и чакане в онлайн стая, рундове, имена на ботове
@@ -36,6 +37,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const server = http.createServer((req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/map.json') return sendFile(res, MAP_FILE);
+  if (url === '/neighbors.json') return sendFile(res, NEIGHBORS_FILE);
   if (url === '/.well-known/assetlinks.json') return assetLinks(res);
   if (url.startsWith('/api/')) {
     admin.handle(req, res).then((done) => { if (done === false) { res.writeHead(404); res.end('Not found'); } });
