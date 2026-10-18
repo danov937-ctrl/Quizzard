@@ -121,6 +121,8 @@ class Accounts {
       adult: !!u.adult, coins: u.adult ? u.coins ?? 0 : null, flag: u.flag || null,
       flagOptions: { patterns: R.FLAG_PATTERNS, colors: R.FLAG_COLORS, emblems: R.FLAG_EMBLEMS },
       email: maskEmail(u.email), needsConsent: this.needsConsent(u), consentAt: u.consentAt || null, weeklyMail: u.weeklyMail !== false, mail: mail.enabled(),
+      children: u.adult ? this.childrenOf(u).map((c) => ({ id: c.id, name: c.name, grade: c.grade || null, games: c.games || 0 })) : undefined,
+      hasGuardian: !!(u.guardian && this.users[u.guardian]),
     };
   }
   // Класации: week – най-активни тази седмица (опит), xp – ниво, wins – победи, accuracy – точност (поне 50 отговора)
@@ -178,9 +180,29 @@ class Accounts {
     if (!consent) return { error: 'Нужно е да приемеш условията и политиката за поверителност.' };
     const salt = crypto.randomBytes(16).toString('hex');
     const now = new Date().toISOString();
-    const u = { id: 'u' + crypto.randomBytes(6).toString('hex'), adult: true, birthYear: Number(String(birthDate).slice(0, 4)), name: c.name, email: e.email, termsAt: now, consentAt: now, weeklyMail: false, salt, hash: scrypt(password, salt), pwv: 0, grade: null, createdAt: now, lastSeen: now, games: 0, wins: 0, answers: 0, correct: 0, best: 0 };
+    const u = { id: 'u' + crypto.randomBytes(6).toString('hex'), adult: true, birthYear: Number(String(birthDate).slice(0, 4)), name: c.name, email: e.email, termsAt: now, consentAskedAt: now, consentAt: null, weeklyMail: false, salt, hash: scrypt(password, salt), pwv: 0, grade: null, createdAt: now, lastSeen: now, games: 0, wins: 0, answers: 0, correct: 0, best: 0 };
     this.users[u.id] = u;
     if (this.wallet) this.wallet.ensure(u);
+    this.store.touch('players');
+    return { user: u };
+  }
+  // Деца, добавени от профил за възрастен
+  childrenOf(adult) { return Object.values(this.users).filter((x) => x.guardian === adult.id); }
+  // Детски профил от потвърден профил за възрастен: същият имейл, без ново писмо (възрастният вече потвърди имейла си
+  // и е родителят). Така един имейл = едно потвърждение за възрастния и всичките му деца.
+  addChild(adult, { name, password, grade }) {
+    if (!adult || !adult.adult) return { error: 'Детски профил се добавя от профил за възрастен.' };
+    if (this.needsConsent(adult)) return { error: 'Първо потвърди имейла си от писмото, което ти изпратихме.' };
+    if (this.childrenOf(adult).length >= 6) return { error: 'Може да добавиш най-много 6 детски профила.' };
+    const c = checkName(name);
+    if (c.error) return c;
+    if (this.byName(c.name)) return { error: 'Това потребителско име вече е заето. Опитай с друго.' };
+    if (String(password || '').length < 4) return { error: 'Паролата на детето трябва да е поне 4 знака.' };
+    if (String(password).length > 64) return { error: 'Паролата е твърде дълга.' };
+    const salt = crypto.randomBytes(16).toString('hex');
+    const now = new Date().toISOString();
+    const u = { id: 'u' + crypto.randomBytes(6).toString('hex'), name: c.name, email: adult.email, guardian: adult.id, consentAskedAt: now, consentAt: now, weeklyMail: true, salt, hash: scrypt(password, salt), pwv: 0, grade: [1, 2, 3, 4].includes(Number(grade)) ? Number(grade) : null, createdAt: now, lastSeen: now, games: 0, wins: 0, answers: 0, correct: 0, best: 0 };
+    this.users[u.id] = u;
     this.store.touch('players');
     return { user: u };
   }
@@ -205,9 +227,12 @@ class Accounts {
   setEmail(u, email) {
     const e = checkEmail(email);
     if (e.error) return e;
-    if (this.byEmail(e.email).some((x) => x.id !== u.id)) return { error: EMAIL_TAKEN };
+    // Детски профил, добавен от възрастен, ползва имейла на възрастния и не го сменя сам
+    if (u.guardian && this.users[u.guardian]) return { error: 'Имейлът на този профил се управлява от родителя. Помоли го да го смени от своя профил.' };
     if (e.email === u.email) return { ok: true, same: true };
-    if (u.adult) { u.email = e.email; this.store.touch('players'); return { ok: true, same: true }; } // без писмо до родител
+    if (this.byEmail(e.email).some((x) => x.id !== u.id)) return { error: EMAIL_TAKEN };
+    // Децата следват имейла на възрастния; новият адрес се потвърждава наново (само веднъж за всички)
+    if (u.adult) for (const c of this.childrenOf(u)) c.email = e.email;
     u.email = e.email; u.consentAt = null; u.consentAskedAt = new Date().toISOString(); delete u.consentToken;
     this.store.touch('players');
     return { ok: true };
@@ -330,6 +355,22 @@ async function handlePublic(acc, req, res, url, readBody) {
     if (out.error) return json(res, 400, out);
     if (acc.parents) await acc.parents.askConsent(out.user);
     return json(res, 200, { user: acc.profile(out.user) }, { 'Set-Cookie': acc.cookieFor(out.user, req) });
+  }
+  if (p === '/api/account/child' && post) {
+    if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });
+    if (acc.limited('child:' + me.id, 12, 3600000)) return json(res, 429, { error: 'Твърде много опити. Опитай по-късно.' });
+    const out = acc.addChild(me, body);
+    if (out.error) return json(res, 400, out);
+    return json(res, 200, { user: acc.profile(me), child: { id: out.user.id, name: out.user.name } });
+  }
+  if (p === '/api/account/child/delete' && post) {
+    if (!me) return json(res, 401, { error: 'Първо влез в профила си.' });
+    if (acc.limited('childdel:' + ip, 10, 600000)) return json(res, 429, { error: 'Твърде много опити. Изчакай 10 минути.' });
+    if (!safeEq(scrypt(body.password, me.salt), me.hash)) return json(res, 400, { error: 'Паролата не е вярна.' });
+    const c = acc.users[String(body.id || '')];
+    if (!c || c.guardian !== me.id) return json(res, 404, { error: 'Няма такъв детски профил.' });
+    acc.deleteUser(c.id); await acc.store.flush().catch(() => {});
+    return json(res, 200, { user: acc.profile(me) });
   }
   if (p === '/api/account/login' && post) {
     if (acc.limited('login:' + ip, 12, 600000)) return json(res, 429, { error: 'Твърде много опити. Изчакай 10 минути.' });

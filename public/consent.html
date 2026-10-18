@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <meta name="referrer" content="no-referrer">
-  <title>Знаменосци · Съгласие на родителя</title>
+  <title>Знаменосци · Потвърждение</title>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link href="/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -25,6 +25,9 @@
     const api = (method) => fetch('/api/consent/' + encodeURIComponent(token), method === 'GET' ? {} : { method: 'POST', headers: { 'X-Quizzard': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ action: method }) })
       .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
     const done = (d) => {
+      if (d.adult) { out.innerHTML = `<h1>✅ Благодарим!</h1><p>Имейлът е потвърден и профилът ти вече се показва в класациите.</p>
+        <p>Ако имаш деца, влез в профила си → ⚙️ → „Детски профили“ и им добави профил. <b>Не е нужно ново потвърждение</b>: този имейл важи за всички.</p>
+        <p><a class="qx-btn gold" href="/">Към играта</a></p>`; return; }
       out.innerHTML = `<h1>✅ Благодарим!</h1><p>Профилът е потвърден. Детето вече се вижда в класациите и може да качи снимка (тя се показва след наша проверка).</p>
         <p>Всеки понеделник ще получавате кратък отчет на този имейл. ${d.report ? `Пълният отчет за детето е винаги тук: <a href="/parent.html#${esc(d.report)}">Отчет за родителя</a>.` : ''}</p>
         <p><a class="qx-btn gold" href="/">Към играта</a></p>`;
@@ -32,6 +35,16 @@
     if (!token) { out.innerHTML = '<h1>Съгласие на родителя</h1><p>Отворете линка от писмото, което ви изпратихме.</p>'; return; }
     api('GET').then((d) => {
       if (d.confirmed) return done(d);
+      if (d.adult) {
+        out.innerHTML = `<h1>👋 Потвърди имейла си</h1>
+          <p class="qx-lead">С имейла <b>${esc(d.email)}</b> е направен профил за възрастен <b>„${esc(d.name)}“</b> в „Знаменосци“ на ${new Date(d.createdAt).toLocaleDateString('bg-BG')}.</p>
+          <p>Потвърди, че имейлът е твой. Това е <b>едно потвърждение</b>: важи и за детските профили, които добавиш към профила си.</p>
+          <div class="qx-row"><button class="qx-btn gold" id="yes">✅ Да, това съм аз</button><button class="qx-btn" id="no" style="color:var(--bad)">🗑 Не съм аз, изтрий профила</button></div>
+          <p class="qx-note"><a href="/privacy-adult.html" target="_blank">Как пазим данните</a>. Можеш да изтриеш профила по всяко време от настройките му.</p>`;
+        document.getElementById('yes').onclick = () => api('confirm').then(done).catch((e) => alert(e.message));
+        document.getElementById('no').onclick = () => { if (!confirm(`Да изтрием ли профила „${d.name}“ и всички негови данни?`)) return; api('refuse').then(() => { out.innerHTML = '<h1>Профилът е изтрит</h1><p>Данните са изтрити.</p>'; }).catch((e) => alert(e.message)); };
+        return;
+      }
       out.innerHTML = `<h1>👋 Профил на дете в „Знаменосци“</h1>
         <p class="qx-lead">С имейла <b>${esc(d.email)}</b> е направен профил <b>„${esc(d.name)}“</b>${d.grade ? ` за ${d.grade} клас` : ''} на ${new Date(d.createdAt).toLocaleDateString('bg-BG')}</p>
         <p>„Знаменосци“ е образователна игра с въпроси по учебните предмети за 1.–4. клас. С профила детето пази нивата, значките и резултатите си и може да участва в турнири между класове.</p>

@@ -161,3 +161,8 @@ body.qx-gated .qx-account, body.qx-gated .qx-notice { display: none; }
 .qx-short .qx-form input, .qx-short .qx-form select { padding: 6px 10px; }
 /* iOS не увеличава страницата при докосване на поле с поне 16px шрифт */
 .qx-form input, .qx-form select, .qx-form textarea { font-size: 16px; }
+
+/* Детски профили към профил за възрастен */
+.qx-kids { list-style: none; margin: 6px 0 10px; padding: 0; display: grid; gap: 6px; }
+.qx-kids li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .55); }
+.qx-kids .qx-linkbtn { margin-left: auto; color: var(--bad, #b3261e); }
