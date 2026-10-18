@@ -1,13 +1,14 @@
-// Избор на дизайн: новият вид („v2“) се включва с ?design=new и се помни на това устройство.
-// ?design=old връща стария. Зарежда се в <head>, преди стиловете, за да няма примигване.
+// Избор на дизайн: новият вид „Приказен залез“ („v2“) е основният.
+// ?design=old връща стария вид на това устройство, ?design=new го включва пак.
+// Зарежда се в <head>, преди стиловете, за да няма примигване.
 (function () {
   var KEY = 'zn-design', want = null;
   try { want = new URLSearchParams(location.search).get('design'); } catch (e) {}
   var saved = null;
   try {
-    if (want === 'new' || want === 'v2') localStorage.setItem(KEY, 'v2');
-    else if (want === 'old') localStorage.removeItem(KEY);
+    if (want === 'old') localStorage.setItem(KEY, 'old');
+    else if (want === 'new' || want === 'v2') localStorage.removeItem(KEY);
     saved = localStorage.getItem(KEY);
-  } catch (e) { saved = (want === 'new' || want === 'v2') ? 'v2' : null; }
-  if (saved === 'v2') document.documentElement.dataset.design = 'v2';
+  } catch (e) { saved = want === 'old' ? 'old' : null; }
+  if (saved !== 'old' && want !== 'old') document.documentElement.dataset.design = 'v2';
 })();

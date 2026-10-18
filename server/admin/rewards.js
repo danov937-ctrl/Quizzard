@@ -41,6 +41,7 @@ const BADGES = [
   { id: 'streak_3', icon: '🔥', name: 'Три дни подред', desc: 'Играй 3 дни подред', test: (u) => (u.bestStreak || 0) >= 3 },
   { id: 'streak_7', icon: '🌟', name: 'Цяла седмица', desc: 'Играй 7 дни подред', test: (u) => (u.bestStreak || 0) >= 7 },
   { id: 'streak_30', icon: '💎', name: 'Цял месец', desc: 'Играй 30 дни подред', test: (u) => (u.bestStreak || 0) >= 30 },
+  { id: 'chest_7', icon: '🎁', name: 'Седем сандъка', desc: 'Вземи наградата си 7 дни подред', test: (u) => (u.daily?.best || 0) >= 7 },
   { id: 'run_5', icon: '⚡', name: 'Пет подред', desc: '5 верни отговора подред в една игра', test: (u) => (u.bestRun || 0) >= 5 },
   { id: 'run_10', icon: '🌩️', name: 'Десет подред', desc: '10 верни отговора подред в една игра', test: (u) => (u.bestRun || 0) >= 10 },
   { id: 'perfect', icon: '💯', name: 'Безгрешен', desc: 'Игра без нито един грешен отговор (поне 8 въпроса)', test: (u) => !!u.perfect },
@@ -86,6 +87,29 @@ function weekKey(d = new Date()) {
 }
 const dayKey = (d = new Date()) => d.toISOString().slice(0, 10);
 
+// ---------- ежедневен сандък ----------
+// Седем сандъка в кръг: всеки ден подред е по-богат, а седмият е най-големият. Пропуснеш ли ден, започва се отначало.
+const DAILY = [20, 25, 30, 40, 50, 70, 150];
+function dailyState(u) {
+  const today = dayKey(), yesterday = dayKey(new Date(Date.now() - 86400000));
+  const d = u.daily || {};
+  const claimedToday = d.last === today;
+  const alive = claimedToday || d.last === yesterday;
+  const run = alive ? d.run || 0 : 0;                      // колко дни подред са взети сандъци
+  const day = claimedToday ? ((run - 1) % 7) + 1 : (run % 7) + 1; // кой от седемте сандъка е „днешният“
+  return { rewards: DAILY, claimedToday, run, day, best: d.best || 0 };
+}
+function claimDaily(u) {
+  const st = dailyState(u);
+  if (st.claimedToday) return { error: 'Днешният сандък вече е отворен. Ела утре! 🎁' };
+  const run = st.run + 1, xp = DAILY[(run - 1) % 7];
+  const before = levelOf(u.xp || 0);
+  u.daily = { last: dayKey(), run, best: Math.max(st.best, run) };
+  addXp(u, xp);
+  const badges = award(u);
+  return { xp, day: ((run - 1) % 7) + 1, run, levelUp: levelOf(u.xp || 0) > before ? levelOf(u.xp || 0) : null, badges };
+}
+
 function addXp(u, n) {
   u.xp = (u.xp || 0) + n;
   const wk = weekKey();
@@ -120,4 +144,4 @@ function onGameEnd(u, { won, score, mode, run }) {
   return award(u);
 }
 
-module.exports = { XP, levelInfo, levelOf, AVATARS, COLORS, BADGES, badgesFor, ADULT_SUBJECTS, FLAG_PATTERNS, FLAG_COLORS, FLAG_EMBLEMS, cleanFlag, award, onAnswer, onGameEnd, weekKey, addXp, sum };
+module.exports = { DAILY, dailyState, claimDaily, XP, levelInfo, levelOf, AVATARS, COLORS, BADGES, badgesFor, ADULT_SUBJECTS, FLAG_PATTERNS, FLAG_COLORS, FLAG_EMBLEMS, cleanFlag, award, onAnswer, onGameEnd, weekKey, addXp, sum };

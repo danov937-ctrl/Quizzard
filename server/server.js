@@ -321,6 +321,7 @@ wss.on('connection', (ws, req) => {
       case 'answer': if (room?.game) room.game.answer(me.id, msg.value); break;
       case 'pick': if (room?.game) room.game.pick(me.id, msg.region); break;
       case 'joker': if (room?.game) room.game.useJoker(me.id, String(msg.kind)); break;
+      case 'react': if (room?.game && me) room.game.react(me.id, String(msg.emoji || '')); break;
     }
   });
 

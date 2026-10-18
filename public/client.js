@@ -142,11 +142,22 @@ function speak(text, btn) {
 if (canSpeak) window.speechSynthesis.getVoices();
 
 // ---------- връзка ----------
+// Съобщение „Връзката прекъсна“: показва се само ако прекъсването продължи повече от секунда и половина
+let netTimer = 0;
+function netBanner(lost) {
+  clearTimeout(netTimer);
+  let b = document.getElementById('netBanner');
+  if (!lost) { if (b) b.classList.add('hidden'); return; }
+  netTimer = setTimeout(() => {
+    if (!b) { b = document.createElement('div'); b.id = 'netBanner'; b.className = 'net-banner'; b.setAttribute('role', 'status'); b.textContent = '📡 Връзката прекъсна. Свързвам се отново…'; document.body.appendChild(b); }
+    b.classList.remove('hidden');
+  }, 1500);
+}
 function connect() {
   ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
-  ws.onopen = () => { const s = store.get(SAVE_KEY); if (s) send({ t: 'resume', ...s }); };
+  ws.onopen = () => { netBanner(false); const s = store.get(SAVE_KEY); if (s) send({ t: 'resume', ...s }); };
   ws.onmessage = (e) => handle(JSON.parse(e.data));
-  ws.onclose = () => setTimeout(connect, 1500);
+  ws.onclose = () => { netBanner(true); setTimeout(connect, 1500); };
 }
 const send = (m) => ws && ws.readyState === 1 && ws.send(JSON.stringify(m));
 
@@ -277,9 +288,13 @@ function worldBelow(w) {
   return `<g class="world" aria-hidden="true"><g class="countries">${w.countries.map((c) => `<path class="ctry${c.base ? ' base' : ''}" d="${c.path}"/>`).join('')}</g>
     <path class="shore" d="${w.coast}"/>${names}
     <text class="sea-name" x="${w.sea.x}" y="${w.sea.y}" text-anchor="middle">${w.sea.name}</text>
-    <text class="boat" x="${w.sea.x + 8}" y="${w.sea.y + 120}" text-anchor="middle">⛵</text><text class="dolphin" x="${w.sea.x + 30}" y="${w.sea.y - 150}" text-anchor="middle">🐬</text></g>`;
+    ${up(w.sea.x + 8, w.sea.y + 120, `<text class="boat" x="${w.sea.x + 8}" y="${w.sea.y + 120}" text-anchor="middle">⛵</text>`, -M3D_GROUND)}${up(w.sea.x + 30, w.sea.y - 150, `<text class="dolphin" x="${w.sea.x + 30}" y="${w.sea.y - 150}" text-anchor="middle">🐬</text>`, -M3D_GROUND)}</g>`;
 }
 const worldAbove = (w) => `<g class="frontier" aria-hidden="true"><path class="border" d="${w.border}"/><path class="danube" d="${w.danube}"/><path class="coastline" d="${w.coast}"/></g>`;
+// 3D картата (v2/map3d.js) е само за новия вид; старият вид и браузърите без нея рисуват плоска карта
+const M3D_GROUND = 12;
+const m3d = () => (window.Map3D && window.Map3D.on ? window.Map3D : null);
+const up = (x, y, html, h) => (m3d() ? m3d().upright(x, y, html, h) : html);
 async function loadMap() {
   mapData = await (await fetch('/map.json')).json();
   mapData.byId = Object.fromEntries(mapData.regions.map((r) => [r.id, r]));
@@ -289,11 +304,18 @@ async function loadMap() {
   const vb = world ? world.view : { x: -6, y: -6, w: mapData.width + 12, h: mapData.height + 12 };
   svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
   const ordered = mapData.regions.slice().sort((a, b) => (a.id === 'SOF') - (b.id === 'SOF')); // София-град отгоре
-  svg.innerHTML = `${world ? worldBelow(world) : ''}<g class="shadow" transform="translate(5 7)">${ordered.map((r) => `<path d="${r.path}"/>`).join('')}</g>
+  if (world && window.Map3D) {
+    window.Map3D.on = true;
+    svg.dataset.d3 = '1';
+    svg.innerHTML = window.Map3D.build(world, ordered, regionPos, { below: worldBelow(world), above: worldAbove(world) });
+    window.Map3D.attach(svg, mapData);
+  } else {
+    svg.innerHTML = `${world ? worldBelow(world) : ''}<g class="shadow" transform="translate(5 7)">${ordered.map((r) => `<path d="${r.path}"/>`).join('')}</g>
     <g class="land">${ordered.map((r) => `<path id="r-${r.id}" data-id="${r.id}" d="${r.path}"/>`).join('')}</g>
     ${world ? worldAbove(world) : ''}
     <g class="labels">${ordered.map((r) => { const [x, y] = regionPos(r.id); return `<g id="l-${r.id}"><text class="rname" x="${x}" y="${y}" text-anchor="middle">${r.name}</text><g class="badge"></g></g>`; }).join('')}</g>
     <g id="castles"></g><g id="fxl"></g>`;
+  }
   svg.addEventListener('click', (e) => {
     const id = e.target.dataset?.id, c = state?.current;
     if (id && c?.type === 'pick' && c.picker === me && c.options.includes(id)) send({ t: 'pick', region: id });
@@ -301,17 +323,57 @@ async function loadMap() {
   if (state) renderGame();
 }
 
-function castleSvg(p, x, y, prev) {
-  const fl = flagOf(p.id);
-  const pennant = fl && window.ZFlag ? `<g transform="translate(15 -12)">${ZFlag.inner(fl, 13, 9)}<rect width="13" height="9" fill="none" stroke="#2b1a0c" stroke-width=".7"/></g>` : '<path d="M15 -10l8 3-8 3z" fill="#ffe08a" stroke="#2b1a0c" stroke-width=".8"/>';
-  const towers = [[1, 5, 8, 21], [11, 0, 8, 26], [21, 5, 8, 21]];
-  const tw = towers.map(([tx, ty, w, h], i) => {
-    const down = i >= p.towers, fresh = down && prev != null && i < prev;
-    const d = `M${tx} ${ty}h2v-3h1.5v3h1v-3h1.5v3h2v${h}h-${w}z`;
-    return `<path class="tw ${fresh ? 'down' : down ? 'gone' : ''}" d="${d}" fill="${p.color}" stroke="#2b1a0c" stroke-width="1.2"/>`;
-  }).join('');
-  return `<g class="castle" transform="translate(${x - 21} ${y - 58}) scale(1.4)">${tw}<rect x="4" y="13" width="22" height="13" fill="${p.color}" stroke="#2b1a0c" stroke-width="1.2"/>
-    <path d="M12 26v-6a3 3 0 0 1 6 0v6z" fill="#2b1a0c"/><path d="M15 0v-12" stroke="#2b1a0c" stroke-width="1.2"/>${pennant}</g>`;
+// ---------- замъкът на столицата ----------
+// Приказен замък: три кули с конусовидни покриви в цвета на играча, стена с порта, знаме на най-високата кула.
+// Кулите падат в ред: дясна, лява, накрая централната. Ефекти (в extras.css): построяване с искри, развяване
+// на знамето, светещи прозорци, рухване на кула с отломки и дим, щит при защита, пръстен при ред и при обсада.
+const CSTL = { stone: '#f3e4c6', shade: '#d9c39b', line: '#7a5a44', gold: '#f2c14e', wood: '#7a4a2e' };
+const TOWER_ORDER = ['R', 'L', 'C'];
+const TOWER_GEO = { L: { cx: -19, w: 11, h: 33, rh: 17 }, R: { cx: 19, w: 11, h: 33, rh: 17 }, C: { cx: 0, w: 16, h: 46, rh: 22 } };
+const crnd = (i) => { const s = Math.sin(i * 12.9898 + 7.233) * 43758.5453; return s - Math.floor(s); };   // стабилно „случайно“ число 0..1
+const merlons = (x0, x1, y, w = 3.4) => { let d = ''; for (let x = x0; x + w <= x1 + 0.01; x += w * 2) d += `M${x.toFixed(1)} ${y}h${w}v-3h-${w}z`; return d; };
+const cwin = (x, y, dl) => `<path class="win" style="--d:${dl}s" d="M${x - 1.7} ${y}v-3.6a1.7 1.7 0 0 1 3.4 0v3.6z"/>`;
+function castleTower(key, col, st) {   // st: '' (стои) | 'down' (току-що падна) | 'gone' (развалини)
+  const g = TOWER_GEO[key], S = CSTL, x0 = g.cx - g.w / 2, x1 = g.cx + g.w / 2, top = -g.h, apex = top - g.rh, dir = key === 'L' ? -1 : 1;
+  const bricks = [1, 2, 3, 4].map((k) => `M${x0} ${(top + (k * g.h) / 5).toFixed(1)}h${g.w}`).join('');
+  const body = `<rect x="${x0}" y="${top}" width="${g.w}" height="${g.h}" fill="${S.stone}" stroke="${S.line}" stroke-width=".8"/><rect x="${g.cx}" y="${top}" width="${g.w / 2}" height="${g.h}" fill="rgba(110,70,40,.15)"/><path d="${bricks}" stroke="rgba(110,70,40,.2)" stroke-width=".5" fill="none"/>`;
+  const eave = `<rect x="${x0 - 1.6}" y="${top - 2.4}" width="${g.w + 3.2}" height="3" rx="1" fill="${S.shade}" stroke="${S.line}" stroke-width=".6"/>`;
+  const roof = `<path d="M${x0 - 2.6} ${top - 1}L${g.cx} ${apex}L${x1 + 2.6} ${top - 1}z" fill="${col}" stroke="${S.line}" stroke-width=".8" stroke-linejoin="round"/><path d="M${x0 - 2.6} ${top - 1}L${g.cx} ${apex}V${top - 1}z" fill="rgba(255,255,255,.26)"/><path d="M${g.cx} ${apex}L${x1 + 2.6} ${top - 1}H${g.cx}z" fill="rgba(0,0,0,.2)"/><circle cx="${g.cx}" cy="${apex}" r="1.4" fill="${S.gold}" stroke="${S.line}" stroke-width=".4"/>`;
+  const wins = key === 'C' ? cwin(g.cx - 3.4, top + 15, 0) + cwin(g.cx + 3.4, top + 15, 1.1) + cwin(g.cx, top + 29, 0.6) : cwin(g.cx, top + 13, key === 'L' ? 0.4 : 1.6);
+  const pole = key === 'C' ? '' : `<path d="M${g.cx} ${apex}v-7" stroke="${S.line}" stroke-width=".8"/><path class="pen" d="M${g.cx} ${apex - 7}l6 2-6 2z" fill="${col}" stroke="${S.line}" stroke-width=".4"/>`;
+  const rub = `<path d="M${x0} 0V-6l${(g.w * 0.2).toFixed(1)} -2.5 ${(g.w * 0.18).toFixed(1)} 3 ${(g.w * 0.17).toFixed(1)} -3.5 ${(g.w * 0.2).toFixed(1)} 3 ${(g.w * 0.25).toFixed(1)} -2V0z" fill="${S.stone}" stroke="${S.line}" stroke-width=".7" stroke-linejoin="round"/><path d="M${g.cx} -8V0" stroke="rgba(110,70,40,.25)" stroke-width=".5"/><circle cx="${x0 - 2.2}" cy="-1.3" r="1.8" fill="${S.shade}" stroke="${S.line}" stroke-width=".4"/><circle cx="${x1 + 2}" cy="-1" r="1.4" fill="${S.shade}" stroke="${S.line}" stroke-width=".4"/><circle cx="${g.cx + dir * 2}" cy="-10" r="1" fill="rgba(60,50,60,.5)"/>`;
+  return `<g class="tow ${st}" style="--fx:${dir * 2}px;--fr:${dir * 2.5}deg"><g class="tbody">${body}${eave}${wins}${roof}${pole}</g><g class="rub">${rub}</g></g>`;
+}
+function castleSvg(p, x, y, prev, ruin, born) {
+  const fl = flagOf(p.id), S = CSTL, col = p.color;
+  const now = ruin ? 0 : p.towers;
+  const alive = new Set(TOWER_ORDER.slice(3 - now));
+  const lost = new Set(prev != null ? TOWER_ORDER.slice(3 - prev, 3 - now) : []);
+  const st = (k) => (alive.has(k) ? '' : lost.has(k) ? 'down' : 'gone');
+  const flagTop = -(TOWER_GEO.C.h + TOWER_GEO.C.rh);
+  const pennant = alive.has('C')
+    ? `<path d="M0 ${flagTop}v-15" stroke="${S.line}" stroke-width="1"/><g transform="translate(0 ${flagTop - 15})"><g class="pen">${fl && window.ZFlag ? `${ZFlag.inner(fl, 16, 11)}<rect width="16" height="11" fill="none" stroke="${S.line}" stroke-width=".7"/>` : `<path d="M0 0l11 3.6-11 3.6z" fill="${S.gold}" stroke="${S.line}" stroke-width=".7"/>`}</g></g>` : '';
+  const wall = `<rect x="-24" y="-17" width="48" height="17" fill="${S.stone}" stroke="${S.line}" stroke-width=".8"/><rect x="0" y="-17" width="24" height="17" fill="rgba(110,70,40,.12)"/><path d="M-24 -11h48M-24 -5.5h48" stroke="rgba(110,70,40,.2)" stroke-width=".5"/><path d="${merlons(-24, 24, -17)}" fill="${S.stone}" stroke="${S.line}" stroke-width=".6"/>`;
+  const gate = `<path d="M-5.2 0v-9a5.2 5.2 0 0 1 10.4 0v9z" fill="${S.wood}" stroke="${S.line}" stroke-width=".8"/><path d="M-5.2 -9a5.2 5.2 0 0 1 10.4 0" fill="none" stroke="${S.gold}" stroke-width="1.1"/><path d="M0 -14.2V0M-3 -10V0M3 -10V0" stroke="rgba(0,0,0,.35)" stroke-width=".5"/><circle cx="2.2" cy="-4.5" r=".7" fill="${S.gold}"/>`;
+  let fx = '';
+  [...lost].forEach((k, n) => {
+    const g = TOWER_GEO[k];
+    for (let i = 0; i < 8; i++) {
+      const r = (j) => crnd(n * 40 + i * 7 + j);
+      fx += `<rect class="deb" x="${g.cx - 1.2}" y="${-8 - r(1) * 22}" width="${(2 + r(2) * 2.4).toFixed(1)}" height="${(2 + r(3) * 2).toFixed(1)}" fill="${r(4) > 0.5 ? S.stone : S.shade}" stroke="${S.line}" stroke-width=".3" style="--dx:${((r(5) - 0.5) * 36).toFixed(0)}px;--dy:${(-14 - r(6) * 16).toFixed(0)}px;--fy:${(10 + r(7) * 12).toFixed(0)}px;--dr:${((r(8) - 0.5) * 600).toFixed(0)}deg;animation-delay:${(r(9) * 0.12).toFixed(2)}s"/>`;
+    }
+    for (let i = 0; i < 3; i++) fx += `<circle class="smk" cx="${g.cx}" cy="-16" r="${5 + i * 1.5}" style="--sx:${(i - 1) * 7}px;animation-delay:${0.1 + i * 0.28}s"/>`;
+  });
+  if (ruin) for (let i = 0; i < 4; i++) fx += `<circle class="smk loop" cx="${-16 + i * 11}" cy="-14" r="${5 + (i % 2) * 2}" style="--sx:${(i - 1.5) * 5}px;animation-delay:${i * 0.5}s"/><text class="cfire" x="${-22 + i * 12}" y="-4" style="animation-delay:${i * 0.17}s">🔥</text>`;
+  if (born) for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2, d = 28 + crnd(i + 90) * 16;
+    fx += `<path class="spk" d="M0 -2.4l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z" fill="${i % 3 ? S.gold : '#fff'}" style="--dx:${(Math.cos(a) * d).toFixed(0)}px;--dy:${(Math.sin(a) * d * 0.5 - 14 - crnd(i + 50) * 14).toFixed(0)}px;animation-delay:${(0.35 + crnd(i) * 0.25).toFixed(2)}s"/>`;
+  }
+  const twinkle = [[-27, -42, 0], [29, -55, 0.5], [6, -86, 1]].map(([tx, ty, dl]) => `<g transform="translate(${tx} ${ty})"><path class="twk" style="animation-delay:${dl}s" d="M0 -3l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></g>`).join('');
+  return `<g class="castle${born ? ' born' : ''}${lost.size ? ' hit' : ''}${ruin ? ' ruin' : ''}" style="--cc:${col}" transform="translate(${x} ${y - 20}) scale(.95)">
+    <g class="cfx-u"><ellipse class="cshadow" cx="0" cy="1.5" rx="31" ry="6"/><ellipse class="cring" cx="0" cy="1.5" rx="34" ry="8"/><ellipse class="csiege" cx="0" cy="1.5" rx="34" ry="8"/><ellipse class="csiege s2" cx="0" cy="1.5" rx="34" ry="8"/></g>
+    <g class="cshake"><g class="cbody">${castleTower('C', col, st('C'))}${wall}${castleTower('L', col, st('L'))}${castleTower('R', col, st('R'))}${gate}${pennant}</g></g>
+    <g class="cfx-o"><path class="cshield" d="M-33 2a33 42 0 0 1 66 0z"/>${twinkle}${fx}</g></g>`;
 }
 
 function renderMap() {
@@ -328,6 +390,7 @@ function renderMap() {
     el.classList.toggle('can', canPick.has(r.id));
     el.classList.toggle('target', target === r.id);
     el.classList.toggle('chosen', chosen === r.id);
+    m3d()?.paint(r.id, owner ? owner.color : '', target === r.id ? 'target' : chosen === r.id ? 'chosen' : canPick.has(r.id) ? 'can' : owner ? 'own' : '');
     const badge = document.querySelector(`#l-${r.id} .badge`);
     const v = state.value[r.id], isCap = state.players.some((p) => p.capital === r.id && p.alive);
     const key = owner && !isCap ? `${v}|${owner.color}` : '';
@@ -343,29 +406,51 @@ function renderMap() {
   for (const p of state.players) {
     const k = p.capital && p.alive ? `${p.capital}|${p.color}|${p.towers}|${JSON.stringify(flagOf(p.id))}` : '';
     if (castleKeys[p.id]?.k === k) continue;
-    const prev = castleKeys[p.id]?.towers;
-    castleKeys[p.id] = { k, towers: p.towers };
+    const old = castleKeys[p.id];
+    castleKeys[p.id] = { k, towers: p.towers, reg: p.capital, col: p.color };
     let el = document.getElementById('c-' + p.id);
     if (!el) { el = document.createElementNS(NS, 'g'); el.id = 'c-' + p.id; g.appendChild(el); }
-    if (!k) { el.innerHTML = ''; continue; }
+    if (!k) {
+      // замъкът току-що падна: за кратко се вижда как рухва и гори
+      if (old?.k && old.reg) {
+        const [x, y] = regionPos(old.reg);
+        el.dataset.reg = old.reg;
+        el.innerHTML = up(x, y, castleSvg({ id: p.id, color: old.col, towers: 0 }, x, y, old.towers, true));
+        m3d()?.castle(el, old.reg);
+        const gone = castleKeys[p.id]; setTimeout(() => { if (castleKeys[p.id] === gone && !gone.k) el.innerHTML = ''; }, 3600);
+      } else el.innerHTML = '';
+      continue;
+    }
     const [x, y] = regionPos(p.capital);
-    el.innerHTML = castleSvg(p, x, y, prev);
+    const born = !old?.k;
+    el.dataset.reg = p.capital;
+    el.innerHTML = up(x, y, castleSvg(p, x, y, born ? null : old.towers, false, born));
+    m3d()?.castle(el, p.capital);
+  }
+  // чий е редът и кой е под обсада: пръстен около замъка
+  const bt = c && ['prep', 'question', 'reveal'].includes(c.type);
+  for (const p of state.players) {
+    const el = document.getElementById('c-' + p.id); if (!el) continue;
+    el.classList.toggle('mine', p.id === me);
+    el.classList.toggle('turn', (c?.type === 'pick' && c.picker === p.id) || (bt && c.attacker === p.id));
+    el.classList.toggle('siege', !!bt && c.defender === p.id);
   }
   // стрелката остава, докато трае нападението
   if (attackArrow && !(c && c.region === attackArrow.region && state.phase === 'battle' && c.type !== 'pick')) clearArrow();
 }
 
-function fxAdd(html, ms) {
-  const g = document.createElementNS(NS, 'g'); g.innerHTML = html; $('#fxl').appendChild(g);
+function fxAdd(html, ms, at) {
+  // at = [x, y, област]: в 3D картата рисунката стои права върху плоскостта, на височината на областта
+  const g = document.createElementNS(NS, 'g'); g.innerHTML = at && m3d() ? up(at[0], at[1], html, m3d().lift(at[2])) : html; $('#fxl').appendChild(g);
   if (ms) setTimeout(() => g.remove(), ms);
   return g;
 }
-function floatText(region, text) { const [x, y] = regionPos(region); fxAdd(`<text class="float" x="${x}" y="${y - 14}" text-anchor="middle">${text}</text>`, 1700); }
-function pop(region, emoji) { const [x, y] = regionPos(region); fxAdd(`<text class="pop" x="${x}" y="${y - 6}" text-anchor="middle">${emoji}</text>`, 1500); }
+function floatText(region, text) { const [x, y] = regionPos(region); fxAdd(`<text class="float" x="${x}" y="${y - 14}" text-anchor="middle">${text}</text>`, 1700, [x, y, region]); }
+function pop(region, emoji) { const [x, y] = regionPos(region); fxAdd(`<text class="pop" x="${x}" y="${y - 6}" text-anchor="middle">${emoji}</text>`, 1500, [x, y, region]); }
 function flash(region) { const el = document.getElementById('r-' + region); if (!el) return; el.classList.remove('flash'); void el.getBoundingClientRect(); el.classList.add('flash'); }
 function flag(region, color) {
   const [x, y] = regionPos(region);
-  fxAdd(`<g class="flag"><path d="M${x + 12} ${y - 4}v-26" stroke="#2b1a0c" stroke-width="2"/><path d="M${x + 12} ${y - 30}l16 5-16 5z" fill="${color}" stroke="#fff" stroke-width="1"/></g>`, 1800);
+  fxAdd(`<g class="flag"><path d="M${x + 12} ${y - 4}v-26" stroke="#2b1a0c" stroke-width="2"/><path d="M${x + 12} ${y - 30}l16 5-16 5z" fill="${color}" stroke="#fff" stroke-width="1"/></g>`, 1800, [x, y, region]);
 }
 function shake() { const f = $('.map-frame'); f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake'); }
 function resetMap() {
@@ -377,10 +462,16 @@ function arrow(from, to) {
   clearArrow(); if (!from) return;
   const [x1, y1] = regionPos(from), [x2, y2] = regionPos(to);
   const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - Math.hypot(x2 - x1, y2 - y1) * 0.35;
-  const el = fxAdd(`<path class="arrow" d="M${x1} ${y1} Q${mx} ${my} ${x2} ${y2 - 6}"/><text class="swords" x="${x2}" y="${y2 - 14}" text-anchor="middle">⚔️</text>`);
+  const line = `<path class="arrow" d="M${x1} ${y1} Q${mx} ${my} ${x2} ${y2 - 6}"/>`, swords = `<text class="swords" x="${x2}" y="${y2 - 14}" text-anchor="middle">⚔️</text>`;
+  const el = m3d() ? fxAdd(`<g class="plane">${line}</g>${up(x2, y2 - 14, swords, m3d().lift(to))}`) : fxAdd(line + swords);
   attackArrow = { region: to, el };
 }
 
+function guardCastle(region) {   // щитът около замъка при успешна защита
+  const el = [...$('#castles').children].find((e) => e.dataset.reg === region); if (!el) return;
+  el.classList.remove('guard'); void el.getBoundingClientRect(); el.classList.add('guard');
+  setTimeout(() => el.classList.remove('guard'), 1300);
+}
 function playFx(f) {
   const col = player(f.pid)?.color || '#fff';
   if (f.type === 'capital') { flash(f.region); flag(f.region, col); floatText(f.region, '+' + f.points); Sound.play('flag'); }
@@ -388,8 +479,35 @@ function playFx(f) {
   else if (f.type === 'attack') { arrow(f.from, f.region); Sound.play('attack'); }
   else if (f.type === 'tower') { shake(); pop(f.region, '💥'); Sound.play('tower'); }
   else if (f.type === 'fall') { clearArrow(); shake(); pop(f.region, '🔥'); for (const r of f.regions || []) flash(r); Sound.play('fall'); }
-  else if (f.type === 'defend') { clearArrow(); pop(f.region, '🛡️'); if (f.points) floatText(f.region, '+' + f.points); Sound.play('defend'); }
+  else if (f.type === 'react') reactBubble(f.pid, f.emoji);
+  else if (f.type === 'defend') { clearArrow(); pop(f.region, '🛡️'); if (f.points) floatText(f.region, '+' + f.points); Sound.play('defend'); guardCastle(f.region); }
 }
+
+// ---------- реакции (само емоджита, без текст) ----------
+const REACTIONS = ['👍', '😂', '😮', '🔥', '😎', '👏', '😭', '🤔'];
+function reactBubble(pid, emoji) {
+  const card = $('#pc-' + pid); if (!card) return;
+  const b = document.createElement('span'); b.className = 'react-bub'; b.textContent = emoji; card.appendChild(b);
+  setTimeout(() => b.remove(), 2300);
+}
+function initReactions() {
+  const frame = $('.map-frame');
+  if (!frame || $('#reactBtn')) return;
+  const btn = document.createElement('button'); btn.id = 'reactBtn'; btn.type = 'button'; btn.className = 'react-btn'; btn.textContent = '😀'; btn.setAttribute('aria-label', 'Реакции');
+  const tray = document.createElement('div'); tray.id = 'reactTray'; tray.className = 'react-tray hidden';
+  tray.innerHTML = REACTIONS.map((e) => `<button type="button" data-e="${e}" aria-label="${e}">${e}</button>`).join('');
+  frame.append(btn, tray);
+  let cool = 0;
+  btn.onclick = () => tray.classList.toggle('hidden');
+  tray.onclick = (e) => {
+    const emoji = e.target.closest('[data-e]')?.dataset.e;
+    if (!emoji || Date.now() < cool) return;
+    cool = Date.now() + 1200; send({ t: 'react', emoji });
+    tray.classList.add('hidden'); btn.classList.add('cool'); setTimeout(() => btn.classList.remove('cool'), 1200);
+    if (navigator.vibrate) try { navigator.vibrate(6); } catch { /* не всички устройства */ }
+  };
+}
+initReactions();
 
 // ---------- игра ----------
 const PHASES = { capitals: '🏰 Избор на столици', expansion: '🗺️ Рунд 1 · Завладяване', ended: '🏆 Край на играта' };
@@ -586,7 +704,7 @@ function renderModal() {
   }
   modal.innerHTML = `<div class="mhead" style="--sc:${SUBJ_COLOR[q.subject] || '#7a4a22'}"><h3>${esc(c.title || '')}</h3>${duel}
       <div class="meta"><span class="chip">${subjIcon} ${subjName}</span><span class="chip">${q.kind === 'num' ? '🔢 Отговор с число' : '🅰️ Избери отговор'}</span></div></div>
-    <div class="mbody">${picHtml(q.pic)}<div class="qtop"><div class="qtext">${esc(q.text)}</div>
+    <div class="mbody qbody">${picHtml(q.pic)}<div class="qtop"><div class="qtext">${esc(q.text)}</div>
       ${canSpeak ? '<button class="speak" id="btnSpeak" title="Прочети на глас">🔈</button>' : ''}
       ${reveal ? '' : '<div class="clock" id="clock"><span></span></div>'}</div>
       ${body}${jokers}<p class="status">${status}</p><button class="qreport" data-report="q">🚩 Има проблем с този въпрос</button></div>`;
@@ -602,7 +720,31 @@ function renderModal() {
   for (const b of modal.querySelectorAll('[data-o]')) b.onclick = () => send({ t: 'answer', value: b.dataset.o });
   for (const b of modal.querySelectorAll('[data-d]')) b.onclick = () => numPress(b.dataset.d);
   for (const b of modal.querySelectorAll('[data-j]')) b.onclick = () => { Sound.play('joker'); send({ t: 'joker', kind: b.dataset.j }); };
+  const ob = modal.querySelector('.opts'); if (ob && q.options.some((o) => String(o).length > 24)) ob.classList.add('long');   // дълги отговори: един под друг
+  fitModal();
 }
+
+// Въпросът и отговорите трябва да се побират на екрана без скролване. Оформлението се нагажда с CSS
+// (две колони на телефон хоризонтално), а ако пак не стига — шрифтовете и бутоните се смаляват (--fit).
+function fitTo(el, over) {
+  el.style.removeProperty('--fit');
+  el.classList.add('nofx');   // без анимации, докато мерим: иначе плъзгащите се бутони ни карат да мислим, че не се побират
+  let f = 1;
+  for (let i = 0; i < 10 && f > 0.58 && over(); i++) { f = Math.round((f - 0.05) * 100) / 100; el.style.setProperty('--fit', f); }
+  void el.offsetHeight;
+  el.classList.remove('nofx');
+}
+function fitModal() {
+  const m = $('#modal'); if ($('#overlay').classList.contains('hidden') || !m.querySelector('.qbody')) return;
+  fitTo(m, () => m.scrollHeight > m.clientHeight);
+}
+function fitPractice() {
+  if ($('#practice').classList.contains('hidden')) return;
+  fitTo($('#practiceCard'), () => document.scrollingElement.scrollHeight > innerHeight);
+}
+let fitTimer = 0;
+const refit = () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => { fitModal(); fitPractice(); }, 120); };
+window.addEventListener('resize', refit); window.addEventListener('orientationchange', refit);
 
 function numPress(d) {
   if (d === 'ok') { if (numInput) send({ t: 'answer', value: Number(numInput) }); return; }
@@ -735,20 +877,20 @@ function renderPractice() {
   const q = pr.items[pr.i], a = pr.answered;
   const [subjName, subjIcon] = SUBJECTS[q.subject] || ['Въпрос', '❓'];
   const dots = pr.items.map((_, k) => `<i class="${k < pr.i ? (pr.results[k]?.ok ? 'ok' : 'bad') : k === pr.i ? 'now' : ''}"></i>`).join('');
-  let body;
+  let bodyL = '', bodyR = '';   // вляво въпросът (и числото, което пишеш), вдясно отговорите; на тесен екран са един под друг
   if (q.kind === 'mc') {
-    body = `<div class="opts ${a ? 'reveal' : ''}">${q.options.map((o, i) => `<button data-po="${esc(o)}" class="${a?.value === o ? 'chosen' : ''} ${a && o === q.correct ? 'right' : ''}" ${a ? 'disabled' : ''}><span class="letter">${'АБВГ'[i]}</span>${esc(o)}</button>`).join('')}</div>`;
+    bodyR = `<div class="opts ${a ? 'reveal' : ''}${q.options.some((o) => String(o).length > 24) ? ' long' : ''}">${q.options.map((o, i) => `<button data-po="${esc(o)}" class="${a?.value === o ? 'chosen' : ''} ${a && o === q.correct ? 'right' : ''}" ${a ? 'disabled' : ''}><span class="letter">${'АБВГ'[i]}</span>${esc(o)}</button>`).join('')}</div>`;
   } else if (!a) {
-    body = `<div class="numbox" id="pnum">${pr.input || '&nbsp;'}</div><div class="numpad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => `<button data-pd="${d}">${d}</button>`).join('')}<button data-pd="back">⌫</button><button data-pd="0">0</button><button data-pd="ok" class="ok">OK</button></div>`;
-  } else body = `<div class="numbox">${esc(a.value ?? '—')}</div>`;
+    bodyL = `<div class="numbox" id="pnum">${pr.input || '&nbsp;'}</div>`;
+    bodyR = `<div class="numpad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => `<button data-pd="${d}">${d}</button>`).join('')}<button data-pd="back">⌫</button><button data-pd="0">0</button><button data-pd="ok" class="ok">OK</button></div>`;
+  } else bodyL = `<div class="numbox">${esc(a.value ?? '—')}</div>`;
   const fb = a ? `<div class="feedback ${a.ok ? 'ok' : 'bad'}">${a.ok ? '✅ Браво, вярно!' : `❌ Верният отговор е: <b>${esc(q.kind === 'num' ? q.answer : q.correct)}</b>`}</div>
     <button id="pNext" class="btn gold big" style="width:100%">${pr.i === pr.items.length - 1 ? 'Виж резултата ▶' : 'Напред ▶'}</button>` : '';
   card.innerHTML = `<div class="pr-head"><span class="eyebrow">${pr.daily ? `🌞 Предизвикателство на деня · ${gradeLabel(pr.grade)}` : `📚 Упражнение · ${gradeLabel(pr.grade)}`}</span>
       <span class="pr-score">⭐ ${pr.score}</span></div><div class="pr-dots">${dots}</div>
-    <div class="meta"><span class="chip light">${subjIcon} ${subjName}</span><span class="chip light">Въпрос ${pr.i + 1} от ${pr.items.length}</span></div>
-    ${picHtml(q.pic)}
+    <div class="pc"><div class="pc-l"><div class="meta"><span class="chip light">${subjIcon} ${subjName}</span><span class="chip light">Въпрос ${pr.i + 1} от ${pr.items.length}</span></div>${picHtml(q.pic)}
     <div class="qtop"><div class="qtext">${esc(q.text)}</div>${canSpeak ? '<button class="speak" id="pSpeak" title="Прочети на глас">🔈</button>' : ''}${pr.daily && !a ? '<div class="clock" id="clock"><span></span></div>' : ''}</div>
-    ${body}${fb}
+    ${bodyL}</div><div class="pc-r">${bodyR}${fb}</div></div>
     <div class="pr-foot"><button class="link" id="pQuit">← Към началото</button><button class="qreport" data-report="q">🚩 Проблем с въпроса</button></div>`;
   lastQuestion = { text: q.text, subject: q.subject, options: q.options, grade: pr.grade };
   for (const b of card.querySelectorAll('[data-po]')) b.onclick = () => practiceAnswer(b.dataset.po);
@@ -757,6 +899,7 @@ function renderPractice() {
   const nx = $('#pNext'); if (nx) nx.onclick = () => { pr.i++; pr.answered = null; pr.input = ''; renderPractice(); };
   $('#pQuit').onclick = () => { clearInterval(prTimer); pr = null; show('home'); renderDailyTile(); };
   if (pr.daily && !a) { deadline = performance.now() + 20000; deadlineTotal = 20000; runClock(); clearInterval(prTimer); prTimer = setInterval(() => { if (performance.now() >= deadline) practiceAnswer(null); }, 200); }
+  fitPractice();
 }
 function prNum(d) {
   if (d === 'ok') { if (pr.input) practiceAnswer(Number(pr.input)); return; }
@@ -764,6 +907,7 @@ function prNum(d) {
   const box = $('#pnum'); if (box) box.innerHTML = pr.input || '&nbsp;';
 }
 function renderPracticeEnd() {
+  $('#practiceCard').style.removeProperty('--fit');
   const n = pr.items.length, s = pr.score, stars = s >= n ? 3 : s >= n * 0.7 ? 2 : s >= n * 0.4 ? 1 : 0;
   let streakLine = '';
   if (pr.daily) {

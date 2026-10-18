@@ -1,0 +1,75 @@
+/* Знаменосци · нов вид „Приказен залез“: map3d
+   Само за новия вид: всичко е зад html[data-design="v2"] (виж design.js). */
+/* ================= 3D карта: диорама от изрязана хартия ================= */
+html[data-design="v2"] #map { --H0: 12; display: block; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }   /* завъртането с мишка не бива да маркира надписите */
+html[data-design="v2"] #map * { -webkit-user-select: none; user-select: none; }
+html[data-design="v2"] #map text { stroke-linejoin: round; }
+html[data-design="v2"] #map .grid { display: none; }
+
+/* земята: съседни страни, бряг, море */
+html[data-design="v2"] #map .world .ctry { fill: var(--land-neighbour); stroke: var(--land-neighbour-line); stroke-width: 1.6; stroke-linejoin: round; fill-rule: evenodd; }
+html[data-design="v2"] #map .world .ctry.base { fill: #8c6a4e; stroke: none; }
+html[data-design="v2"] #map .world .shore { fill: none; stroke: rgba(255, 255, 255, .8); stroke-width: 11; stroke-linejoin: round; filter: blur(3px); }
+html[data-design="v2"] #map .world .cname { font-family: var(--font-head); font-weight: 400; font-size: 18px; letter-spacing: .1em; text-transform: uppercase; fill: #6f8556; opacity: .95; stroke: none; }
+html[data-design="v2"] #map .world .sea-name { font-family: var(--font-head); font-weight: 400; font-size: 19px; font-style: italic; letter-spacing: .2em; text-transform: uppercase; fill: rgba(255, 255, 255, .85); opacity: 1; stroke: none; }
+html[data-design="v2"] #map .world .boat,
+html[data-design="v2"] #map .world .dolphin { font-size: 27px; stroke: none; pointer-events: none; transform-box: fill-box; transform-origin: center; }
+html[data-design="v2"] #map .world .boat { animation: v2-boat 5s ease-in-out infinite; }
+@keyframes v2-boat { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-6px) rotate(5deg); } }
+html[data-design="v2"] #map .world .dolphin { opacity: 0; animation: v2-dolphin 11s ease-in-out infinite; }
+@keyframes v2-dolphin { 0%, 62% { opacity: 0; transform: translate(-22px, 16px) rotate(-60deg); } 70% { opacity: 1; transform: translate(-6px, -12px) rotate(-20deg); } 78% { opacity: 1; transform: translate(10px, -16px) rotate(25deg); } 88%, 100% { opacity: 0; transform: translate(24px, 14px) rotate(70deg); } }
+html[data-design="v2"] #map .shadow path { fill: rgba(50, 24, 70, .34); stroke: none; }
+
+/* приказни обитатели на съседните земи */
+html[data-design="v2"] #map .decor { font-size: 26px; stroke: none; pointer-events: none; transform-box: fill-box; transform-origin: 50% 100%; animation: v2-sway 4.5s ease-in-out infinite alternate; animation-delay: var(--dl, 0s); }
+html[data-design="v2"] #map .decor.big { font-size: 34px; }
+@keyframes v2-sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+html[data-design="v2"] #map .decor.dragon { animation: v2-breathe 3.2s ease-in-out infinite; }
+@keyframes v2-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12) rotate(-3deg); } }
+html[data-design="v2"] #map .fairy { font-size: 25px; stroke: none; pointer-events: none; animation: v2-fairy 16s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(255, 240, 160, .95)); }
+html[data-design="v2"] #map .fairy.b { animation-delay: -8s; font-size: 20px; }
+@keyframes v2-fairy { 0% { transform: translate(0, 0); } 20% { transform: translate(70px, 120px) rotate(8deg); } 40% { transform: translate(-10px, 250px) rotate(-6deg); } 60% { transform: translate(90px, 360px) rotate(8deg); } 80% { transform: translate(20px, 190px) rotate(-6deg); } 100% { transform: translate(0, 0); } }
+
+
+/* областите: стена (3 пласта) и горна страна; височината идва от --h */
+html[data-design="v2"] #map .reg { transition: --h .5s cubic-bezier(.3, 1.7, .5, 1); }
+html[data-design="v2"] #map .reg path { --z: calc((var(--H0) + var(--h)) * var(--k, 1)); transform: translate(calc(var(--ux, 0px) * var(--z)), calc(var(--uy, 0px) * var(--z))); stroke-linejoin: round; fill-rule: evenodd; }
+html[data-design="v2"] #map .reg .wall { pointer-events: none; fill: color-mix(in srgb, var(--c, var(--free)) 50%, #6a3b2c); stroke: color-mix(in srgb, var(--c, var(--free)) 50%, #6a3b2c); stroke-width: 3; }
+html[data-design="v2"] #map .reg .wall:first-child { fill: #4d2c22; stroke: #4d2c22; }
+html[data-design="v2"] #map .reg .top { stroke: rgba(122, 76, 50, .6); stroke-width: 1.5; transition: fill .7s ease; }
+html[data-design="v2"] #map .reg .top.free { fill: var(--free); }
+html[data-design="v2"] #map .reg.can { animation: v2-hop .8s ease-in-out infinite alternate; }
+@keyframes v2-hop { from { --h: 6; } to { --h: 10; } }
+html[data-design="v2"] #map .reg .top.can { cursor: pointer; stroke: #ffb703; stroke-width: 4.5; filter: brightness(1.08) saturate(1.15) drop-shadow(0 0 5px rgba(255, 200, 60, .9)); }
+html[data-design="v2"] #map .reg .top.can:hover { filter: brightness(1.18) saturate(1.2) drop-shadow(0 0 8px rgba(255, 200, 60, 1)); }
+html[data-design="v2"] #map .reg.target { animation: v2-lunge .5s ease-in-out infinite alternate; }
+@keyframes v2-lunge { from { --h: 14; } to { --h: 18; } }
+html[data-design="v2"] #map .reg .top.target { stroke: #fff; stroke-width: 4.5; animation: v2-target .55s ease-in-out infinite alternate; }
+@keyframes v2-target { to { stroke: var(--red); } }
+html[data-design="v2"] #map .reg .top.chosen { stroke: var(--gold2); stroke-width: 4.5; }
+html[data-design="v2"] #map .reg .top.flash { animation: v2-flash .9s ease-out; }
+@keyframes v2-flash { 0% { filter: brightness(2.2) saturate(.3); } 100% { filter: none; } }
+
+/* границата и Дунав лежат на върха на плочата */
+html[data-design="v2"] #map .frontier { pointer-events: none; fill: none; stroke-linecap: round; stroke-linejoin: round; transform: translate(calc(var(--ux, 0px) * var(--H0)), calc(var(--uy, 0px) * var(--H0))); }
+html[data-design="v2"] #map .frontier .border { stroke: #7a4a35; stroke-width: 2.6; stroke-dasharray: 9 6; }
+html[data-design="v2"] #map .frontier .danube { stroke: #5cb8ee; stroke-width: 6.5; filter: drop-shadow(0 0 3px rgba(255, 255, 255, .9)); }
+html[data-design="v2"] #map .frontier .coastline { stroke: #fff; stroke-width: 2.2; }
+
+/* надписи, значки и замъци стоят прави върху плоскостта и се вдигат с областта */
+html[data-design="v2"] #map .labels,
+html[data-design="v2"] #map #castles,
+html[data-design="v2"] #map #fxl { pointer-events: none; }
+html[data-design="v2"] #map .up { transition: --h .5s cubic-bezier(.3, 1.7, .5, 1); }
+html[data-design="v2"] #map #castles > g { transition: --h .5s cubic-bezier(.3, 1.7, .5, 1); }
+html[data-design="v2"] #map .lift { transform: translateY(calc(var(--sy, 0px) * (var(--H0) + var(--h)))); }
+html[data-design="v2"] #map .plane { transform: translate(calc(var(--ux, 0px) * var(--H0)), calc(var(--uy, 0px) * var(--H0))); }
+html[data-design="v2"] #map .rname { font-size: 13.5px; font-weight: 900; fill: #3f2436; paint-order: stroke; stroke: rgba(255, 249, 232, .96); stroke-width: 4px; }
+html[data-design="v2"] #map .badge text { font-family: var(--font-num); }
+html[data-design="v2"] #map .float { font-family: var(--font-num); stroke: rgba(60, 24, 66, .9); }
+html[data-design="v2"] #map .arrow { stroke: var(--pink); filter: drop-shadow(0 0 4px rgba(255, 255, 255, .9)); }
+
+/* бутон за изгледа */
+html[data-design="v2"] .m3d-btn { position: absolute; right: 12px; bottom: 12px; z-index: 6; min-height: 38px; padding: 6px 14px; border-radius: 999px; border: 3px solid var(--rim); background: linear-gradient(180deg, #fffaf0, #f6e6c6); color: var(--ink); font-weight: 900; font-size: .85rem;
+  box-shadow: 0 4px 0 rgba(104, 56, 66, .32), 0 8px 14px rgba(36, 14, 58, .3); }
+html[data-design="v2"] .m3d-btn:active { transform: translateY(2px) scale(.96); }

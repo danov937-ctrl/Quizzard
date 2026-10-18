@@ -1,52 +1,74 @@
-/* Знаменосци · нов вид „Adventure Map“ — променливи и теми.
+/* Знаменосци · нов вид „Приказен залез“ — променливи и теми.
    Действа само когато html има data-design="v2" (включва се с ?design=new, виж design.js).
-   Старите променливи (--wood1, --parch, --gold1 …) са запазени, за да се оцветят и екраните,
-   които още не са пренаписани: „дървото“ става синьо, „пергаментът“ бял, златото е кехлибар. */
+   Идея: страници от приказна книга (топъл пергамент със златна рамка) под залязващо небе,
+   а картата е диорама от изрязана хартия. Старите променливи (--wood1, --parch, --gold1 …)
+   са запазени, за да се оцветят и екраните, които още не са пренаписани. */
 
-/* ---------- ден (деца) ---------- */
+@property --h { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+/* ---------- деца: залез над приказна страна ---------- */
 html[data-design="v2"] {
-  --sea1: #0f2e52; --sea2: #2a6fb0;
-  --parch: #ffffff; --parch2: #e6eef8; --free: #f6ead0;
-  --ink: #1b2a41; --muted: #5d6f87;
-  --wood1: #2f6fd0; --wood2: #1c4690;
-  --gold1: #ffd666; --gold2: #ffb020; --gold3: #bd7300;
-  --red: #e5483f; --ok: #22a45d; --bad: #e0453c;
-  --shadow: 0 12px 30px rgba(5, 20, 45, .35);
+  --sky1: #3b2a6e; --sky2: #7d4f93; --sky3: #d27a8c; --sky4: #f5aa7c; --sky5: #ffd9a0;   /* небе: от вечер към заник */
+  --hill1: #5a3a78; --hill2: #432b66; --castle: #2f1f55;
+  --sea1: #3b2a6e; --sea2: #7d4f93;
+  --parch: #fff7e6; --parch2: #f3e0ba; --free: #f6e7bd;
+  --ink: #4a2c43; --muted: #8a6577;
+  --acc: #2f9e7e; --acc-rgb: 47, 158, 126;                 /* смарагдът на гората: основният акцент */
+  --wood1: var(--acc); --wood2: #1b6e5c;
+  --gold1: #ffe28f; --gold2: #f4b13f; --gold3: #b9741a;
+  --rim: #e3b25d;                                           /* златната рамка на страниците */
+  --red: #e0525f; --ok: #2fa86f; --bad: #d84c58;
+  --shadow: 0 14px 34px rgba(40, 16, 60, .45);
   --r: 24px;
   font-family: "Nunito", "Segoe UI", system-ui, sans-serif;
 
-  /* нови променливи на дизайна */
-  --font-head: "Rubik", "Nunito", system-ui, sans-serif;
-  --card: #ffffff; --card-alt: #f1f6fc; --line: #d3e0ee;
-  --lift: 0 6px 0 rgba(15, 46, 82, .2), 0 16px 28px rgba(5, 20, 45, .26);   /* „вдигната“ карта */
-  --press: 0 2px 0 rgba(15, 46, 82, .2);
-  --sea-top: #8fd3f0; --sea-mid: #4aa6d8; --sea-deep: #2f84bd;               /* вода на картата */
-  --land-neighbour: #d6dfcb; --land-neighbour-line: rgba(255, 255, 255, .9);
-  --mode-online: #f2603c; --mode-friends: #2f6fd0; --mode-bots: #22a45d; --mode-daily: #f5a30a; --mode-practice: #8b5cf6;
-  --tap: 48px;                                                              /* най-малка цел за докосване */
+  --font-head: "Kurale", "Nunito", Georgia, serif;           /* приказният шрифт: заглавия */
+  --font-num: "Rubik", "Nunito", system-ui, sans-serif;      /* числа и код на стаята */
+  --card: #fffaf0; --card-alt: #f8ecd3; --line: rgba(170, 118, 62, .38);
+  --glass: linear-gradient(180deg, #fffaf0, #f6e6c6);        /* лист хартия */
+  --page: inset 0 0 0 3px rgba(255, 255, 255, .8), inset 0 0 0 5px rgba(227, 178, 93, .5), 0 8px 0 rgba(104, 56, 66, .32), 0 22px 34px rgba(36, 14, 58, .42);
+  --glow: var(--page);
+  --lift: var(--page);
+  --press: 0 2px 0 rgba(104, 56, 66, .3);
+  --pink: #e8647e; --lime: #8bcf5a; --violet: #9a78d6;
+  --land-neighbour: #cfdcae; --land-neighbour-line: rgba(255, 255, 255, .75);
+  --sea-top: #a9e6dd; --sea-mid: #63c0c6; --sea-deep: #3a8db4;
+  --mode-online: #f07a5a; --mode-friends: #7b8ce8; --mode-bots: #3aa87f; --mode-daily: #f2b441; --mode-practice: #b873d9;
+  --tap: 48px;
 }
 
-/* ---------- нощ (възрастни): по-тъмно, със злато ---------- */
+/* ---------- възрастни: късна вечер, вино и злато ---------- */
 html[data-design="v2"] body.mode-adult {
-  --sea1: #0a101c; --sea2: #1b2c4d;
-  --parch: #f8f6f0; --parch2: #e9e4d6; --free: #ece5d2;
-  --ink: #1d2330; --muted: #5a6273;
-  --wood1: #3a5896; --wood2: #1d2d52;
-  --card: #fbfaf6; --card-alt: #f1eee5; --line: #ddd6c4;
-  --sea-top: #5d86b8; --sea-mid: #34598d; --sea-deep: #243f6b;
-  --land-neighbour: #c5ccc0;
-  --mode-online: #d9792b; --mode-friends: #4a6fb5; --mode-bots: #3a9a78; --mode-daily: #e0a21e; --mode-practice: #7c6bc4;
+  --sky1: #1d2145; --sky2: #3c3b72; --sky3: #8a5a82; --sky4: #d98f78; --sky5: #f2c08e;
+  --hill1: #3a3060; --hill2: #2a2350; --castle: #1c1738;
+  --sea1: #1d2145; --sea2: #3c3b72;
+  --parch: #f6eedb; --parch2: #e8dbbb; --free: #e9dcb8;
+  --ink: #3b2a38; --muted: #7d6672;
+  --acc: #a14a6b; --acc-rgb: 161, 74, 107;
+  --wood1: var(--acc); --wood2: #5f2640;
+  --card: #f9f2e2; --card-alt: #efe3c8; --line: rgba(150, 105, 60, .4);
+  --glass: linear-gradient(180deg, #f9f2e2, #eadcbc);
+  --land-neighbour: #c3cca6;
+  --mode-online: #d9783f; --mode-friends: #5e78c4; --mode-bots: #3c9a7c; --mode-daily: #dca02c; --mode-practice: #8a68b8;
 }
 
-/* ---------- Коледа: червено и зелено, снежна нощ ---------- */
+/* ---------- Коледа: зимна приказка, зора над снега ---------- */
 html[data-design="v2"][data-season="xmas"] {
-  --sea1: #0b1d3a; --sea2: #234a80;
-  --wood1: #c0392b; --wood2: #7f1d1d;
-  --sea-top: #a9d6f2; --sea-mid: #6fb1dc; --sea-deep: #4b8fbf;
-  --land-neighbour: #e4ecf4;           /* заснежени съседи */
-  --mode-friends: #2e8b57; --mode-practice: #c0392b;
+  --sky1: #25407a; --sky2: #5a78b8; --sky3: #c9a3cc; --sky4: #f6c9bd; --sky5: #fff0dc;
+  --hill1: #dce8f6; --hill2: #bcd0ea; --castle: #8ea6cf;
+  --sea1: #25407a; --sea2: #5a78b8;
+  --parch: #fbfdff; --parch2: #e4eef9; --free: #f4f8ff;
+  --ink: #34425f; --muted: #6d7b9b;
+  --acc: #c8404f; --acc-rgb: 200, 64, 79;
+  --wood2: #8c1f33;
+  --card: #fbfdff; --card-alt: #e9f1fb; --line: rgba(90, 120, 170, .35);
+  --glass: linear-gradient(180deg, #fbfdff, #e6eff9);
+  --rim: #d9b66a;
+  --land-neighbour: #dce8f2; --land-neighbour-line: rgba(255, 255, 255, .95);
+  --sea-top: #b6e2f2; --sea-mid: #78b8dc; --sea-deep: #4a89bb;
+  --mode-friends: #2f8f6b; --mode-practice: #c8404f;
 }
-html[data-design="v2"][data-season="xmas"] body.mode-adult { --wood1: #8e2433; --wood2: #4a0f18; --sea2: #1d3557; }
+html[data-design="v2"][data-season="xmas"] body.mode-adult { --acc: #a8324a; --acc-rgb: 168, 50, 74; --wood2: #6a1b2e; --parch: #fbf7f2; --card: #fbf7f2; }
 
 /* ---------- по-малко движение ---------- */
 @media (prefers-reduced-motion: reduce) {
