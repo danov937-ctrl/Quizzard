@@ -128,8 +128,9 @@ html[data-design="v2"][data-season="xmas"] .zn-mode button.on { background: line
 html[data-design="v2"][data-season="xmas"] .btn.wood { background: linear-gradient(180deg, #ee6a77, var(--acc)); text-shadow: 0 1px 0 rgba(90, 10, 30, .5); box-shadow: 0 5px 0 var(--wood2), 0 10px 18px rgba(90, 20, 40, .3), inset 0 1px 0 rgba(255, 255, 255, .55); }
 
 /* ================= бързи бутони горе (награда, герой, отбор) ================= */
-html[data-design="v2"] .v2-top { position: absolute; top: 10px; right: 10px; z-index: 6; display: flex; align-items: center; gap: 8px; }
-html[data-design="v2"] .v2-top .qx-account { position: static; }
+html[data-design="v2"] .v2-top { position: absolute; top: 10px; right: 10px; left: auto; z-index: 6; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 8px; max-width: calc(100% - 20px); }
+html[data-design="v2"] .v2-top .qx-account { position: static; min-width: 0; }
+html[data-design="v2"] .v2-top .zn-wallet { position: static; z-index: auto; display: flex; gap: 8px; align-items: center; }
 html[data-design="v2"] .v2-dock { display: flex; gap: 6px; }
 html[data-design="v2"] .v2-dock button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 54px; height: 46px; padding: 0; border-radius: 15px; color: var(--ink);
   background: linear-gradient(180deg, #fffaf0, #f6e6c6); border: 3px solid var(--rim); box-shadow: 0 4px 0 rgba(104, 56, 66, .32), 0 8px 14px rgba(36, 14, 58, .25);
@@ -143,13 +144,54 @@ html[data-design="v2"] .v2-dock .dot { position: absolute; top: -6px; right: -6p
 html[data-design="v2"] .v2-dock .dot.live { background: var(--lime); box-shadow: 0 0 10px rgba(139, 207, 90, .9); }
 html[data-design="v2"] .v2-dock .dot.hidden { display: none; }
 @keyframes v2-dot { to { transform: scale(1.3); } }
+/* телефон хоризонтално: лентата е в дясната колона до логото; бутоните са по-малки, а ако не се побират, се пренасят на втори ред */
 @media (orientation: landscape) and (max-height: 560px) {
- html[data-design="v2"] .v2-top { top: 6px; right: 6px; } 
+
+  html[data-design="v2"] #home > .v2-top { position: static; grid-column: 1 / -1; grid-row: 1; align-self: center; justify-self: end; margin: 0 0 6px; max-width: calc(100% - 275px); gap: 4px 6px; }
+  html[data-design="v2"] .v2-top .qx-account { order: 1; }
+  html[data-design="v2"] .v2-dock { order: 2; gap: 5px; }
+  html[data-design="v2"] .v2-top .zn-wallet { order: 3; gap: 6px; }
+  html[data-design="v2"] .v2-dock button { width: 46px; height: 40px; border-radius: 13px; }
+  html[data-design="v2"] .v2-dock button i { font-size: 1.1rem; }
+  html[data-design="v2"] .v2-dock button span { font-size: .52rem; }
+  html[data-design="v2"] .v2-top .zn-coin-chip { padding: 2px 8px; font-size: .9rem; }
+  html[data-design="v2"] .v2-top .zn-coin-chip span { width: 18px; height: 18px; font-size: .75rem; }
+  html[data-design="v2"] .v2-top .zn-flag-chip { padding: 3px; } html[data-design="v2"] .v2-top .zn-flag-chip .zflag { width: 32px; height: auto; }
+  html[data-design="v2"] #home .v2-top .qx-chip { max-width: 150px; padding-right: 10px; }
+  html[data-design="v2"] #home .v2-top .qx-chip-txt small { display: none; }
+  /* менюто с режими: по-ниски бутони, а предизвикателството и упражнението са една до друга — без скролване */
+  html[data-design="v2"] #home .mode-icon { width: 2.1rem; height: 2.1rem; font-size: 1.15rem; box-shadow: 0 0 0 2px var(--gold2), 0 0 0 3px rgba(255, 255, 255, .85), 0 2px 6px rgba(104, 56, 66, .3); }
+  html[data-design="v2"] #home .mode { border-bottom-width: 5px; border-radius: 16px; gap: 10px; }
+  html[data-design="v2"] #home .mode-title { font-size: 1.05rem; line-height: 1.1; }
+  html[data-design="v2"] #home .home-modes .modes.solo { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  html[data-design="v2"] #home .modes.solo .mode { padding-left: 8px; padding-right: 8px; gap: 7px; }
+  html[data-design="v2"] #home .modes.solo .mode-title { font-size: .82rem; }
+  /* панелите и долните връзки са по-плътни */
+  html[data-design="v2"] #home .hero > .panel { padding: 8px 14px; border-radius: 20px; }
+  html[data-design="v2"] #home .setup-row input,
+html[data-design="v2"] #home .join input { min-height: 36px; padding-top: 3px; padding-bottom: 3px; font-size: 1rem; }
+  html[data-design="v2"] #home .setup .lbl,
+html[data-design="v2"] #home .join .lbl { font-size: .9rem; margin: 0 0 3px; }
+  html[data-design="v2"] #home .setup-row { margin: 0; } html[data-design="v2"] #home .setup-row + .setup-row { margin-top: 4px; }
+  html[data-design="v2"] #home .join .btn { padding-top: 6px; padding-bottom: 8px; }
+  html[data-design="v2"] #home .hero > .home-links { margin-top: 4px; flex-wrap: wrap; }
+  html[data-design="v2"] #home .home-links .link { font-size: .72rem; padding: 3px 8px; }
+
 }
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 760px) {
+
+  html[data-design="v2"] .v2-dock button { width: 40px; } html[data-design="v2"] .v2-dock button span { display: none; } html[data-design="v2"] .v2-dock button i { font-size: 1.2rem; }
+
+}
+/* телефон вертикално: ред 1 — профил и бутони, ред 2 — парички и знаме */
 @media (max-width: 640px) and (orientation: portrait) {
 
-  html[data-design="v2"] .v2-top { position: static; flex-direction: row-reverse; justify-content: space-between; margin: 0 0 6px; }
-  html[data-design="v2"] .v2-top .qx-account { position: static; }
+  html[data-design="v2"] .v2-top { position: static; max-width: none; flex-wrap: wrap; justify-content: space-between; margin: 0 0 8px; }
+  html[data-design="v2"] .v2-top .qx-account { order: 1; flex: 1 1 0; min-width: 0; }
+  html[data-design="v2"] .v2-top .qx-chip { max-width: 100%; }
+  html[data-design="v2"] .v2-dock { order: 2; }
+  html[data-design="v2"] .v2-top .zn-wallet { order: 3; flex: 0 0 100%; justify-content: flex-start; }
+  html[data-design="v2"] .v2-top .zn-wallet:empty { display: none; }
 
 }
 
