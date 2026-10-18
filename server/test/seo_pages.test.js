@@ -73,6 +73,47 @@ const count = (s, re) => (s.match(re) || []).length;
     const qs = new Set(days.map((d) => seo.dailyQuestion(d).id)); assert.ok(qs.size >= 6, 'въпросите през различните дни се различават');
     assert.strictEqual((await get('/oblasti-na-balgaria/')).status, 301);
 
+    // 28 страници на области: по една за всяка област от картата
+    const MAP = require('../../data/map.json'), { SLUG, FACTS } = require('../seo_data');
+    assert.deepStrictEqual(Object.keys(SLUG).sort(), MAP.regions.map((r) => r.id).sort(), 'адрес за всяка област');
+    assert.deepStrictEqual(Object.keys(FACTS).sort(), Object.keys(SLUG).sort(), 'известни места за всяка област');
+    assert.strictEqual(new Set(Object.values(SLUG)).size, 28, 'адресите са различни');
+    assert.strictEqual(count(ob, /<th scope="row"><a href="\/oblasti-na-balgaria\/[a-z-]+">/g), 28, 'връзки от общата страница');
+    const byId = Object.fromEntries(MAP.regions.map((r) => [r.id, r]));
+    const smAll = (await get('/sitemap.xml')).text;
+    for (const r of MAP.regions) {
+      const p = '/oblasti-na-balgaria/' + SLUG[r.id];
+      const res = await get(p, { 'Accept-Encoding': 'br' });
+      assert.strictEqual(res.status, 200, p);
+      const h = res.text;
+      assert.strictEqual(count(h, /<h1\b/g), 1, p + ': един h1');
+      const title = h.match(/<title>([^<]+)<\/title>/)[1], desc = h.match(/<meta name="description" content="([^"]+)"/)[1];
+      assert.ok(title.length >= 30 && title.length <= 70, p + ': заглавие ' + title.length);
+      assert.ok(desc.length >= 100 && desc.length <= 165, p + ': описание ' + desc.length);
+      assert.ok(!titles.has(title) && !descs.has(desc), p + ': уникално заглавие и описание'); titles.add(title); descs.add(desc);
+      assert.ok(h.includes(`<link rel="canonical" href="https://znamenosci.com${p}">`), p + ': canonical');
+      const ld = JSON.parse(h.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+      assert.deepStrictEqual(ld['@graph'].map((x) => x['@type']), ['WebPage', 'BreadcrumbList'], p);
+      assert.strictEqual(ld['@graph'][1].itemListElement.length, 3, p + ': Начало › Областите на България › област');
+      assert.strictEqual(count(h, /<tr><td class="n">\d+<\/td><th scope="row"><a href=/g), r.neighbors.length, p + ': съседи в таблицата');
+      assert.strictEqual(count(h, /<circle /g), r.neighbors.length, p + ': номера на картата');
+      assert.strictEqual(count(h, /<path d=/g), 28, p + ': картата има 28 области');
+      for (const nb of r.neighbors) {
+        assert.ok(h.includes(`href="/oblasti-na-balgaria/${SLUG[nb]}"`), p + ': връзка към съседа ' + nb);
+        assert.ok(byId[nb].neighbors.includes(r.id), p + ': съседството е взаимно ' + nb);
+      }
+      assert.strictEqual(count(h, /<div class="seo-q">/g) >= 3, true, p + ': въпроси за проверка');
+      assert.strictEqual(count(h, /<li><b>/g), FACTS[r.id].length, p + ': известни места');
+      assert.ok(h.includes('<nav class="seo-daynav"'), p + ': предишна и следваща област');
+      assert.ok(!/undefined|NaN|\[object/.test(h), p + ': няма undefined/NaN');
+      assert.ok(smAll.includes(`<loc>https://znamenosci.com${p}</loc>`), 'sitemap: ' + p);
+      // въпросите за проверка: верният отговор е между отговорите
+      const quiz = seo.areaQuiz ? seo.areaQuiz(r.id) : [];
+      for (const q of quiz) assert.ok(q.options.length === 4 && q.options.includes(q.correct), p + ': въпрос ' + q.text);
+    }
+    assert.strictEqual((await get('/oblasti-na-balgaria/nyama')).status, 404);
+    assert.strictEqual((await get('/oblasti-na-balgaria/plovdiv/')).status, 301);
+
     // sitemap и начален екран
     const sm = (await get('/sitemap.xml')).text;
     for (const p of paths.filter((x) => x !== '/vapros-na-denya/2026-10-20')) assert.ok(sm.includes(`<loc>https://znamenosci.com${p}</loc>`), 'sitemap: ' + p);

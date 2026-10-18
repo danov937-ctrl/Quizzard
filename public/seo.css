@@ -43,3 +43,10 @@
   .seo-brand { font-size: 1.45rem; } .seo-brand img { width: 34px; height: 34px; }
   .seo-days { columns: 1; }
 }
+/* страница на област */
+.seo-map .seo-self { font: 900 34px "Nunito", system-ui, sans-serif; fill: #3f2436; stroke: #fffaf0; stroke-width: 8px; paint-order: stroke; stroke-linejoin: round; }
+.seo-hint .seo-dot { margin-left: 10px; }
+.seo-hint .seo-dot:first-child { margin-left: 0; }
+.seo-zoom .seo-map { max-height: 430px; }
+.seo-daynav { flex-wrap: wrap; gap: 6px 14px; }
+.seo-daynav a { white-space: nowrap; }
