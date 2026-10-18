@@ -1,0 +1,45 @@
+/* Знаменосци · страници за Google (области, куиз по класове, въпрос на деня, за родители и учители) */
+.seo-page { max-width: 860px; }
+.seo-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px 0 8px; }
+.seo-brand { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: #ffe7a6; font-family: var(--font-head, "Kurale", serif); font-size: 1.7rem; line-height: 1; text-shadow: 0 2px 0 rgba(60, 24, 66, .55); }
+.seo-brand img { width: 40px; height: 40px; }
+.seo-play { text-decoration: none; padding: 8px 18px; min-height: 0; font-size: 1rem; }
+.seo-crumbs { font-size: .85rem; font-weight: 700; margin: 6px 2px 10px; color: rgba(255, 244, 214, .85); }
+.seo-crumbs a { color: #ffe7a6; }
+.seo-paper h1 { font-size: 1.9rem; }
+.seo-paper h3 { font-size: 1.02rem; margin: 16px 0 6px; }
+.seo-paper h2 { margin-top: 26px; }
+.seo-paper p, .seo-paper li { max-width: 68ch; }
+.seo-paper .qx-lead { max-width: 62ch; }
+.seo-hint { font-size: .85rem; color: var(--muted, #6b5a48); margin: 4px 0 0; }
+.seo-mapbox { margin: 14px 0 4px; padding: 6px; border-radius: 18px; background: linear-gradient(180deg, #cfe9f6, #e6f4fb); border: 2px solid rgba(107, 74, 54, .25); }
+.seo-map { display: block; width: 100%; height: auto; }
+.seo-map text { font: 800 25px "Nunito", system-ui, sans-serif; fill: #3f2436; }
+.seo-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; border: 2px solid rgba(107, 74, 54, .5); }
+.seo-table { margin: 4px 0 10px; }
+.seo-table .n { width: 2.4em; text-align: center; color: var(--muted, #6b5a48); font-weight: 800; }
+.seo-table tbody th { font-weight: 800; }
+.seo-q { margin: 14px 0; padding: 12px 14px; border-radius: 16px; background: #fffaf0; border: 2px solid rgba(107, 74, 54, .22); }
+.seo-qmeta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.seo-qn { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--wood1, #8a5a3a); color: #fff; font-weight: 900; font-size: .85rem; }
+.seo-qmeta .chip { display: inline-block; padding: 1px 10px; border-radius: 999px; background: rgba(122, 74, 34, .12); font-size: .78rem; font-weight: 800; }
+.seo-qtext { margin: 0 0 6px; font-weight: 800; font-size: 1.05rem; }
+.seo-opts { list-style: none; margin: 0 0 8px; padding: 0; }
+.seo-opts li { display: flex; align-items: baseline; gap: 10px; padding: 3px 0; }
+.seo-l { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; background: rgba(122, 74, 34, .14); font-weight: 900; font-size: .85rem; }
+.seo-q details { font-weight: 700; }
+.seo-q summary { cursor: pointer; display: inline-block; padding: 6px 14px; border-radius: 999px; background: rgba(122, 74, 34, .14); color: var(--ink, #3a2236); font-weight: 900; min-height: 32px; }
+.seo-q details p { margin: 8px 0 0; padding: 8px 12px; border-radius: 12px; background: #e6f6dc; }
+.seo-daynav { display: flex; justify-content: space-between; font-weight: 800; margin: 6px 0 0; }
+.seo-days { columns: 2; padding-left: 20px; }
+.seo-cta { text-align: center; margin: 22px 0 8px; color: #fff4d6; }
+.seo-cta p { margin: 0 auto 12px; max-width: 46ch; font-weight: 700; }
+.seo-cta .btn { text-decoration: none; display: inline-block; }
+.seo-foot { margin: 18px 0 0; }
+.seo-foot nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; }
+.seo-foot a { font-size: .82rem; font-weight: 800; color: #ffe7a6; text-decoration: none; padding: 4px 11px; border-radius: 999px; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 231, 166, .35); }
+@media (max-width: 560px) {
+  .seo-paper h1 { font-size: 1.55rem; }
+  .seo-brand { font-size: 1.45rem; } .seo-brand img { width: 34px; height: 34px; }
+  .seo-days { columns: 1; }
+}
