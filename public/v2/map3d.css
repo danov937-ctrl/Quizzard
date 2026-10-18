@@ -68,7 +68,6 @@ html[data-design="v2"] #map .rname { font-size: 13.5px; font-weight: 900; fill: 
 html[data-design="v2"] #map .badge text { font-family: var(--font-num); }
 html[data-design="v2"] #map .float { font-family: var(--font-num); stroke: rgba(60, 24, 66, .9); }
 html[data-design="v2"] #map .arrow { stroke: var(--pink); filter: drop-shadow(0 0 4px rgba(255, 255, 255, .9)); }
-html[data-design="v2"] #map .castle { filter: drop-shadow(0 3px 3px rgba(50, 20, 60, .5)); }
 
 /* бутон за изгледа */
 html[data-design="v2"] .m3d-btn { position: absolute; right: 12px; bottom: 12px; z-index: 6; min-height: 38px; padding: 6px 14px; border-radius: 999px; border: 3px solid var(--rim); background: linear-gradient(180deg, #fffaf0, #f6e6c6); color: var(--ink); font-weight: 900; font-size: .85rem;

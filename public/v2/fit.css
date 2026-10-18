@@ -1,0 +1,158 @@
+/* Знаменосци · нов вид „Приказен залез“: fit
+   Само за новия вид: всичко е зад html[data-design="v2"] (виж design.js). */
+/* ================= без скролване: въпроси, отговори и числа се побират на екрана =================
+   Два слоя: оформление (две колони на телефон хоризонтално) и подстраховка — client.js слага --fit
+   (по-малко от 1), ако пак не стига място; шрифтовете и бутоните тук растат и се смаляват с него. */
+
+/* ---------- основа (всякакъв екран) ---------- */
+html[data-design="v2"] #modal .qtext { font-size: calc(1.35rem * var(--fit, 1)); margin-bottom: calc(12px * var(--fit, 1)); }
+html[data-design="v2"] #modal .opts button { font-size: calc(1.08rem * var(--fit, 1)); min-height: calc(60px * var(--fit, 1)); padding-top: calc(10px * var(--fit, 1)); padding-bottom: calc(10px * var(--fit, 1)); }
+html[data-design="v2"] #modal .numbox { font-size: calc(2.1rem * var(--fit, 1)); min-height: calc(58px * var(--fit, 1)); }
+html[data-design="v2"] #modal .numpad button { font-size: calc(1.4rem * var(--fit, 1)); padding-top: calc(10px * var(--fit, 1)); padding-bottom: calc(10px * var(--fit, 1)); }
+html[data-design="v2"] #modal .qpic { font-size: calc(3rem * var(--fit, 1)); }
+html[data-design="v2"] #modal .joker { font-size: calc(.95rem * var(--fit, 1)); }
+html[data-design="v2"] .practice-card .qtext { font-size: calc(1.3rem * var(--fit, 1)); margin-bottom: calc(10px * var(--fit, 1)); }
+html[data-design="v2"] .practice-card .opts button { font-size: calc(1.05rem * var(--fit, 1)); min-height: calc(56px * var(--fit, 1)); padding-top: calc(9px * var(--fit, 1)); padding-bottom: calc(9px * var(--fit, 1)); }
+html[data-design="v2"] .practice-card .numbox { font-size: calc(2rem * var(--fit, 1)); min-height: calc(54px * var(--fit, 1)); }
+html[data-design="v2"] .practice-card .numpad button { font-size: calc(1.35rem * var(--fit, 1)); padding-top: calc(9px * var(--fit, 1)); padding-bottom: calc(9px * var(--fit, 1)); }
+html[data-design="v2"] .practice-card .qpic { font-size: calc(2.8rem * var(--fit, 1)); }
+html[data-design="v2"] .practice-card .feedback { font-size: calc(1.1rem * var(--fit, 1)); }
+
+/* ---------- зрител (малък панел встрани): само въпросът и отговорите ---------- */
+html[data-design="v2"] #overlay.dock .qreport,
+html[data-design="v2"] #overlay.dock .jokers,
+html[data-design="v2"] #overlay.dock .speak { display: none; }
+html[data-design="v2"] #overlay.dock #modal .qtext { font-size: calc(1rem * var(--fit, 1)); margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-design="v2"] #overlay.dock #modal .opts { gap: 5px; }
+html[data-design="v2"] #overlay.dock #modal .opts button { font-size: calc(.85rem * var(--fit, 1)); min-height: calc(38px * var(--fit, 1)); padding: 4px 6px 4px 28px; }
+html[data-design="v2"] #overlay.dock #modal .opts button .letter { width: 20px; height: 20px; left: 5px; font-size: .75rem; }
+html[data-design="v2"] #overlay.dock #modal .status { margin-top: 6px; font-size: .8rem; }
+html[data-design="v2"] #overlay.dock #modal .mbody { padding: 8px 12px; }
+
+
+/* ---------- вертикален телефон: по-тясно заглавие и по-малки кръгли бутони ---------- */
+@media (orientation: portrait) {
+
+  html[data-design="v2"] #overlay:not(.dock) { padding: 6px; }
+  html[data-design="v2"] #modal .mhead { padding: 8px 14px; }
+  html[data-design="v2"] #modal .mhead h3 { font-size: 1rem; }
+  html[data-design="v2"] #modal .mhead .duel { margin-top: 4px; font-size: .95rem; gap: 8px; }
+  html[data-design="v2"] #modal .mhead .duel .shield { width: 24px; height: 28px; }
+  html[data-design="v2"] #modal .mhead .meta { margin-top: 4px; }
+  html[data-design="v2"] #modal .mhead .meta .chip:nth-child(2) { display: none; }
+  html[data-design="v2"] #modal .mbody.qbody { padding: 10px 14px 12px; }
+  html[data-design="v2"] #modal .qbody .clock { width: 46px; height: 46px; font-size: 1.1rem; }
+  html[data-design="v2"] #modal .qbody .speak { width: 40px; height: 40px; }
+  html[data-design="v2"] #modal .qbody .jokers { margin-top: calc(8px * var(--fit, 1)); }
+  html[data-design="v2"] #modal .qbody .status { margin-top: calc(6px * var(--fit, 1)); font-size: calc(1rem * var(--fit, 1)); }
+  html[data-design="v2"] #modal .qbody .hint { margin-bottom: 6px; font-size: calc(.95rem * var(--fit, 1)); }
+  html[data-design="v2"] #modal .qbody .numpad { margin-top: calc(8px * var(--fit, 1)); gap: calc(7px * var(--fit, 1)); }
+
+}
+
+/* ---------- телефон, таблет или компютър хоризонтално: две колони ---------- */
+@media (orientation: landscape) and (min-width: 560px) {
+
+  html[data-design="v2"] #overlay:not(.dock) { padding: 4px; }
+  html[data-design="v2"] #overlay:not(.dock) .modal { width: min(920px, 100%); max-height: 100%; display: flex; flex-direction: column; }
+  html[data-design="v2"] #overlay:not(.dock) #modal .mhead { flex: none; display: flex; flex-wrap: wrap; align-items: center; column-gap: 12px; row-gap: 0; padding: 5px 58px 5px 14px; }
+  html[data-design="v2"] #modal .mhead h3 { flex: 1 1 auto; margin: 0; font-size: .92rem; }
+  html[data-design="v2"] #modal .mhead .duel { margin: 0; gap: 6px; font-size: .85rem; }
+  html[data-design="v2"] #modal .mhead .duel .vs { font-size: 1.15rem; }
+  html[data-design="v2"] #modal .mhead .duel .shield { width: 20px; height: 24px; }
+  html[data-design="v2"] #modal .mhead .meta { margin: 0; gap: 5px; flex: 0 0 auto; }
+  html[data-design="v2"] #modal .mhead .meta .chip { font-size: .72rem; padding: 1px 8px; }
+  html[data-design="v2"] #modal .mhead .meta .chip:nth-child(2) { display: none; }
+
+  html[data-design="v2"] #modal .mbody.qbody { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); grid-template-rows: repeat(7, auto) 1fr; column-gap: 14px; row-gap: 0; align-content: stretch; padding: 8px 14px;
+    grid-template-areas: "pic ans" "q ans" "hint ans" "num ans" "jok ans" "stat ans" "rep ans" "fill ans"; }
+  html[data-design="v2"] #modal .qbody > .qpic { grid-area: pic; margin: 0 0 2px; font-size: calc(2rem * var(--fit, 1)); }
+  html[data-design="v2"] #modal .qbody > .qpic.many { font-size: calc(1.4rem * var(--fit, 1)); }
+  html[data-design="v2"] #modal .qbody > .qtop { grid-area: q; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: start; }
+  html[data-design="v2"] #modal .qbody .qtext { grid-column: 1; grid-row: 1 / span 2; margin: 0 0 4px; font-size: calc(clamp(.95rem, 4.4vh, 1.4rem) * var(--fit, 1)); line-height: 1.25; }
+  html[data-design="v2"] #modal .qbody .speak { grid-column: 2; width: 34px; height: 34px; font-size: 1.05rem; }
+  /* часовникът е в ъгъла на заглавието: не заема място в колоната с въпроса */
+  html[data-design="v2"] #overlay .modal { position: relative; }
+  html[data-design="v2"] #modal .qbody .clock { position: absolute; top: 5px; right: 12px; width: 38px; height: 38px; font-size: .95rem; z-index: 2; }
+  html[data-design="v2"] #modal .qbody > .hint { grid-area: hint; margin: 4px 0 0; padding: 2px 6px; font-size: calc(.8rem * var(--fit, 1)); }
+  html[data-design="v2"] #modal .qbody > .numbox { grid-area: num; margin: 4px 0 0; padding: 2px; font-size: calc(clamp(1.3rem, 6vh, 2rem) * var(--fit, 1)); min-height: calc(clamp(38px, 11vh, 56px) * var(--fit, 1)); display: grid; place-items: center; }
+  html[data-design="v2"] #modal .qbody > .opts { grid-area: ans; align-self: start; gap: 6px; }
+  html[data-design="v2"] #modal .qbody > .opts button { font-size: calc(clamp(.82rem, 3.5vh, 1.05rem) * var(--fit, 1)); min-height: calc(clamp(40px, 13vh, 72px) * var(--fit, 1)); padding: calc(5px * var(--fit, 1)) 6px calc(5px * var(--fit, 1)) 30px; line-height: 1.15; }
+  html[data-design="v2"] #modal .qbody > .opts button .letter { width: 20px; height: 20px; left: 6px; font-size: .75rem; }
+  /* кой какво е отговорил: щитовете са вътре в бутона, а не под текста */
+  html[data-design="v2"] #modal .qbody > .opts.reveal button .who { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); margin: 0; flex-direction: row; gap: 2px; }
+  html[data-design="v2"] #modal .qbody > .opts.reveal button .who .shield { width: 18px; height: 22px; }
+  html[data-design="v2"] #modal .qbody > .opts.reveal button:has(.who) { padding-right: 48px; }
+  html[data-design="v2"] #modal .qbody > .opts.long { grid-template-columns: 1fr; }
+  html[data-design="v2"] #modal .qbody > .opts.long button { min-height: calc(clamp(34px, 9.5vh, 52px) * var(--fit, 1)); }
+  html[data-design="v2"] #modal .qbody > .numpad { grid-area: ans; align-self: start; gap: 5px; margin: 0; }
+  html[data-design="v2"] #modal .qbody > .numpad button { min-height: calc(clamp(34px, 10vh, 54px) * var(--fit, 1)); padding: 0; font-size: calc(clamp(1.1rem, 4.6vh, 1.5rem) * var(--fit, 1)); }
+  html[data-design="v2"] #modal .qbody > .results { grid-area: ans; align-self: start; margin: 0; }
+  html[data-design="v2"] #modal .qbody > .results li { padding: 5px 8px; margin-bottom: 4px; font-size: .85rem; }
+  html[data-design="v2"] #modal .qbody > .jokers { grid-area: jok; justify-content: flex-start; margin: 6px 0 0; gap: 6px; }
+  html[data-design="v2"] #modal .qbody .joker { padding: 4px 10px; font-size: calc(.78rem * var(--fit, 1)); }
+  html[data-design="v2"] #modal .qbody > .status { grid-area: stat; text-align: left; margin: 6px 0 0; font-size: calc(.82rem * var(--fit, 1)); line-height: 1.2; }
+  html[data-design="v2"] #modal .qbody > .qreport { grid-area: rep; margin: 2px 0 0; text-align: left; padding: 2px 0; font-size: .72rem; justify-self: start; }
+
+  /* зрител */
+  html[data-design="v2"] #overlay.dock .modal { width: min(340px, 44vw); max-height: 96%; }
+  html[data-design="v2"] #overlay.dock #modal .mhead { padding: 5px 58px 5px 12px; }
+  html[data-design="v2"] #overlay.dock #modal .mhead h3 { flex: none; font-size: .85rem; }
+  html[data-design="v2"] #overlay.dock #modal .mhead .duel { font-size: .78rem; gap: 4px; flex-wrap: nowrap; }
+  html[data-design="v2"] #overlay.dock #modal .mhead .duel .shield { width: 18px; height: 22px; }
+  html[data-design="v2"] #overlay.dock #modal .mhead .duel .vs { font-size: 1rem; }
+  /* тесният панел е в една колона (две колони тук не се побират) */
+  html[data-design="v2"] #overlay.dock #modal .mbody.qbody { display: block; padding: 6px 10px; }
+  html[data-design="v2"] #overlay.dock #modal .qbody .qtext { font-size: calc(.88rem * var(--fit, 1)); margin: 0 0 4px; line-height: 1.2; -webkit-line-clamp: 3; line-clamp: 3; }
+  html[data-design="v2"] #overlay.dock #modal .qbody > .opts { gap: 4px; }
+  html[data-design="v2"] #overlay.dock #modal .qbody > .opts button { font-size: calc(.76rem * var(--fit, 1)); min-height: calc(30px * var(--fit, 1)); padding: 3px 6px 3px 28px; line-height: 1.15; }
+  html[data-design="v2"] #overlay.dock #modal .qbody > .numbox { margin: 4px 0 0; min-height: 34px; font-size: 1.2rem; display: grid; place-items: center; }
+  html[data-design="v2"] #overlay.dock #modal .qbody > .results li { padding: 3px 6px; margin-bottom: 3px; font-size: .78rem; }
+  html[data-design="v2"] #overlay.dock #modal .qbody > .status { margin: 4px 0 0; font-size: calc(.74rem * var(--fit, 1)); line-height: 1.15; }
+
+  /* упражнение */
+  html[data-design="v2"] #practice.screen { padding: 6px 10px; }
+  html[data-design="v2"] #practice .practice-card { max-width: 900px; padding: 8px 14px; }
+  html[data-design="v2"] .practice-card .pr-head .eyebrow { font-size: .72rem; }
+  html[data-design="v2"] .practice-card .pr-score { font-size: 1.05rem; }
+  html[data-design="v2"] .pr-dots { margin: 4px 0 6px; } html[data-design="v2"] .pr-dots i { height: 6px; }
+  html[data-design="v2"] .practice-card .pc { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); column-gap: 14px; }
+  html[data-design="v2"] .practice-card .meta { margin-bottom: 4px; gap: 5px; } html[data-design="v2"] .practice-card .meta .chip { font-size: .72rem; padding: 1px 8px; }
+  html[data-design="v2"] .practice-card .qpic { font-size: calc(2rem * var(--fit, 1)); margin-bottom: 2px; }
+  html[data-design="v2"] .practice-card .qtop { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: start; }
+  html[data-design="v2"] .practice-card .qtext { grid-column: 1; grid-row: 1 / span 2; margin: 0 0 4px; font-size: calc(clamp(.95rem, 4.4vh, 1.4rem) * var(--fit, 1)); line-height: 1.25; }
+  html[data-design="v2"] .practice-card .qtop .speak { grid-column: 2; width: 34px; height: 34px; font-size: 1.05rem; }
+  html[data-design="v2"] .practice-card { position: relative; }
+  html[data-design="v2"] .practice-card .qtop .clock { position: absolute; top: 4px; right: 70px; width: 34px; height: 34px; font-size: .85rem; z-index: 2; }
+  html[data-design="v2"] .practice-card .numbox { margin: 4px 0 0; padding: 2px; font-size: calc(clamp(1.3rem, 6vh, 2rem) * var(--fit, 1)); min-height: calc(clamp(38px, 11vh, 56px) * var(--fit, 1)); display: grid; place-items: center; }
+  html[data-design="v2"] .practice-card .opts { gap: 6px; }
+  html[data-design="v2"] .practice-card .opts button { font-size: calc(clamp(.82rem, 3.5vh, 1.05rem) * var(--fit, 1)); min-height: calc(clamp(40px, 13vh, 72px) * var(--fit, 1)); padding: calc(5px * var(--fit, 1)) 6px calc(5px * var(--fit, 1)) 30px; line-height: 1.15; }
+  html[data-design="v2"] .practice-card .opts button .letter { width: 20px; height: 20px; left: 6px; font-size: .75rem; }
+  html[data-design="v2"] .practice-card .opts.long { grid-template-columns: 1fr; }
+  html[data-design="v2"] .practice-card .opts.long button { min-height: calc(clamp(34px, 9.5vh, 52px) * var(--fit, 1)); }
+  html[data-design="v2"] .practice-card .numpad { gap: 5px; margin: 0; }
+  html[data-design="v2"] .practice-card .numpad button { min-height: calc(clamp(34px, 10vh, 54px) * var(--fit, 1)); padding: 0; font-size: calc(clamp(1.1rem, 4.6vh, 1.5rem) * var(--fit, 1)); }
+  html[data-design="v2"] .practice-card .feedback { margin: 6px 0 4px; padding: 4px 8px; font-size: calc(.95rem * var(--fit, 1)); }
+  html[data-design="v2"] .practice-card #pNext { padding-top: 8px; padding-bottom: 8px; font-size: 1rem; }
+  html[data-design="v2"] .practice-card .pr-foot { margin-top: 4px; }
+
+}
+
+/* ---------- съвсем ниско (телефон с ленти на браузъра) ---------- */
+@media (orientation: landscape) and (max-height: 340px) {
+
+  html[data-design="v2"] #overlay:not(.dock) #modal .mhead { padding: 3px 58px 3px 12px; }
+  html[data-design="v2"] #modal .mbody.qbody { padding: 5px 12px; }
+  html[data-design="v2"] #modal .qbody > .jokers { margin-top: 4px; }
+  html[data-design="v2"] #modal .qbody > .status { margin-top: 3px; }
+  html[data-design="v2"] .practice-card .eyebrow { font-size: .66rem; }
+  html[data-design="v2"] #practice.screen { padding: 4px 8px; }
+  html[data-design="v2"] #practice .practice-card { padding: 6px 12px; }
+
+}
+
+/* докато се мери дали се побира (client.js, fitTo): без анимации */
+html[data-design="v2"] .nofx,
+html[data-design="v2"] .nofx *,
+html[data-design="v2"] .nofx *::before,
+html[data-design="v2"] .nofx *::after { animation: none !important; transition: none !important; }
