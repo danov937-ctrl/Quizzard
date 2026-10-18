@@ -176,6 +176,7 @@ html[data-design="v2"] #home .join .lbl { font-size: .9rem; margin: 0 0 3px; }
   html[data-design="v2"] #home .join .btn { padding-top: 6px; padding-bottom: 8px; }
   html[data-design="v2"] #home .hero > .home-links { margin-top: 4px; flex-wrap: wrap; }
   html[data-design="v2"] #home .home-links .link { font-size: .72rem; padding: 3px 8px; }
+  html[data-design="v2"] #home .hero > .seo-links { grid-column: 1 / -1; }
 
 }
 @media (orientation: landscape) and (max-height: 560px) and (max-width: 760px) {

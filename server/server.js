@@ -9,6 +9,7 @@ const { Game } = require('./game');
 const { MC, SUBJECTS, ADULT, ADULT_SUBJECTS, practiceSet } = require('./questions');
 const { STAKE } = require('./admin/wallet');
 const admin = require('./admin');
+const seoPages = require('./seo_pages');
 
 const PORT = process.env.PORT || 3000;
 const SPEED = Number(process.env.GAME_SPEED || 1); // 0.3 = по-бърза игра за демонстрация
@@ -52,6 +53,11 @@ const server = http.createServer((req, res) => {
   if (url === '/admin') { res.writeHead(301, { Location: '/admin/' }); return res.end(); }
   if (url === '/admin/') url = '/admin/index.html';
   if (url === '/' || url === '/index.html') return sendIndex(req, res);
+  const page = seoPages.render(url, origin(req));   // области, куиз по класове, въпрос на деня, за родители и учители
+  if (page) {
+    if (page.redirect) { res.writeHead(301, { Location: page.redirect }); return res.end(); }
+    return sendBody(req, res, Buffer.from(page.html), TYPES['.html'], 'no-cache');
+  }
   const file = path.normalize(path.join(PUBLIC, url));
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
   sendFile(req, res, file);
@@ -103,7 +109,7 @@ function seoFile(req, res, url) {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end(`User-agent: *\nDisallow: /admin/\nDisallow: /api/\nDisallow: /parent.html\nDisallow: /consent.html\nDisallow: /reset.html\n\nSitemap: ${o}/sitemap.xml\n`);
   }
-  const pages = ['/', '/privacy.html', '/terms.html'];
+  const pages = ['/', ...seoPages.sitemapPaths(), '/privacy.html', '/terms.html'];
   res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
   res.end('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + pages.map((p) => `  <url><loc>${o}${p}</loc></url>\n`).join('') + '</urlset>\n');
 }

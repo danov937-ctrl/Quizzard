@@ -235,3 +235,9 @@ body.qx-gated .qx-account, body.qx-gated .qx-notice { display: none; }
 #map g.guard .castle .cshield { animation: cguard 1.2s ease-out; }
 @keyframes cguard { 0% { opacity: 0; transform: scale(.5); } 20% { opacity: 1; transform: scale(1.05); } 70% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { #map .castle *, #map .castle { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+
+/* връзки към страниците за Google най-долу на началния екран: малки и тихи */
+.seo-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin: 14px 0 4px; font-size: .78rem; font-weight: 800; }
+.seo-links a { color: rgba(255, 244, 214, .8); text-decoration: underline; text-underline-offset: 2px; }
+.seo-links a:hover { color: #ffe7a6; }
+@media (orientation: landscape) and (max-height: 400px) { .seo-links { margin: 6px 0 2px; font-size: .72rem; } }
