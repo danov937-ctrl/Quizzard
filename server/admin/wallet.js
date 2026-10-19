@@ -1,6 +1,6 @@
-// Парички в режима за възрастни. Всеки започва с 1000. Игра онлайн или с приятели струва залог 100;
-// победителят взима залозите на другите. Паричките са само за игра: не се обменят обратно в пари,
-// не се теглят и не се прехвърлят между играчи. Децата нямат парички, залози, магазин и реклами с награда.
+// Парички в режима за възрастни. Всеки започва с 1000. Игра онлайн или с приятели струва вход 100;
+// победителят взима входовете на другите. Паричките са само за игра: не се обменят обратно в пари,
+// не се теглят и не се прехвърлят между играчи. Децата нямат парички, входове, магазин и реклами с награда.
 const crypto = require('crypto');
 const { ADULT } = require('../questions');
 
@@ -16,6 +16,8 @@ const PACKS = [
   { id: 'p7000', coins: 7000, price: '9,99 €', bonus: '+40%' },
   { id: 'p16000', coins: 16000, price: '19,99 €', bonus: '+60%' },
 ];
+// Записи от историята, направени с по-стари думи, се показват с сегашните
+const oldWords = (t) => String(t || '').replace('Залог за игра', 'Вход за игра').replace('взе залозите', 'взе наградата').replace('залогът се връща', 'входът се връща').replace('Залогът се връща', 'Входът се връща');
 const dayKey = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' });
 
 class Wallet {
@@ -45,21 +47,21 @@ class Wallet {
   }
   canStake(u) { return !!u && !!u.adult && (u.coins || 0) >= STAKE; }
 
-  // Залогът се взима в началото на игра за възрастни онлайн или с приятели, само от играчи с профил за възрастни.
-  // Ботовете и гостите не залагат.
+  // Входът се взима в началото на игра за възрастни онлайн или с приятели, само от играчи с профил за възрастни.
+  // Ботовете и гостите не плащат вход.
   onGameStart(room, game) {
     if (game.grade !== ADULT || room.mode === 'bots') return;
     const by = {};
     for (const m of room.members) {
       const u = !m.isBot && m.uid && this.acc.users[m.uid];
       if (!this.canStake(u)) continue;
-      this.add(u, -STAKE, 'Залог за игра');
+      this.add(u, -STAKE, 'Вход за игра');
       by[m.id] = u.id;
     }
     if (Object.keys(by).length) game.meta.stakes = { by, pot: STAKE * Object.keys(by).length, settled: false };
   }
-  // Победителят (ако е заложил и е доиграл сам) взима всичко. Ако победи бот или гост, всеки, който е
-  // доиграл, си получава залога обратно. Който излезе по средата, губи залога си.
+  // Победителят (ако е платил вход и е доиграл сам) взима наградата. Ако победи бот или гост, всеки, който е
+  // доиграл, си получава паричките обратно. Който излезе по средата, губи платения вход.
   onGameEnd(game) {
     const s = game.meta?.stakes;
     if (!s || s.settled) return false;
@@ -68,30 +70,30 @@ class Wallet {
     const winUid = w && !w.isBot && s.by[w.id];
     if (winUid && this.acc.users[winUid]) {
       const u = this.acc.users[winUid];
-      this.add(u, s.pot, s.pot > STAKE ? 'Победа: взе залозите' : 'Победа: залогът се връща');
+      this.add(u, s.pot, s.pot > STAKE ? 'Победа: взе наградата' : 'Победа: входът се връща');
       s.result = { winner: w.id, pot: s.pot };
       return true;
     }
     for (const [pid, uid] of Object.entries(s.by)) {
       const p = game.player(pid), u = this.acc.users[uid];
-      if (u && p && !p.isBot) this.add(u, STAKE, 'Залогът се връща');
+      if (u && p && !p.isBot) this.add(u, STAKE, 'Входът се връща');
     }
     s.result = { winner: null, refund: true };
     return true;
   }
-  // Прекъсната игра: всички си получават залога
+  // Прекъсната игра: всички си получават паричките обратно
   onAbort(game) {
     const s = game.meta?.stakes;
     if (!s || s.settled) return;
     s.settled = true;
-    for (const uid of Object.values(s.by)) { const u = this.acc.users[uid]; if (u) this.add(u, STAKE, 'Прекъсната игра: залогът се връща'); }
+    for (const uid of Object.values(s.by)) { const u = this.acc.users[uid]; if (u) this.add(u, STAKE, 'Прекъсната игра: входът се връща'); }
   }
 
   adsLeft(u) { return u.ads?.day === dayKey() ? Math.max(0, ADS_PER_DAY - u.ads.n) : ADS_PER_DAY; }
   view(u) {
     return { coins: u.coins || 0, stake: STAKE, start: START, packs: PACKS, shop: this.shopOn,
       ads: { mode: this.adsMode, left: this.adsLeft(u), perDay: ADS_PER_DAY, reward: AD_REWARD, minSec: AD_MIN_MS / 1000 },
-      log: (u.coinLog || []).slice(-15).reverse() };
+      log: (u.coinLog || []).slice(-15).reverse().map((l) => ({ ...l, why: oldWords(l.why) })) };
   }
 
   async handle({ p, post, body, me, res, json }) {
