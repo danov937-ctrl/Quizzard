@@ -66,6 +66,18 @@ const get = (url, headers = {}, method = 'GET') => new Promise((resolve, reject)
     const desc = html.match(/<meta name="description" content="([^"]*)"/)[1];
     assert.ok(desc.length >= 100 && desc.length <= 170, 'описанието е с подходяща дължина: ' + desc.length);
 
+    // Два различни файла с еднаква големина и час на запис не трябва да си разменят съдържанието
+    // (така /admin/ показваше кода на flag.js: и двата бяха по 2398 байта и записани в един и същи миг)
+    const tmpA = path.join(pub, 'zz-test-a.js'), tmpB = path.join(pub, 'zz-test-b.js');
+    try {
+      fs.writeFileSync(tmpA, '// A\n' + 'a'.repeat(2000)); fs.writeFileSync(tmpB, '// B\n' + 'b'.repeat(2000));
+      const when = new Date('2026-10-19T12:00:00.123Z'); fs.utimesSync(tmpA, when, when); fs.utimesSync(tmpB, when, when);
+      const ra = await get('/zz-test-a.js', { 'Accept-Encoding': 'gzip' }), rb = await get('/zz-test-b.js', { 'Accept-Encoding': 'gzip' });
+      assert.notStrictEqual(ra.headers.etag, rb.headers.etag, 'различни файлове, различни ETag');
+      assert.ok(zlib.gunzipSync(ra.body).toString().startsWith('// A'), 'файл A е със своето съдържание');
+      assert.ok(zlib.gunzipSync(rb.body).toString().startsWith('// B'), 'файл B е със своето съдържание, не с това на A');
+    } finally { fs.rmSync(tmpA, { force: true }); fs.rmSync(tmpB, { force: true }); }
+
     // robots.txt и sitemap.xml
     assert.match((await get('/robots.txt')).body.toString(), /Sitemap: https:\/\/znamenosci\.com\/sitemap\.xml/);
     assert.match((await get('/sitemap.xml')).body.toString(), /<loc>https:\/\/znamenosci\.com\/<\/loc>/);

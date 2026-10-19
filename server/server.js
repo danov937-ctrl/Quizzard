@@ -152,7 +152,10 @@ function sendFile(req, res, file) {
     if (e1 || !st.isFile()) { res.writeHead(404); return res.end('Not found'); }
     fs.readFile(file, (err, data) => {
       if (err) { res.writeHead(404); return res.end('Not found'); }
-      sendBody(req, res, data, TYPES[path.extname(file)] || 'application/octet-stream', cacheFor(file), st.size.toString(36) + '-' + Math.round(st.mtimeMs).toString(36));
+      // В етикета влиза и името на файла: два различни файла с еднаква големина и час на запис (на Render често са
+      // записани в един и същи миг) иначе получават един и същ ETag и един връща съдържанието на другия.
+      sendBody(req, res, data, TYPES[path.extname(file)] || 'application/octet-stream', cacheFor(file),
+        st.size.toString(36) + '-' + Math.round(st.mtimeMs).toString(36) + '-' + crypto.createHash('md5').update(file).digest('hex').slice(0, 8));
     });
   });
 }
