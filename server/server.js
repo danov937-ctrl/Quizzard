@@ -177,7 +177,7 @@ class Room {
       subjects: this.subjects || SUBJECTS_BY_GRADE[this.grade], available: SUBJECTS_BY_GRADE[this.grade], allSubjects: !this.subjects,
       autoStartIn: this.autoStartAt ? Math.max(0, this.autoStartAt - Date.now()) : null,
       inGame: !!this.game && this.game.phase !== 'ended', adult: this.grade === ADULT,
-      // Залог (само възрастни, онлайн и с приятели): кой е заложил и колко е банката
+      // Вход (само възрастни, онлайн и с приятели): колко струва и кой го е платил
       stake: this.grade === ADULT && this.mode !== 'bots' ? STAKE : 0,
       stakes: this.game?.meta?.stakes ? { pot: this.game.meta.stakes.pot, by: Object.keys(this.game.meta.stakes.by), result: this.game.meta.stakes.result || null } : null,
       members: this.members.map((m) => {
@@ -255,11 +255,11 @@ wss.on('connection', (ws, req) => {
         if (closed()) return;
         const grade = gradeOf(msg.grade);
         if (!audienceOk(grade)) return;
-        // Онлайн игрите на децата са само за деца; онлайн игрите на възрастните са със залог
+        // Онлайн игрите на децата са само за деца; онлайн игрите на възрастните са с вход от парички
         if (grade !== ADULT && account?.adult) return err('Онлайн игрите за 1–4 клас са само за деца. Играй в режима за възрастни или с приятели.');
         if (grade === ADULT) {
-          if (!account?.adult) return err('Онлайн игрите за възрастни са със залог от парички. Влез с профил за възрастни или играй с ботове.');
-          if (!admin.accounts.wallet.canStake(account)) return err(`Нямаш достатъчно парички за залог (${STAKE}). Вземи още от 🪙 Магазин.`);
+          if (!account?.adult) return err('Онлайн игрите за възрастни са с вход от парички. Влез с профил за възрастни или играй с ботове.');
+          if (!admin.accounts.wallet.canStake(account)) return err(`Нямаш достатъчно парички за вход (${STAKE}). Вземи още от 🪙 Магазин.`);
         }
         let r = [...rooms.values()].find((x) => x.isPublic && !x.game && x.grade === grade && x.members.length < PUBLIC_PLAYERS());
         if (!r) { r = new Room(newCode(), { isPublic: true, grade }); rooms.set(r.code, r); }

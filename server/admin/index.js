@@ -117,7 +117,7 @@ function patchGame() {
     const a = store.get('activity');
     a.totals.completed++; day().completed++;
     const w = this.player(this.winner);
-    if (wallet.onGameEnd(this)) this.emit(); // показва резултата от залога
+    if (wallet.onGameEnd(this)) this.emit(); // показва резултата за входа
     for (const [pid, uid] of Object.entries(this.meta.uids)) if (!this.player(pid)?.isBot) accounts.onGameEnd(uid, { won: pid === this.winner, score: this.score(pid), mode: this.meta.mode, run: this.meta.runs[pid] });
     logGame(this, true, w && !w.isBot);
   };

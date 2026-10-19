@@ -274,10 +274,10 @@ function renderLobby() {
   $('#btnStart').disabled = lobby.members.length < 2;
 }
 
-// Залог в стая за възрастни: кой залага и колко е банката
+// Вход в стая за възрастни: колко струва и каква е наградата
 function stakeNote() {
   if (!lobby?.stake) return '';
-  return `<p class="stake-note">🪙 Залог <b>${lobby.stake}</b> на играч. Победителят взима залозите на другите. Ботовете и гостите не залагат, а ако победи бот, всеки си получава залога.</p>`;
+  return `<p class="stake-note">🪙 Вход <b>${lobby.stake}</b> на играч. Победителят взима входовете на другите. Ботовете и гостите не плащат вход, а ако победи бот, всеки си получава паричките обратно.</p>`;
 }
 
 // ---------- карта ----------
@@ -805,9 +805,9 @@ function stakeResult() {
   const s = lobby?.stakes;
   if (!s || !s.result) return '';
   const mine = s.by.includes(me);
-  if (s.result.refund) return `<p class="stake-res">🪙 Залогът се върна${mine ? ' и при теб' : ''}.</p>`;
-  if (s.result.winner === me) return `<p class="stake-res win">🪙 Спечели банката: <b>+${s.result.pot}</b> парички!</p>`;
-  return mine ? `<p class="stake-res">🪙 Загуби залога си (${lobby.stake}). Следващия път!</p>` : `<p class="stake-res">🪙 ${pname(s.result.winner)} взе банката (${s.result.pot}).</p>`;
+  if (s.result.refund) return `<p class="stake-res">🪙 Паричките за входа се върнаха${mine ? ' и при теб' : ''}.</p>`;
+  if (s.result.winner === me) return `<p class="stake-res win">🪙 Взе наградата: <b>+${s.result.pot}</b> парички!</p>`;
+  return mine ? `<p class="stake-res">🪙 Този път наградата не е за теб (входът беше ${lobby.stake}). Следващия път!</p>` : `<p class="stake-res">🪙 ${pname(s.result.winner)} взе наградата (${s.result.pot}).</p>`;
 }
 function weakest(subj) {
   const weak = subj.filter(([, b]) => b.n >= 2 && b.ok / b.n < 0.5).map(([s]) => SUBJECTS[s]?.[0] || s);

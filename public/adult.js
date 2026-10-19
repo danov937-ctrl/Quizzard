@@ -13,11 +13,11 @@
 
   // ---------- текстове за двата режима ----------
   const TEXTS = [
-    ['#home .tagline', 'Отговаряй на въпроси от история, география, кино и още, завладей България и прибери залога!'],
-    ['.qx-gate .tagline', 'Отговаряй на въпроси от история, география, кино и още, завладей България и прибери залога!'],
-    ['#btnQuick .mode-sub', 'Срещу играчи от цяла България. Залог 🪙100, победителят взима всичко.'],
-    ['#btnFriends .mode-sub', 'Създай стая и кажи кода на приятелите си. Залогът е 🪙100.'],
-    ['#btnBots .mode-sub', 'Тренирай срещу компютъра, без залог.'],
+    ['#home .tagline', 'Отговаряй на въпроси от история, география, кино и още, завладей България и прибери наградата!'],
+    ['.qx-gate .tagline', 'Отговаряй на въпроси от история, география, кино и още, завладей България и прибери наградата!'],
+    ['#btnQuick .mode-sub', 'Срещу играчи от цяла България. Вход 🪙100, победителят взима наградата.'],
+    ['#btnFriends .mode-sub', 'Създай стая и кажи кода на приятелите си. Входът е 🪙100.'],
+    ['#btnBots .mode-sub', 'Тренирай срещу компютъра, безплатно.'],
     ['#btnPractice .mode-sub', 'Въпроси по категория, без противници и без бързане.'],
   ];
   const kidText = TEXTS.map(([sel]) => q(sel)?.textContent || '');
@@ -56,7 +56,7 @@
     const gradeRow = q('#homeGrade')?.closest('.setup-row'); if (gradeRow) gradeRow.classList.toggle('hidden', adult);
     for (const a of document.querySelectorAll('a[href="/privacy.html"]')) { a.dataset.kid ||= a.textContent; a.href = adult ? '/privacy-adult.html' : '/privacy.html'; a.textContent = adult ? '🔒 Поверителност' : a.dataset.kid; }
     for (const a of document.querySelectorAll('a[href="/privacy-adult.html"]')) if (!adult) { a.href = '/privacy.html'; if (a.dataset.kid) a.textContent = a.dataset.kid; }
-    const note = q('.qx-gate-note'); if (note) { note.dataset.kid ||= note.textContent; note.textContent = adult ? 'Като гост играеш с ботове и с приятели без залог. За онлайн игри със залог и парички трябва профил за възрастни.' : note.dataset.kid; }
+    const note = q('.qx-gate-note'); if (note) { note.dataset.kid ||= note.textContent; note.textContent = adult ? 'Като гост играеш с ботове и с приятели безплатно. За онлайн игри с вход от парички трябва профил за възрастни.' : note.dataset.kid; }
     // Предизвикателството на деня се брои отделно за всеки режим (client.js)
     try { DAILY_KEY = adult ? 'zn-daily-adult' : 'quizzard-daily'; renderDailyTile(); } catch {}
     const meta = q('meta[name="theme-color"]'); if (meta && document.documentElement.dataset.season !== 'xmas') meta.content = adult ? '#10151f' : '#0e2a4a';
@@ -78,7 +78,7 @@
     let w;
     try { w = await call('/api/coins'); } catch (x) { return flash(x.message); }
     const when = (t) => new Date(t).toLocaleString('bg-BG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-    const m = open('🪙 Парички', `<div class="zn-bal"><span>Имаш</span><b>🪙 ${w.coins}</b><small>Залогът за игра е ${w.stake}. Победителят взима залозите на другите.</small></div>
+    const m = open('🪙 Парички', `<div class="zn-bal"><span>Имаш</span><b>🪙 ${w.coins}</b><small>Входът за игра е ${w.stake}. Победителят взима входовете на другите.</small></div>
       <h3>📺 Гледай реклама</h3>
       <div class="zn-ad"><div><b>+${w.ads.reward} парички</b> за всяка реклама<small>Остават ${w.ads.left} от ${w.ads.perDay} за днес</small></div>
         <button class="qx-btn gold" data-ad ${w.ads.mode === 'off' || !w.ads.left ? 'disabled' : ''}>${w.ads.mode === 'off' ? 'Скоро' : w.ads.left ? '▶ Гледай' : 'Утре пак'}</button></div>

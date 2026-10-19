@@ -1,4 +1,4 @@
-// Режим за възрастни: регистрация за възрастни, отделни въпроси, парички и залог, знаме, отделни класации.
+// Режим за възрастни: регистрация за възрастни, отделни въпроси, парички и вход, знаме, отделни класации.
 const assert = require('assert');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -99,12 +99,12 @@ function autoplay(c) {
     assert.match((await k.next((m) => m.t === 'error')).msg, /детския режим/, 'дете не влиза в режима за възрастни');
     const g = connect(); await g.ready;
     g.ws.send(JSON.stringify({ t: 'quick', name: 'Гост', grade: 9 }));
-    assert.match((await g.next((m) => m.t === 'error')).msg, /профил за възрастни/, 'гост не играе онлайн със залог');
+    assert.match((await g.next((m) => m.t === 'error')).msg, /профил за възрастни/, 'гост не играе онлайн с вход');
     const ca = connect(a.jar); await ca.ready;
     ca.ws.send(JSON.stringify({ t: 'quick', grade: 2 }));
     assert.match((await ca.next((m) => m.t === 'error')).msg, /само за деца/, 'възрастен не влиза в онлайн игрите на децата');
 
-    // ----- игра с ботове за възрастни: въпроси само от категориите за възрастни, без залог -----
+    // ----- игра с ботове за възрастни: въпроси само от категориите за възрастни, без вход -----
     g.ws.send(JSON.stringify({ t: 'bots', name: 'Гост', grade: 9, bots: 1 }));
     const gj = await g.next((m) => m.t === 'joined'); g.pid = gj.pid; autoplay(g);
     const ADULT = ['hist', 'geo', 'sci', 'film', 'music', 'spt', 'lit', 'art', 'tec', 'gen'];
@@ -112,9 +112,9 @@ function autoplay(c) {
     g.ws.on('message', (raw) => { const m = JSON.parse(raw); if (m.t === 'game' && m.state.current?.q) seen.add(m.state.current.q.subject); });
     const gEnd = await g.next((m) => m.t === 'game' && m.state.phase === 'ended');
     assert.ok(seen.size > 2 && [...seen].every((s) => ADULT.includes(s)), 'само въпроси за възрастни: ' + [...seen]);
-    assert.strictEqual(gEnd.lobby.stake, 0, 'с ботове няма залог');
+    assert.strictEqual(gEnd.lobby.stake, 0, 'с ботове няма вход');
 
-    // ----- двама възрастни с приятели: залог 100, победителят взима 200 -----
+    // ----- двама възрастни с приятели: вход 100, победителят взима 200 -----
     ca.ws.send(JSON.stringify({ t: 'create', grade: 9 }));
     const room = await ca.next((m) => m.t === 'joined'); ca.pid = room.pid;
     const cb = connect(b.jar); await cb.ready;
@@ -129,7 +129,7 @@ function autoplay(c) {
     assert.strictEqual(end.lobby.stakes.pot, 200);
     const ua = (await a.req('GET', '/api/account/me')).data.user, ub = (await b.req('GET', '/api/account/me')).data.user;
     const winA = end.lobby.stakes.result.winner === ca.pid;
-    assert.deepStrictEqual([ua.coins, ub.coins], winA ? [1100, 900] : [900, 1100], 'победителят взима залога');
+    assert.deepStrictEqual([ua.coins, ub.coins], winA ? [1100, 900] : [900, 1100], 'победителят взима наградата');
 
     // ----- отделни класации -----
     const kidBoard = (await kid.req('GET', '/api/leaderboard?kind=xp')).data.top.map((x) => x.name);
@@ -137,7 +137,7 @@ function autoplay(c) {
     assert.ok(!kidBoard.includes('Знаменосец') && adultBoard.includes('Знаменосец') && !adultBoard.includes('Звездичка7'), 'децата и възрастните са в отделни класации');
 
     for (const c of [k, g, ca, cb]) c.ws.close();
-    console.log('OK: режим за възрастни: регистрация за възрастни, знаме, парички и залог, отделни въпроси и класации');
+    console.log('OK: режим за възрастни: регистрация за възрастни, знаме, парички и вход, отделни въпроси и класации');
   } finally {
     await stopServer();
     fs.rmSync(DIR, { recursive: true, force: true });
