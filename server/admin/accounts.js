@@ -118,7 +118,7 @@ class Accounts {
       subjects: Object.fromEntries(Object.entries(u.subj || {}).map(([k, v]) => [k, { n: v[0], ok: v[1] }])),
       avatars: R.AVATARS, colors: R.COLORS, ranks: this.ranksOf(u),
       team: this.league ? this.league.publicTeam(this.league.teams[u.team]) : null, hasParentLink: !!u.parentToken,
-      adult: !!u.adult, coins: u.adult ? u.coins ?? 0 : null, flag: u.flag || null, daily: R.dailyState(u),
+      adult: !!u.adult, coins: u.adult ? u.coins ?? 0 : null, coinBonus: !!(u.adult && this.wallet?.bonusReady(u)), flag: u.flag || null, daily: R.dailyState(u),
       flagOptions: { patterns: R.FLAG_PATTERNS, colors: R.FLAG_COLORS, emblems: R.FLAG_EMBLEMS },
       email: maskEmail(u.email), needsConsent: this.needsConsent(u), consentAt: u.consentAt || null, weeklyMail: u.weeklyMail !== false, mail: mail.enabled(),
       children: u.adult ? this.childrenOf(u).map((c) => ({ id: c.id, name: c.name, grade: c.grade || null, games: c.games || 0 })) : undefined,

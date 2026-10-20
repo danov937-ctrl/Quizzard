@@ -131,6 +131,16 @@ function autoplay(c) {
     const winA = end.lobby.stakes.result.winner === ca.pid;
     assert.deepStrictEqual([ua.coins, ub.coins], winA ? [1100, 900] : [900, 1100], 'победителят взима наградата');
 
+    // ----- дневен бонус в магазина: веднъж на ден, 100 парички -----
+    r = await a.req('GET', '/api/coins'); assert.strictEqual(r.data.daily.ready, true); assert.strictEqual(r.data.daily.amount, 100);
+    assert.strictEqual((await a.req('GET', '/api/account/me')).data.user.coinBonus, true, 'чипът показва, че чака бонус');
+    const before = r.data.coins;
+    r = await a.req('POST', '/api/coins/daily', {}); assert.strictEqual(r.status, 200, JSON.stringify(r.data));
+    assert.strictEqual(r.data.coins, before + 100); assert.strictEqual(r.data.daily.ready, false); assert.strictEqual(r.data.log[0].why, 'Дневен бонус');
+    assert.strictEqual((await a.req('POST', '/api/coins/daily', {})).status, 429, 'втори път в един и същи ден не става');
+    assert.strictEqual((await a.req('GET', '/api/account/me')).data.user.coinBonus, false);
+    assert.strictEqual((await kid.req('POST', '/api/coins/daily', {})).status, 403, 'децата нямат бонус с парички');
+
     // ----- отделни класации -----
     const kidBoard = (await kid.req('GET', '/api/leaderboard?kind=xp')).data.top.map((x) => x.name);
     const adultBoard = (await a.req('GET', '/api/leaderboard?kind=coins&aud=adult')).data.top.map((x) => x.name);

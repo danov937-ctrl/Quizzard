@@ -67,7 +67,7 @@
     wallet.classList.toggle('hidden', !me);
     q('[data-flagl]', home)?.classList.toggle('hidden', !me);
     if (!me) { wallet.innerHTML = ''; return; }
-    wallet.innerHTML = (show ? `<button class="zn-coin-chip" data-shop title="Парички и магазин">🪙 <b>${me.coins}</b><span>＋</span></button>` : '') +
+    wallet.innerHTML = (show ? `<button class="zn-coin-chip" data-shop title="${me.coinBonus ? 'Чака те дневен бонус!' : 'Парички и магазин'}">🪙 <b>${me.coins}</b><span>${me.coinBonus ? '🎁' : '＋'}</span></button>` : '') +
       `<button class="zn-flag-chip" data-flag title="Моето знаме">${window.ZFlag ? ZFlag.svg(me.flag || null, 34) : '🚩'}</button>`;
   }
   window.addEventListener('zn:me', (e) => { me = e.detail; apply(); });
@@ -79,14 +79,20 @@
     try { w = await call('/api/coins'); } catch (x) { return flash(x.message); }
     const when = (t) => new Date(t).toLocaleString('bg-BG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     const m = open('🪙 Парички', `<div class="zn-bal"><span>Имаш</span><b>🪙 ${w.coins}</b><small>Входът за игра е ${w.stake}. Победителят взима входовете на другите.</small></div>
+      <h3>🎁 Дневен бонус</h3>
+      <div class="zn-ad"><div><b>+${w.daily.amount} парички</b> всеки ден<small>${w.daily.ready ? 'Чака те днес!' : 'Днешният е взет. Ела утре!'}</small></div>
+        <button class="qx-btn gold" data-daily ${w.daily.ready ? '' : 'disabled'}>${w.daily.ready ? 'Вземи' : 'Взет ✓'}</button></div>
       <h3>📺 Гледай реклама</h3>
       <div class="zn-ad"><div><b>+${w.ads.reward} парички</b> за всяка реклама<small>Остават ${w.ads.left} от ${w.ads.perDay} за днес</small></div>
         <button class="qx-btn gold" data-ad ${w.ads.mode === 'off' || !w.ads.left ? 'disabled' : ''}>${w.ads.mode === 'off' ? 'Скоро' : w.ads.left ? '▶ Гледай' : 'Утре пак'}</button></div>
       <h3>🛒 Магазин</h3>
       <div class="zn-packs">${w.packs.map((p) => `<div class="zn-pack"><span class="zn-pack-coins">🪙 ${p.coins.toLocaleString('bg-BG')}</span>${p.bonus ? `<span class="zn-bonus">${p.bonus}</span>` : ''}<button class="qx-btn ${w.shop ? 'gold' : ''}" data-buy="${p.id}" ${w.shop ? '' : 'disabled'}>${w.shop ? p.price : 'Скоро'}</button></div>`).join('')}</div>
-      ${w.shop ? '' : '<p class="qx-note">Плащанията ще бъдат включени скоро. Дотогава печели парички с победи и реклами.</p>'}
+      ${w.shop ? '' : '<p class="qx-note">Плащанията ще бъдат включени скоро. Дотогава печели парички с победи, дневен бонус и реклами.</p>'}
       <p class="qx-note">Паричките са само за игра: не се обменят обратно в пари, не се теглят и не се прехвърлят на други играчи.</p>
       ${w.log.length ? `<details class="qx-more"><summary>История</summary><div class="zn-log">${w.log.map((l) => `<div><span>${esc(l.why)}<small>${when(l.at)}</small></span><b class="${l.d < 0 ? 'neg' : ''}">${l.d > 0 ? '+' : ''}${l.d}</b></div>`).join('')}</div></details>` : ''}`, 'narrow');
+    q('[data-daily]', m)?.addEventListener('click', async () => {
+      try { const r = await call('/api/coins/daily', {}); flash(`+${w.daily.amount} парички! Имаш 🪙 ${r.coins}.`); window.ZX.reload(); openShop(); } catch (x) { flash(x.message); }
+    });
     q('[data-ad]', m)?.addEventListener('click', () => watchAd(w));
   }
   // Пробна реклама (REWARDED_ADS=test): брояч, после наградата. С истинска мрежа тук идва нейният плейър.
