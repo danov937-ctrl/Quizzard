@@ -1,6 +1,8 @@
 // Знаменосци: реклами само извън играта (начален екран и стая), никога по време на въпрос или на картата.
 // Настройките идват от сървъра (/ads-config.js), за да се сменят в Render без промяна на кода:
-//   ADSENSE_CLIENT=ca-pub-…  + ADSENSE_SLOT_HOME / ADSENSE_SLOT_LOBBY  → Google AdSense, с маркировка „дете“ (без персонализирани реклами)
+//   ADSENSE_CLIENT=ca-pub-…  + ADSENSE_SLOT_HOME / ADSENSE_SLOT_LOBBY  → Google AdSense. Гост, дете и всеки неразпознат получават маркировка „дете“
+//     (без персонализирани реклами). Само профил на възрастен (пълнолетие и имейл са потвърдени) получава обичайни реклами, които
+//     Google персонализира само със съгласие (в ЕС Google показва собствен прозорец за съгласие).
 //   SPONSOR_IMG + SPONSOR_URL (+ SPONSOR_ALT)                         → банер на спонсор, без бисквитки и без чужди скриптове
 // Без настройки не се показва нищо.
 (function () {
@@ -24,10 +26,13 @@
   }
 
   if (!cfg.client) return;
+  // Профил на възрастен: пълнолетие и имейл са потвърдени. Гост в раздела „Възрастни“ не се брои: възрастта му не е проверена.
+  const adultViewer = () => !!(window.qzMe && window.qzMe.adult && !window.qzMe.needsConsent);
   let loaded = false;
   function loadScript() {
     if (loaded) return; loaded = true;
-    // Не персонализирани реклами: играчите са деца (до 14 г. в България е нужно съгласие на родител).
+    // По подразбиране реклами без персонализация: играчите са деца (до 14 г. в България е нужно съгласие на родител).
+    // За възрастен профил флагът се сменя в fill(), преди всяка заявка.
     (window.adsbygoogle = window.adsbygoogle || []).requestNonPersonalizedAds = 1;
     const s = document.createElement('script');
     s.async = true; s.crossOrigin = 'anonymous';
@@ -38,8 +43,10 @@
   function fill(el) {
     const slot = cfg.slots && cfg.slots[el.dataset.ad];
     if (!slot || el.dataset.filled) return;
-    el.dataset.filled = '1';
+    const adult = adultViewer();
+    el.dataset.filled = adult ? 'adult' : 'kid';
     loadScript();
+    (window.adsbygoogle = window.adsbygoogle || []).requestNonPersonalizedAds = adult ? 0 : 1;
     const ins = document.createElement('ins');
     ins.className = 'adsbygoogle';
     ins.style.display = 'block';
@@ -47,12 +54,21 @@
     ins.dataset.adSlot = slot;
     ins.dataset.adFormat = 'horizontal';
     ins.dataset.fullWidthResponsive = 'true';
-    ins.dataset.tagForAgeTreatment = '1'; // TFAT „дете“: без персонализация и ремаркетинг
+    ins.dataset.tagForAgeTreatment = adult ? '0' : '1'; // TFAT: 1 = „дете“ (без персонализация и ремаркетинг), 0 = без специално третиране (възрастен профил)
     el.appendChild(ins); el.classList.add('on');
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) { /* блокер на реклами */ }
   }
   const visible = (el) => !el.closest('.screen.hidden');
-  const check = () => { for (const el of slots) if (visible(el)) fill(el); };
+  // Първо трябва да се разбере кой играе (extras.js праща „qz:me“); ако отговорът се бави, се пуска детска реклама
+  let waited = false;
+  const check = () => { if (!waited && !window.qzMeKnown) return; for (const el of slots) if (visible(el)) fill(el); };
+  setTimeout(() => { waited = true; check(); }, 3000);
+  // Влизане или излизане от профил: реклама, показана за другия вид зрител, се маха и се зарежда наново със своята маркировка
+  window.addEventListener('qz:me', () => {
+    const now = adultViewer() ? 'adult' : 'kid';
+    for (const el of slots) if (el.dataset.filled && el.dataset.filled !== now) { el.textContent = ''; el.classList.remove('on'); delete el.dataset.filled; }
+    check();
+  });
   check();
   new MutationObserver(check).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
 })();

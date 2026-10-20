@@ -36,6 +36,10 @@ async function withServer(env, fn) {
     assert.ok(priv.includes('id="facebook"') && priv.includes('id="fbOff"') && priv.includes('qz-fb-consent'), 'политика: раздел за Facebook и оттегляне');
     assert.ok((await get(port, '/privacy-adult.html')).text.includes('/privacy.html#facebook'), 'политика за възрастни сочи към раздела');
   });
+  // Реклами: възрастният профил е с обичайна маркировка, всички останали са „дете“
+  const ads = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'ads.js'), 'utf8');
+  for (const needle of ['adultViewer', 'qzMe.adult', 'needsConsent', "adult ? '0' : '1'", 'requestNonPersonalizedAds = adult ? 0 : 1', 'qzMeKnown', 'qz:me']) assert.ok(ads.includes(needle), 'ads.js: ' + needle);
+  assert.ok(!/tagForAgeTreatment = '1'/.test(ads), 'детската маркировка вече не е безусловна');
   // Google AdSense: мета етикет за проверка на собственика и ads.txt, само при валиден ADSENSE_CLIENT
   await withServer({ ADSENSE_CLIENT: 'ca-pub-1234567890123456' }, async (port) => {
     assert.ok((await get(port, '/')).text.includes('<meta name="google-adsense-account" content="ca-pub-1234567890123456">'), 'AdSense: мета етикет на началната страница');
