@@ -100,7 +100,10 @@ function origin(req) {
 function sendIndex(req, res) {
   fs.readFile(path.join(PUBLIC, 'index.html'), 'utf8', (err, html) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
-    sendBody(req, res, Buffer.from(html.replace(/__ORIGIN__/g, origin(req))), TYPES['.html'], 'no-cache');
+    let out = html.replace(/__ORIGIN__/g, origin(req));
+    // Google AdSense проверява собственика на сайта по този етикет (не изпраща нищо никъде). Без ADSENSE_CLIENT няма етикет.
+    if (/^ca-pub-\d+$/.test(env('ADSENSE_CLIENT'))) out = out.replace('</title>', `</title>\n  <meta name="google-adsense-account" content="${env('ADSENSE_CLIENT')}">`);
+    sendBody(req, res, Buffer.from(out), TYPES['.html'], 'no-cache');
   });
 }
 // robots.txt и sitemap.xml за Google: админ панелът и API-то не се индексират

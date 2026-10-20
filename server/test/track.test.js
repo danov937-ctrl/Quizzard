@@ -36,5 +36,16 @@ async function withServer(env, fn) {
     assert.ok(priv.includes('id="facebook"') && priv.includes('id="fbOff"') && priv.includes('qz-fb-consent'), 'политика: раздел за Facebook и оттегляне');
     assert.ok((await get(port, '/privacy-adult.html')).text.includes('/privacy.html#facebook'), 'политика за възрастни сочи към раздела');
   });
+  // Google AdSense: мета етикет за проверка на собственика и ads.txt, само при валиден ADSENSE_CLIENT
+  await withServer({ ADSENSE_CLIENT: 'ca-pub-1234567890123456' }, async (port) => {
+    assert.ok((await get(port, '/')).text.includes('<meta name="google-adsense-account" content="ca-pub-1234567890123456">'), 'AdSense: мета етикет на началната страница');
+    assert.match((await get(port, '/ads.txt')).text, /google\.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0/, 'AdSense: ads.txt');
+  });
+  await withServer({ ADSENSE_CLIENT: 'ca-pub-1"><script>alert(1)</script>' }, async (port) => {
+    const t = (await get(port, '/')).text;
+    assert.ok(!t.includes('google-adsense-account') && !t.includes('alert(1)'), 'невалиден ADSENSE_CLIENT се отхвърля');
+    assert.strictEqual((await get(port, '/ads.txt')).status, 404);
+  });
+  await withServer({}, async (port) => { assert.ok(!(await get(port, '/')).text.includes('google-adsense-account'), 'без ADSENSE_CLIENT няма етикет'); });
   console.log('track: всички проверки минаха');
 })().catch((e) => { console.error(e); process.exit(1); });
