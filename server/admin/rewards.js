@@ -8,8 +8,10 @@ const subjectsOf = (u) => (u.adult ? ADULT_SUBJECTS : SUBJECTS);
 
 // ---------- опит и нива ----------
 const XP = { correct: 10, wrong: 2, game: 30, win: 70, firstToday: 20 };
-// За ниво n+1 са нужни 100 + 60·(n−1) точки повече от ниво n
-const xpFor = (level) => { let t = 0; for (let n = 1; n < level; n++) t += 100 + 60 * (n - 1); return t; };
+// За ниво n+1 са нужни LEVEL_BASE + LEVEL_STEP·(n−1) точки повече от ниво n. Първото ниво идва бързо, а после стъпката расте.
+// Общо за ниво 5: 1080 точки, за 12: 6820, за 20: 19380, за 30: 44080 (преди: 760, 4400, 12160, 27260).
+const LEVEL_BASE = 120, LEVEL_STEP = 100;
+const xpFor = (level) => { let t = 0; for (let n = 1; n < level; n++) t += LEVEL_BASE + LEVEL_STEP * (n - 1); return t; };
 function levelOf(xp) { let l = 1; while (xp >= xpFor(l + 1)) l++; return l; }
 const TITLES = [[1, 'Новобранец'], [3, 'Оръженосец'], [5, 'Рицар'], [8, 'Капитан'], [12, 'Барон'], [16, 'Граф'], [20, 'Херцог'], [25, 'Владетел'], [30, 'Легенда']];
 const titleOf = (level) => TITLES.filter(([l]) => level >= l).pop()[1];

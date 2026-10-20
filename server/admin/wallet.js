@@ -7,6 +7,7 @@ const { ADULT } = require('../questions');
 const START = 1000;
 const STAKE = 100;
 const AD_REWARD = 100;
+const DAILY_BONUS = 100;   // дневен бонус в магазина: веднъж на ден (по часа в София)
 const ADS_PER_DAY = 5;
 const AD_MIN_MS = 15000; // рекламата трябва да е гледана поне толкова, преди да се даде наградата
 // Пакети в магазина. Цените са примерни, докато не са включени плащанията.
@@ -89,9 +90,11 @@ class Wallet {
     for (const uid of Object.values(s.by)) { const u = this.acc.users[uid]; if (u) this.add(u, STAKE, 'Прекъсната игра: входът се връща'); }
   }
 
+  bonusReady(u) { return !!u && !!u.adult && u.dailyBonus !== dayKey(); }
   adsLeft(u) { return u.ads?.day === dayKey() ? Math.max(0, ADS_PER_DAY - u.ads.n) : ADS_PER_DAY; }
   view(u) {
     return { coins: u.coins || 0, stake: STAKE, start: START, packs: PACKS, shop: this.shopOn,
+      daily: { amount: DAILY_BONUS, ready: this.bonusReady(u) },
       ads: { mode: this.adsMode, left: this.adsLeft(u), perDay: ADS_PER_DAY, reward: AD_REWARD, minSec: AD_MIN_MS / 1000 },
       log: (u.coinLog || []).slice(-15).reverse().map((l) => ({ ...l, why: oldWords(l.why) })) };
   }
@@ -105,6 +108,12 @@ class Wallet {
     if (p === '/api/coins/buy' && post) {
       if (!this.shopOn) return json(res, 503, { error: 'Плащанията още не са включени. Скоро!' });
       return json(res, 400, { error: 'Непознат пакет.' });
+    }
+    if (p === '/api/coins/daily' && post) {
+      if (!this.bonusReady(me)) return json(res, 429, { error: 'Днешният бонус вече е взет. Ела утре! 🎁' });
+      me.dailyBonus = dayKey();
+      this.add(me, DAILY_BONUS, 'Дневен бонус');
+      return json(res, 200, this.view(me));
     }
     if (p === '/api/coins/ad/start' && post) {
       if (this.adsMode === 'off') return json(res, 503, { error: 'Рекламите с награда още не са включени. Скоро!' });
@@ -129,4 +138,4 @@ class Wallet {
   }
 }
 
-module.exports = { Wallet, START, STAKE, AD_REWARD, ADS_PER_DAY, PACKS };
+module.exports = { Wallet, START, STAKE, AD_REWARD, DAILY_BONUS, ADS_PER_DAY, PACKS };

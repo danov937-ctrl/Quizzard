@@ -46,7 +46,7 @@ function client() {
   assert.strictEqual(R.dailyState(lost).run, 0, 'пропуснат ден: серията се нулира');
   assert.strictEqual(R.claimDaily(lost).xp, 20); assert.strictEqual(lost.daily.best, 6, 'рекордът се пази');
 
-  const lv = { xp: 95 };
+  const lv = { xp: R.levelInfo(0).to - 5 };
   assert.strictEqual(R.claimDaily(lv).levelUp, 2, 'награда, която вдига нивото');
 }
 
